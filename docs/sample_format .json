@@ -1,0 +1,1655 @@
+{
+  "cards_event": [
+    {
+      "card_id": "EV-001",
+      "event_name": "本部長の決定",
+      "category": [
+        "行政対応",
+        "避難所管理"
+      ],
+      "priority": 0,
+      "difficulty": "初級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "五小地区代表会議",
+      "additional_equipment": null,
+      "required_people": 1,
+      "content": "教職員が不在の夜間に震度5強が発生しました。参集した「五小地区代表会議メンバー」の中から本部長を決定し、避難所本部を立ち上げてください。",
+      "scene_description": "暗闇の中、地域住民が次々と五小に集まってきている。教職員はまだ誰も到着していない。",
+      "training_point": "市マニュアルに沿った地域主導の初動体制確立と本部長の迅速な選任。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-002",
+      "event_name": "総合受付の設置",
+      "category": [
+        "避難所管理",
+        "衛生・ゴミ"
+      ],
+      "priority": 1,
+      "difficulty": "初級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": "EV-001",
+      "source": "避難所本部",
+      "additional_equipment": "非接触型体温計、消毒液、防護服セット",
+      "required_people": 3,
+      "content": "児童昇降口前に総合受付を設置してください。同時に備蓄倉庫から感染症対策セット（非接触型体温計、消毒液、防護服）を取り出し、検温・手指消毒体制を準備してください。",
+      "scene_description": "昇降口前に避難者が集まり始めている。受付ラインの形成が必要。",
+      "training_point": "スムーズな動線確保と、初期受入れ時からの感染症水際対策。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-003",
+      "event_name": "マンホールトイレの設営",
+      "category": [
+        "避難所設備",
+        "衛生・ゴミ"
+      ],
+      "priority": 1,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "設営班",
+      "additional_equipment": "マンホールトイレ10基",
+      "required_people": 5,
+      "content": "市内で大規模断水が発生しました。プレハブ棟にある資器材を取り出し、体育館東側または正門北側に10基のマンホールトイレを組み立ててください。",
+      "scene_description": "校内の水洗トイレが使えなくなり、避難者から不安の声があがっている。",
+      "training_point": "断水直後の迅速な衛生設備構築と設置場所（体育館東側・正門北側）の正しい判断。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-004",
+      "event_name": "プールの水の活用",
+      "category": [
+        "避難所設備",
+        "衛生・ゴミ"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "なし",
+      "prerequisite_card_id": "EV-003",
+      "source": "施設管理班",
+      "additional_equipment": "バケツ、ロープ",
+      "required_people": 2,
+      "content": "校内の既存トイレが水洗不能です。「プールの水をバケツで汲んで用を足した後の洗浄水として使用する」よう、避難者へ周知徹底してください。",
+      "scene_description": "トイレに排水できず汚れが目立ち始めている。",
+      "training_point": "代替水資源の安全かつ効果的な活用と衛生維持ルール周知。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-005",
+      "event_name": "テレビの設置要望",
+      "category": [
+        "避難者対応",
+        "避難所設備"
+      ],
+      "priority": 3,
+      "difficulty": "初級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "避難者有志",
+      "additional_equipment": "ワンセグ/校内テレビ",
+      "required_people": 1,
+      "content": "避難者から「被害状況や余震情報を得るためにテレビが見たい」と強い要望がありました。校内のテレビの提供可否と、情報掲示板でのジャンル別整理を指示してください。",
+      "scene_description": "デマや不確実な噂が流れて避難者が不安がっている。",
+      "training_point": "正しい災害情報の収集・共有手段の確立と情報混乱の予防。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "card_id": "EV-006",
+      "event_name": "大量の毛布到着",
+      "category": [
+        "行政対応",
+        "避難者対応"
+      ],
+      "priority": 1,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "市災害対策本部",
+      "additional_equipment": "毛布2000枚",
+      "required_people": 8,
+      "content": "深夜1時に市災害対策本部からトラックで毛布2,000枚が到着しました。荷下ろし場所の確保と、配給順位（高齢者・妊婦等の要配慮者優先）を決定してください。",
+      "scene_description": "大型トラックが正門前に到着。夜間の冷え込みが厳しくなっている。",
+      "training_point": "大規模資機材の迅速な搬入動線確保と公平かつ要配慮者を優先した配布基準設定。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "card_id": "EV-007",
+      "event_name": "喫煙所の場所確認",
+      "category": [
+        "避難所管理",
+        "衛生・ゴミ"
+      ],
+      "priority": 4,
+      "difficulty": "初級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "愛煙家の避難者数名",
+      "additional_equipment": "吸い殻入れ",
+      "required_people": 1,
+      "content": "愛煙家数名から「タバコはどこで吸えばいいか」と問合せがありました。五小マニュアルでは室内および校舎周辺は原則禁煙です。屋外指定場所の設定を決定してください。",
+      "scene_description": "体育館の陰で隠れて煙草を吸おうとする人物が見受けられる。",
+      "training_point": "防火対策と非喫煙者（子ども・妊婦等）への受動喫煙防止、指定ルールの徹底。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "card_id": "EV-008",
+      "event_name": "報道機関の来所",
+      "category": [
+        "マスコミ・視察",
+        "避難所管理"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "YY新聞・BHBテレビ",
+      "additional_equipment": "取材対応用腕章",
+      "required_people": 1,
+      "content": "YY新聞とBHBテレビの取材班が到着し、避難所の撮影とインタビューを要求しています。受付での記名・腕章着用ルールと、プライバシー配慮の要請を行ってください。",
+      "scene_description": "カメラを向けられた避難者が顔を背けて嫌がっている。",
+      "training_point": "避難者の個人情報・プライバシー保護と、混乱を招かないマスコミ取材管理対応。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "2日目"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-009",
+      "event_name": "物資配布の混乱",
+      "category": [
+        "避難者対応",
+        "避難所管理"
+      ],
+      "priority": 1,
+      "difficulty": "上級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": "EV-006",
+      "source": "物資配給班",
+      "additional_equipment": "整理券、コーン",
+      "required_people": 4,
+      "content": "食料配布の際、人が殺到して列が乱れ、押し合いが発生しています。ソーシャルディスタンス（2m）の確保と、世帯ごとの整理券配布・時間差配給を検討してください。",
+      "scene_description": "「早く寄こせ！」と怒号が飛び交い配給現場が混乱している。",
+      "training_point": "群衆事故の防止、公平な分配システムの構築とソーシャルディスタンス維持。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "2日目"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "card_id": "EV-010",
+      "event_name": "スマホ充電の要望",
+      "category": [
+        "避難所設備",
+        "避難者対応"
+      ],
+      "priority": 3,
+      "difficulty": "中級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "避難者多数",
+      "additional_equipment": "タップ線",
+      "required_people": 2,
+      "content": "多くの避難者からスマートフォン充電の希望が出ています。学校の太陽光パネルによる電気は蓄電されていないため「日中の発電時のみ利用可能」である制限を説明・管理してください。",
+      "scene_description": "コンセントの前に長蛇の列ができ、割り込みで口論が起きかけている。",
+      "training_point": "限られた電源インフラの制約理解と、ルールに基づく時間・回数制限運用。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "2日目"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "card_id": "EV-011",
+      "event_name": "NPOの支援申し出",
+      "category": [
+        "外部団体対応",
+        "避難者対応"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "民間NPO法人",
+      "additional_equipment": null,
+      "required_people": 1,
+      "content": "子ども向け遊戯支援や避難所内の空間整理を専門とするNPO団体が来所しました。窓口を本部に一本化し、ニーズのすり合わせと活動エリア調整を行ってください。",
+      "scene_description": "支援団体が各自で活動を始めようとして現場が錯綜している。",
+      "training_point": "外部支援受入れ窓口の一元化と、現場ニーズに応じた適材適所の配置運用。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "2日目"
+      ],
+      "relative_timing": [
+        "終盤"
+      ]
+    },
+    {
+      "card_id": "EV-012",
+      "event_name": "不審者情報の共有",
+      "category": [
+        "避難所管理",
+        "災害・被害"
+      ],
+      "priority": 1,
+      "difficulty": "上級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "防犯ボランティア",
+      "additional_equipment": "識別名札、リボン",
+      "required_people": 3,
+      "content": "近隣の避難所で空き巣や窃盗、不審者による詐欺トラブルの情報が入りました。避難者識別用の名札・リボン配給と防犯巡回体制を強化してください。",
+      "scene_description": "見知らぬ人物が避難者の荷物を覗き込みながら徘徊している。",
+      "training_point": "避難所内の防犯・安全管理意識の共有と部外者の識別対策導入。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "3日目"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-013",
+      "event_name": "自衛隊の入浴支援",
+      "category": [
+        "外部団体対応",
+        "衛生・ゴミ"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "自衛隊設営部隊",
+      "additional_equipment": "仮設野外入浴セット",
+      "required_people": 4,
+      "content": "校庭に自衛隊の野外入浴施設が設営されました。「14時～17時は避難所避難者、17時以降は在宅避難者」とする利用時間割を作成し掲示してください。",
+      "scene_description": "入浴支援の開始を聞きつけ、多くの住民が集まってきた。",
+      "training_point": "在宅避難者を含めた公平な利用機会の提供と混雑緩和のスケジュール管理。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "3日目"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "card_id": "EV-014",
+      "event_name": "ごみ処理の苦情",
+      "category": [
+        "衛生・ゴミ",
+        "避難所管理"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "避難者・清掃班",
+      "additional_equipment": "指定ゴミ袋（二重用）",
+      "required_people": 2,
+      "content": "ごみ集積所にごみが山積みになり、強い悪臭が発生しています。一般ごみと感染性廃棄物（使用済みオムツ等）を分別し、二重袋にする管理ルールを徹底してください。",
+      "scene_description": "ゴミ箱から生ゴミが溢れ、ハエが集まり始めている。",
+      "training_point": "避難所内の公衆衛生維持と感染症リスクを低減するゴミ分別・集積管理。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "3日目"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "card_id": "EV-015",
+      "event_name": "清掃当番の決定",
+      "category": [
+        "避難所管理",
+        "衛生・ゴミ"
+      ],
+      "priority": 3,
+      "difficulty": "初級",
+      "must_respond": "なし",
+      "prerequisite_card_id": "EV-014",
+      "source": "避難所本部",
+      "additional_equipment": "清掃用具セット",
+      "required_people": 2,
+      "content": "共用スペース（トイレ・廊下）の汚れが目立ちます。避難者の自主的運営を促すため、居住区ごとの班（組）交代制清掃シフトを提案し導入してください。",
+      "scene_description": "「運営側の掃除が行き届いていない」と受動的な批判の声が出ている。",
+      "training_point": "避難者自身が当事者意識を持って運営に参加する自主組織づくりの促進。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "3日目"
+      ],
+      "relative_timing": [
+        "終盤"
+      ]
+    },
+    {
+      "card_id": "EV-016",
+      "event_name": "防犯灯の設置",
+      "category": [
+        "避難所設備",
+        "避難所管理"
+      ],
+      "priority": 2,
+      "difficulty": "初級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "女性避難者有志",
+      "additional_equipment": "バルーンライト",
+      "required_people": 2,
+      "content": "「夜間、屋外トイレや仮設トイレへ行く通路が真っ暗で怖い」との声がありました。バルーンライトの設営と夜間のペア巡回ルートを設定してください。",
+      "scene_description": "日没後、校庭の陰が真っ暗になり女性や子どもが移動を躊躇している。",
+      "training_point": "夜間における性被害・事件事故防止のための照明配置と見回り強化。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "3日目"
+      ],
+      "relative_timing": [
+        "終盤"
+      ]
+    },
+    {
+      "card_id": "EV-017",
+      "event_name": "ボランティアの受入れ",
+      "category": [
+        "外部団体対応",
+        "行政対応"
+      ],
+      "priority": 3,
+      "difficulty": "初級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "一般個人ボランティア",
+      "additional_equipment": null,
+      "required_people": 1,
+      "content": "個人ボランティアが直接避難所に立ち代わり手伝いを申し出ています。まずは市役所に設置された「災害ボランティアセンター」で登録・保険加入してくるよう案内してください。",
+      "scene_description": "善意で駆けつけた個人が受付で指示を待っている。",
+      "training_point": "ボランティアの怪我保険登録確認と正規受付手続きへの適切な誘導。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "4日目"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-018",
+      "event_name": "心のケア（ストレス緩和）",
+      "category": [
+        "避難者対応",
+        "行政対応"
+      ],
+      "priority": 2,
+      "difficulty": "上級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "救護支援班",
+      "additional_equipment": "娯楽品（けん玉、折り紙等）",
+      "required_people": 2,
+      "content": "避難生活の長期化に伴い、子どもに自傷行為や夜泣きなどのストレス症状が見られます。救護支援班によるメンタルヘルス相談窓口の設置と娯楽品の提供を行ってください。",
+      "scene_description": "狭い体育館生活で子どもも大人も表情が暗くイライラしている。",
+      "training_point": "長期避難における精神的ストレスの早期発見と専門機関（保健師等）との連携。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "4日目"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "card_id": "EV-019",
+      "event_name": "福祉避難所への移送",
+      "category": [
+        "行政対応",
+        "避難者対応"
+      ],
+      "priority": 1,
+      "difficulty": "極高（現場混乱）",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "保健師・医療班",
+      "additional_equipment": "介護車両",
+      "required_people": 3,
+      "content": "重度要介護の高齢者が一般避難所での環境適応に限界を迎えています。市災害対策本部へ二次避難所（東部市民センター等の福祉避難所）への移送・受入れを打診してください。",
+      "scene_description": "要介護者の体調が悪化し、家族も疲弊して限界を訴えている。",
+      "training_point": "一般避難所での対応限界見極めと、二次避難（福祉避難所）への適切な打診・手続き。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "4日目"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "card_id": "EV-020",
+      "event_name": "学校再開の調整",
+      "category": [
+        "行政対応",
+        "避難所管理"
+      ],
+      "priority": 1,
+      "difficulty": "極高（現場混乱）",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "教育委員会・校長",
+      "additional_equipment": null,
+      "required_people": 5,
+      "content": "発災4日目。学校授業再開方針が示されました。各教室に避難している人々に対し、体育館等へ避難スペースを再統合・集約するレイアウト変更の検討を開始してください。",
+      "scene_description": "学校教育の早期再開に向け、校長と教育委員会職員が協議に来た。",
+      "training_point": "避難所機能の縮小・再編と学校教育活動再開の両立に向けた合意形成。",
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "4日目"
+      ],
+      "relative_timing": [
+        "終盤"
+      ]
+    }
+  ],
+  "evacuee_groups": [
+    {
+      "group_id": "GRP-001",
+      "group_name": "国語家（高齢夫婦）",
+      "member_count": 2,
+      "evacuation_origin": "花小金井６丁目",
+      "urgency_level": "要即時対応",
+      "personal_equipment": [],
+      "pet_count": 0,
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "group_id": "GRP-002",
+      "group_name": "算数家（乳幼児連れ世帯）",
+      "member_count": 3,
+      "evacuation_origin": "花小金井６丁目",
+      "urgency_level": "要即時対応",
+      "personal_equipment": [],
+      "pet_count": 0,
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "group_id": "GRP-003",
+      "group_name": "理科家（ブラジル人世帯）",
+      "member_count": 3,
+      "evacuation_origin": "花小金井６丁目",
+      "urgency_level": "通常",
+      "personal_equipment": [],
+      "pet_count": 0,
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "group_id": "GRP-004",
+      "group_name": "社会家（ペット同伴・単身）",
+      "member_count": 1,
+      "evacuation_origin": "花小金井６丁目",
+      "urgency_level": "通常",
+      "personal_equipment": [],
+      "pet_count": 1,
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "group_id": "GRP-005",
+      "group_name": "英語家（視覚障がい者と介助犬）",
+      "member_count": 1,
+      "evacuation_origin": "花小金井６丁目",
+      "urgency_level": "要即時対応",
+      "personal_equipment": [],
+      "pet_count": 1,
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "group_id": "GRP-006",
+      "group_name": "体育家（発熱症状避難者）",
+      "member_count": 1,
+      "evacuation_origin": "花小金井６丁目",
+      "urgency_level": "要即時対応",
+      "personal_equipment": [],
+      "pet_count": 0,
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "group_id": "GRP-007",
+      "group_name": "音楽家（濃厚接触者世帯）",
+      "member_count": 2,
+      "evacuation_origin": "花小金井６丁目",
+      "urgency_level": "要即時対応",
+      "personal_equipment": [],
+      "pet_count": 0,
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "group_id": "GRP-008",
+      "group_name": "図工家（車椅子利用高齢女性）",
+      "member_count": 1,
+      "evacuation_origin": "花小金井６丁目",
+      "urgency_level": "要即時対応",
+      "personal_equipment": [
+        "車椅子"
+      ],
+      "pet_count": 0,
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "group_id": "GRP-009",
+      "group_name": "家庭家（食物アレルギー母子）",
+      "member_count": 2,
+      "evacuation_origin": "花小金井６丁目",
+      "urgency_level": "通常",
+      "personal_equipment": [],
+      "pet_count": 0,
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "group_id": "GRP-010",
+      "group_name": "道徳家（車中泊希望家族）",
+      "member_count": 3,
+      "evacuation_origin": "花小金井６丁目",
+      "urgency_level": "通常",
+      "personal_equipment": [
+        "乗用車"
+      ],
+      "pet_count": 0,
+      "match_shelters": [
+        "小平第五小学校"
+      ],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "終盤"
+      ]
+    }
+  ],
+  "group_members": [
+    {
+      "member_id": "M-0001",
+      "group_id": "GRP-001",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "国語 太郎",
+      "gender": "男性",
+      "age": 80,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "認知症"
+      ],
+      "health_condition": [
+        "慢性疾患あり"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "appearance": "家屋半壊により着の身着のまま避難。少し落ち着きがない様子",
+      "training_point": "認知症高齢者への配慮と、目の配りやすい要配慮者優先スペースへの配置。"
+    },
+    {
+      "member_id": "M-0002",
+      "group_id": "GRP-001",
+      "data_type": "人物",
+      "relationship": "妻",
+      "name": "国語 花子",
+      "gender": "女性",
+      "age": 75,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "appearance": "夫の介護で疲弊した表情。手を引いて避難してきた",
+      "training_point": "介護者の負担軽減と、夫婦同室での安心感確保。"
+    },
+    {
+      "member_id": "M-0003",
+      "group_id": "GRP-002",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "算数 一郎",
+      "gender": "男性",
+      "age": 32,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [
+        "力仕事"
+      ],
+      "pet_housing": [],
+      "appearance": "大きなマザーズバッグと着替え袋を所持",
+      "training_point": "避難所設営への協力打診と家族への配慮。"
+    },
+    {
+      "member_id": "M-0004",
+      "group_id": "GRP-002",
+      "data_type": "人物",
+      "relationship": "妻",
+      "name": "算数 和代",
+      "gender": "女性",
+      "age": 30,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "乳幼児"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "appearance": "赤ちゃんを抱っこ紐で抱え、「授乳室はどこか」と尋ねてくる",
+      "training_point": "五小マニュアルに基づき「第1学童」を専用スペース（授乳・オムツ替え）として案内できるか。"
+    },
+    {
+      "member_id": "M-0005",
+      "group_id": "GRP-002",
+      "data_type": "人物",
+      "relationship": "子",
+      "name": "算数 芽衣",
+      "gender": "女性",
+      "age": 0,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "乳幼児"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "appearance": "生後6ヶ月の乳幼児。泣き声に周囲への配慮を気にする様子",
+      "training_point": "乳幼児優先エリアの設置とプライバシーの確保。"
+    },
+    {
+      "member_id": "M-0006",
+      "group_id": "GRP-003",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "理科 ルイス",
+      "gender": "男性",
+      "age": 46,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "外国籍",
+        "言語障害"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [
+        "多言語通訳"
+      ],
+      "pet_housing": [],
+      "appearance": "ブラジル出身。日本語での日常会話が困難。スマホの翻訳画面を見せている",
+      "training_point": "やさしい日本語・ピクトグラム・翻訳ツールの活用と多言語案内。"
+    },
+    {
+      "member_id": "M-0007",
+      "group_id": "GRP-003",
+      "data_type": "人物",
+      "relationship": "父",
+      "name": "理科 ジョアン",
+      "gender": "男性",
+      "age": 72,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "外国籍",
+        "言語障害"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "appearance": "アパート全壊のため不安そうに息子の後ろについて歩いている",
+      "training_point": "住まい喪失者への長期生活支援案内と安心感の提示。"
+    },
+    {
+      "member_id": "M-0008",
+      "group_id": "GRP-003",
+      "data_type": "人物",
+      "relationship": "子",
+      "name": "理科 ポリアナ",
+      "gender": "女性",
+      "age": 14,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "外国籍"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [
+        "多言語通訳"
+      ],
+      "pet_housing": [],
+      "appearance": "中学生。簡単な日本語なら理解でき、通訳を助けようとする",
+      "training_point": "子供に通訳の過剰な負担をかけないコミュニケーションの配慮。"
+    },
+    {
+      "member_id": "M-0009",
+      "group_id": "GRP-004",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "社会 節子",
+      "gender": "女性",
+      "age": 70,
+      "attributes": [
+        "単身者",
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "ペット"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "appearance": "柴犬のリードをしっかりと握り、「家族同然だから離れたくない」と主張",
+      "training_point": "ペット同行避難のルール（居住スペースとの分離・飼育エリアの設置）の徹底説明。"
+    },
+    {
+      "member_id": "M-0010",
+      "group_id": "GRP-004",
+      "data_type": "ペット",
+      "relationship": "ペット",
+      "name": "コタロウ",
+      "gender": "男性",
+      "age": 6,
+      "attributes": [],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [
+        "人懐こい"
+      ],
+      "pet_type": "犬",
+      "pet_health_condition": [],
+      "pet_vulnerabilities": [
+        "無駄吠え・夜鳴き"
+      ],
+      "pet_skills": [
+        "人懐こい"
+      ],
+      "pet_housing": [
+        "リードのみ"
+      ],
+      "appearance": "赤柴のオス。興奮して時折吠える。アレルギー避難者とのゾーニングが必要",
+      "training_point": "アレルギー保持者や動物苦手な避難者とのトラブル防止区画管理。"
+    },
+    {
+      "member_id": "M-0011",
+      "group_id": "GRP-005",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "英語 健治",
+      "gender": "男性",
+      "age": 45,
+      "attributes": [
+        "単身者",
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "視覚障害"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "appearance": "白杖を持ち、盲導犬を同伴している。全盲",
+      "training_point": "五小マニュアルでは補助犬連れ避難者は「多目的室」が専用スペースとなる知識の適用。"
+    },
+    {
+      "member_id": "M-0012",
+      "group_id": "GRP-005",
+      "data_type": "ペット",
+      "relationship": "ペット",
+      "name": "マックス",
+      "gender": "男性",
+      "age": 5,
+      "attributes": [],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [
+        "見張り・警戒"
+      ],
+      "pet_type": "犬",
+      "pet_health_condition": [],
+      "pet_vulnerabilities": [],
+      "pet_skills": [
+        "見張り・警戒"
+      ],
+      "pet_housing": [
+        "リードのみ"
+      ],
+      "appearance": "ハーネスを着用したラブラドールレトリバー（盲導犬）。非常に落ち着いている",
+      "training_point": "補助犬（盲導犬・介助犬・聴導犬）はペットと異なり同室受入れ可能であるルールの遵守。"
+    },
+    {
+      "member_id": "M-0013",
+      "group_id": "GRP-006",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "体育 勇",
+      "gender": "男性",
+      "age": 45,
+      "attributes": [
+        "単身者",
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "発熱",
+        "感染症疑い"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "appearance": "38.2℃の発熱と激しい咳。しんどそうに肩で息をしている",
+      "training_point": "五小マニュアルのトリアージに基づき「集会室」へ即座に誘導・隔離できるか。"
+    },
+    {
+      "member_id": "M-0014",
+      "group_id": "GRP-007",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "音楽 正",
+      "gender": "男性",
+      "age": 40,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "感染症疑い"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "appearance": "保健所から自宅療養指示を受けていたが自宅の身の危険を感じて避難してきた",
+      "training_point": "五小マニュアルに基づき濃厚接触者・自宅療養者用の「第2・3学童」へ案内する。"
+    },
+    {
+      "member_id": "M-0015",
+      "group_id": "GRP-007",
+      "data_type": "人物",
+      "relationship": "妻",
+      "name": "音楽 由美",
+      "gender": "女性",
+      "age": 38,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "感染症疑い"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "appearance": "マスクを二重に着用し、静かに夫と待機している",
+      "training_point": "一般避難者との接触事故を防ぐ専用動線での誘導。"
+    },
+    {
+      "member_id": "M-0016",
+      "group_id": "GRP-008",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "図工 トミ",
+      "gender": "女性",
+      "age": 85,
+      "attributes": [
+        "単身者",
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "車椅子"
+      ],
+      "health_condition": [
+        "慢性疾患あり"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "appearance": "自操式車椅子に乗った一人暮らしの高齢女性",
+      "training_point": "段差解消と避難所内主要通路の幅（110cm以上）確保の指揮指示。"
+    },
+    {
+      "member_id": "M-0017",
+      "group_id": "GRP-009",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "家庭 恵子",
+      "gender": "女性",
+      "age": 34,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "appearance": "娘の手を引いている。「子どもが重度の小麦アレルギーです」と申し出る",
+      "training_point": "アレルギー情報の即時把握と配給物資の表示・個包装管理。"
+    },
+    {
+      "member_id": "M-0018",
+      "group_id": "GRP-009",
+      "data_type": "人物",
+      "relationship": "子",
+      "name": "家庭 さくら",
+      "gender": "女性",
+      "age": 5,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "アレルギー"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "appearance": "アレルギー対応キーホルダーを鞄につけている",
+      "training_point": "アレルギー対応食の誤食防止と配給ラインの分別徹底。"
+    },
+    {
+      "member_id": "M-0019",
+      "group_id": "GRP-010",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "道徳 健太",
+      "gender": "男性",
+      "age": 38,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [
+        "力仕事"
+      ],
+      "pet_housing": [],
+      "appearance": "自家用車で来所。「余震が怖いので夜は校庭の車内で寝たい」と相談",
+      "training_point": "車中泊避難者の把握（登録）とエコノミークラス症候群予防の周知、日中情報提供の仕組み。"
+    },
+    {
+      "member_id": "M-0020",
+      "group_id": "GRP-010",
+      "data_type": "人物",
+      "relationship": "妻",
+      "name": "道徳 幸子",
+      "gender": "女性",
+      "age": 36,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "appearance": "車内で過ごすための毛布やクッションを車に積んでいる",
+      "training_point": "在宅・車中泊避難者への物資配給・情報提供の公平性確保。"
+    },
+    {
+      "member_id": "M-0021",
+      "group_id": "GRP-010",
+      "data_type": "人物",
+      "relationship": "子",
+      "name": "道徳 翔太",
+      "gender": "男性",
+      "age": 8,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "appearance": "車の中でゲームをしている",
+      "training_point": "車中泊世帯の子供のストレスケアと安全確保。"
+    }
+  ]
+}

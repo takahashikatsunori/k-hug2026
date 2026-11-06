@@ -1,0 +1,578 @@
+{
+  "cards_event": [
+    {
+      "card_id": "EV-021",
+      "event_name": "天候の悪化（強風）",
+      "category": [
+        "災害・被害",
+        "天候・気候",
+        "避難所設備"
+      ],
+      "priority": 1,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "設営班",
+      "additional_equipment": "補強用ロープ、重り",
+      "required_people": 3,
+      "content": "強風が吹き荒れ、屋外に設置したマンホールトイレのテントがあおられて倒壊・飛散する危険があります。補強策または一時的な利用見合わせを判断してください。",
+      "scene_description": "突風が吹き、屋外テントが激しく揺れて危険な状態になっている。",
+      "training_point": "気象変化に伴う屋外設営資機材の安全確保・転倒防止対策および二次災害の防止。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "下水道破損"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [
+        "強風"
+      ],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-022",
+      "event_name": "収容人数の超過",
+      "category": [
+        "避難所管理",
+        "避難者対応",
+        "行政対応"
+      ],
+      "priority": 0,
+      "difficulty": "極高（現場混乱）",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "総合受付班",
+      "additional_equipment": null,
+      "required_people": 5,
+      "content": "避難所の収容上限人数に達しました。これ以上の屋内受け入れが困難なため、近隣の中学校や公園など二次避難場所への安全な誘導・案内体制を決定してください。",
+      "scene_description": "受付前に長蛇の列ができ、館内に入りきれない避難者で溢れかえっている。",
+      "training_point": "キャパシティオーバー時の適切な入場制限、市本部との連絡連携、他施設への円滑な誘導方針の策定。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    }
+  ],
+  "evacuee_groups": [
+    {
+      "group_id": "GRP-011",
+      "group_name": "梅酒家（開設準備委員）",
+      "member_count": 1,
+      "evacuation_origin": "学園東町",
+      "urgency_level": "要即時対応",
+      "personal_equipment": [],
+      "pet_count": 0,
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "group_id": "GRP-012",
+      "group_name": "ハイボール家（車避難）",
+      "member_count": 1,
+      "evacuation_origin": "仲町",
+      "urgency_level": "要即時対応",
+      "personal_equipment": [
+        "乗用車"
+      ],
+      "pet_count": 0,
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "group_id": "GRP-013",
+      "group_name": "炭酸家（在宅避難者）",
+      "member_count": 1,
+      "evacuation_origin": "学園東町２丁目",
+      "urgency_level": "通常",
+      "personal_equipment": [],
+      "pet_count": 0,
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "group_id": "GRP-014",
+      "group_name": "大吟醸家（自治会役員）",
+      "member_count": 1,
+      "evacuation_origin": "学園東町１丁目",
+      "urgency_level": "要即時対応",
+      "personal_equipment": [],
+      "pet_count": 0,
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "下水道破損"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "group_id": "GRP-015",
+      "group_name": "麦家（体調不安者）",
+      "member_count": 1,
+      "evacuation_origin": "仲町",
+      "urgency_level": "通常",
+      "personal_equipment": [],
+      "pet_count": 0,
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "group_id": "GRP-016",
+      "group_name": "モスコ・ミュールグループ（保育園集団避難）",
+      "member_count": 1,
+      "evacuation_origin": "学園東町３丁目",
+      "urgency_level": "要即時対応",
+      "personal_equipment": [],
+      "pet_count": 0,
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "group_id": "GRP-017",
+      "group_name": "芋家（LGBTQ当事者）",
+      "member_count": 1,
+      "evacuation_origin": "学園東町",
+      "urgency_level": "通常",
+      "personal_equipment": [],
+      "pet_count": 0,
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "group_id": "GRP-018",
+      "group_name": "テキーラ家（盗難被害相談）",
+      "member_count": 1,
+      "evacuation_origin": "学園東町",
+      "urgency_level": "要即時対応",
+      "personal_equipment": [],
+      "pet_count": 0,
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "group_id": "GRP-019",
+      "group_name": "ジン家（帰宅困難者）",
+      "member_count": 1,
+      "evacuation_origin": "学園東町",
+      "urgency_level": "通常",
+      "personal_equipment": [],
+      "pet_count": 0,
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "通信障害"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    }
+  ],
+  "group_members": [
+    {
+      "member_id": "M-0022",
+      "group_id": "GRP-011",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "梅酒 綾",
+      "gender": "女性",
+      "age": 65,
+      "attributes": [
+        "市民ボランティア",
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "statement": "早く鍵を開けてくれと言われても、まだ役所も避難所開設準備委員会も来ていないのよ。",
+      "appearance": "避難所開設準備委員。まだ役所も他の委員も誰もおらず、集まった避難者から「早く鍵を開けろ」と迫られて困惑している。",
+      "training_point": "開設未完了時における鍵の管理・開口判断と、詰めかけた避難者への安全確保および状況説明対応。"
+    },
+    {
+      "member_id": "M-0023",
+      "group_id": "GRP-012",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "ハイボール 大吉",
+      "gender": "男性",
+      "age": 42,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "statement": "家が倒壊したので、車で避難させてくれ！",
+      "appearance": "自宅全壊のため乗用車で避難。避難者であふれる校庭にそのまま車を乗り入れて立ち往生している。",
+      "training_point": "校庭内への車両進入制限ルールの適用、車中泊対応ゾーニングおよび歩行者の安全動線確保。"
+    },
+    {
+      "member_id": "M-0024",
+      "group_id": "GRP-013",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "炭酸 陽子",
+      "gender": "女性",
+      "age": 53,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "statement": "在宅避難します。受付したら何時にここに来ればいいですか？",
+      "appearance": "自宅での生活維持を選択した在宅避難者。物資受け取り等の事前受付と来所スケジュールの確認を求めている。",
+      "training_point": "在宅避難者の登録管理体制の構築および物資配給・情報伝達の仕組みづくり。"
+    },
+    {
+      "member_id": "M-0025",
+      "group_id": "GRP-014",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "大吟醸 太郎",
+      "gender": "男性",
+      "age": 71,
+      "attributes": [
+        "自治会役員",
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "statement": "勝手にトイレを使わないでください。震度6弱で上下水道管は壊れているのでビニール袋をかけてください。",
+      "appearance": "地域の自治会リーダー。衛生管理を強く意識しており、水洗トイレの使用禁止と非常用トイレ袋の使用を避難者に呼びかけている。",
+      "training_point": "大規模地震時の下水道破損を踏まえたトイレ使用ルールの早期周知と、自主防災組織リーダーとの連携。"
+    },
+    {
+      "member_id": "M-0026",
+      "group_id": "GRP-015",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "麦 なお",
+      "gender": "女性",
+      "age": 30,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "statement": "咳をしている人がいるんだけど何とかしてもらえませんか？",
+      "appearance": "近くで咳をしている避難者がいることに強い不安を覚え、運営側に隔離や対応を強く求めている。",
+      "training_point": "感染症不安を訴える避難者への丁寧な傾聴と、発熱・有症状者ゾーンとの適切な切り分けおよび不安緩和。"
+    },
+    {
+      "member_id": "M-0027",
+      "group_id": "GRP-016",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "モスコ ミュール",
+      "gender": "女性",
+      "age": 31,
+      "attributes": [
+        "市民ボランティア",
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "乳幼児"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [
+        "保育・教育"
+      ],
+      "pet_housing": [],
+      "statement": "こどもたちが動き回ったり泣いたりして心配です。",
+      "appearance": "近隣保育園の保育士。園児20名を引率して集団避難してきた。子どもたちの安全確保やぐずり・騒音への周囲の目が心配。",
+      "training_point": "未就学児・保育集団向けの優先スペース（キッズスペース）の確保と保護者引渡しまでの安全管理。"
+    },
+    {
+      "member_id": "M-0028",
+      "group_id": "GRP-017",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "芋 ひかる",
+      "gender": "その他",
+      "age": 34,
+      "attributes": [
+        "単身者",
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "LGBTQ"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "statement": "見た目と心は性別違うので、お風呂は一人で入りたいです。",
+      "appearance": "LGBTQ当事者。自認する性別と外見のギャップから、着替えや入浴、トイレの個別配慮を希望している。",
+      "training_point": "プライバシーに配慮した個室・多目的スペースの運用および多様な避難者への人権的配慮。"
+    },
+    {
+      "member_id": "M-0029",
+      "group_id": "GRP-018",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "テキーラ ゆき",
+      "gender": "女性",
+      "age": 47,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "精神的ショック"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "statement": "私がここに置いておいた荷物がないんです！",
+      "appearance": "指定スペースに置いておいた貴重品・荷物が消失したと訴え、青ざめてパニックになっている。",
+      "training_point": "避難所内での盗難・荷物トラブル防止のための防犯・巡回体制の構築と個人の貴重品管理周知。"
+    },
+    {
+      "member_id": "M-0030",
+      "group_id": "GRP-019",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "ジン ライム",
+      "gender": "男性",
+      "age": 49,
+      "attributes": [
+        "帰宅困難者"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "pet_housing": [],
+      "statement": "どうしても家族と連絡が取りたい、電話を貸してください。",
+      "appearance": "着の身着のままで避難した帰宅困難者。携帯電話のバッテリー切れまたは通信障害により連絡手段を失っている。",
+      "training_point": "帰宅困難者への特設公衆電話・通信手段の提供と災害用伝言ダイヤルの活用共有。"
+    }
+  ]
+}

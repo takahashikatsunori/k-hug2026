@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>HUGカードデータベース管理ツール V6.2</title>
+  <link rel="stylesheet" href="/static/css/app.css" />
+</head>
+<body>
+  <header class="app-header">
+    <div class="header-top">
+      <div class="brand">
+        <h1 class="app-title">HUGカードデータベース管理ツール</h1>
+        <span class="version-tag">V6.2</span>
+      </div>
+      <div class="header-right">
+        <div class="global-counts" id="global-counts-bar" data-testid="global-counts-bar">
+          <span class="hdr-badge">イベント: <strong id="hdr-cnt-events" data-testid="hdr-count-events">0</strong></span>
+          <span class="hdr-badge">世帯: <strong id="hdr-cnt-households" data-testid="hdr-count-households">0</strong></span>
+          <span class="hdr-badge">人物: <strong id="hdr-cnt-persons" data-testid="hdr-count-persons">0</strong></span>
+          <span class="hdr-badge">ペット: <strong id="hdr-cnt-pets" data-testid="hdr-count-pets">0</strong></span>
+        </div>
+        <button
+          type="button"
+          class="btn btn-sm btn-secondary"
+          id="header-create-version-btn"
+          data-testid="header-create-version-btn"
+        >
+          ＋ バージョンを作成
+        </button>
+      </div>
+    </div>
+
+    <nav class="app-nav" role="navigation" aria-label="メインナビゲーション">
+      <button type="button" class="nav-tab-btn active" data-tab="list" data-testid="tab-list">
+        カード一覧
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="editor" data-testid="tab-editor">
+        新規作成
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="images" data-testid="tab-images">
+        イラスト管理
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="deck" data-testid="tab-deck">
+        デッキ構築
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="saved" data-testid="tab-saved">
+        保存済み
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="io" data-testid="tab-io">
+        データ入出力
+      </button>
+      <button type="button" class="nav-tab-btn" data-tab="versions" data-testid="tab-versions">
+        バージョン
+      </button>
+    </nav>
+  </header>
+
+  <main id="app-main" class="app-main"></main>
+
+  <div id="toast-container" class="toast-container"></div>
+
+  <script type="module" src="/static/js/app.js"></script>
+</body>
+</html>

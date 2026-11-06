@@ -1,0 +1,7 @@
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "e2e: End-to-end UI tests using Playwright and Microsoft Edge",
+]
+addopts = "--browser-channel=msedge"
+pythonpath = ["."]

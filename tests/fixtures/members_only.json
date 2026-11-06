@@ -1,0 +1,498 @@
+{
+  "group_members": [
+    {
+      "member_id": "M-0001",
+      "group_id": "GRP-001",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "国語 太郎",
+      "gender": "男性",
+      "age": 80,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "認知症"
+      ],
+      "health_condition": [
+        "慢性疾患あり"
+      ],
+      "skills": [],
+      "statement": "ここはどこだい？早く家に帰らないと……薬はどこかな？",
+      "pet_housing": [],
+      "appearance": "家屋半壊により着の身着のまま避難。少し落ち着きがない様子",
+      "training_point": "認知症高齢者への配慮と、目の配りやすい要配慮者優先スペースへの配置。"
+    },
+    {
+      "member_id": "M-0002",
+      "group_id": "GRP-001",
+      "data_type": "人物",
+      "relationship": "妻",
+      "name": "国語 花子",
+      "gender": "女性",
+      "age": 75,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "statement": "家が傾き逃げてきました。夫は認知症で不安がるので、落ち着ける場所をお願いします。",
+      "pet_housing": [],
+      "appearance": "夫の介護で疲弊した表情。手を引いて避難してきた",
+      "training_point": "介護者の負担軽減と、夫婦同室での安心感確保。"
+    },
+    {
+      "member_id": "M-0003",
+      "group_id": "GRP-002",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "算数 一郎",
+      "gender": "男性",
+      "age": 32,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [
+        "力仕事"
+      ],
+      "statement": "生後6ヶ月の子と妻と避難しました。落ち着いたら力仕事を手伝います！",
+      "pet_housing": [],
+      "appearance": "大きなマザーズバッグと着替え袋を所持",
+      "training_point": "避難所設営への協力打診と家族への配慮。"
+    },
+    {
+      "member_id": "M-0004",
+      "group_id": "GRP-002",
+      "data_type": "人物",
+      "relationship": "妻",
+      "name": "算数 和代",
+      "gender": "女性",
+      "age": 30,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "乳幼児"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "statement": "生後6ヶ月の赤ちゃんがいて授乳とおむつ替えの場所を探しています。",
+      "pet_housing": [],
+      "appearance": "赤ちゃんを抱っこ紐で抱え、「授乳室はどこか」と尋ねてくる",
+      "training_point": "五小マニュアルに基づき「第1学童」を専用スペース（授乳・オムツ替え）として案内できるか。"
+    },
+    {
+      "member_id": "M-0005",
+      "group_id": "GRP-002",
+      "data_type": "人物",
+      "relationship": "子",
+      "name": "算数 芽衣",
+      "gender": "女性",
+      "age": 0,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "乳幼児"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "statement": "（不安そうにぐずっている）",
+      "pet_housing": [],
+      "appearance": "生後6ヶ月の乳幼児。泣き声に周囲への配慮を気にする様子",
+      "training_point": "乳幼児優先エリアの設置とプライバシーの確保。"
+    },
+    {
+      "member_id": "M-0006",
+      "group_id": "GRP-003",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "理科 ルイス",
+      "gender": "男性",
+      "age": 46,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "外国籍",
+        "言語障害"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [
+        "多言語通訳"
+      ],
+      "statement": "アパートが壊れました。家族3人です、どこに行けばいいですか？",
+      "pet_housing": [],
+      "appearance": "ブラジル出身。日本語での日常会話が困難。スマホの翻訳画面を見せている",
+      "training_point": "やさしい日本語・ピクトグラム・翻訳ツールの活用と多言語案内。"
+    },
+    {
+      "member_id": "M-0007",
+      "group_id": "GRP-003",
+      "data_type": "人物",
+      "relationship": "父",
+      "name": "理科 ジョアン",
+      "gender": "男性",
+      "age": 72,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "外国籍",
+        "言語障害"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "statement": "（ポルトガル語で息子に話しかけ、小さく頭を下げている）",
+      "pet_housing": [],
+      "appearance": "アパート全壊のため不安そうに息子の後ろについて歩いている",
+      "training_point": "住まい喪失者への長期生活支援案内と安心感の提示。"
+    },
+    {
+      "member_id": "M-0008",
+      "group_id": "GRP-003",
+      "data_type": "人物",
+      "relationship": "子",
+      "name": "理科 ポリアナ",
+      "gender": "女性",
+      "age": 14,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "外国籍"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [
+        "多言語通訳"
+      ],
+      "statement": "アパートが壊れてしまって……私たちはどこにいたらいいですか？",
+      "pet_housing": [],
+      "appearance": "中学生。簡単な日本語なら理解でき、通訳を助けようとする",
+      "training_point": "子供に通訳の過剰な負担をかけないコミュニケーションの配慮。"
+    },
+    {
+      "member_id": "M-0009",
+      "group_id": "GRP-004",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "社会 節子",
+      "gender": "女性",
+      "age": 70,
+      "attributes": [
+        "単身者",
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "ペット"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "statement": "ペットの犬（コタロウ）と離れたくないので一緒にいさせてください。",
+      "pet_housing": [],
+      "appearance": "柴犬のリードをしっかりと握り、「家族同然だから離れたくない」と主張",
+      "training_point": "ペット同行避難のルール（居住スペースとの分離・飼育エリアの設置）の徹底説明。"
+    },
+    {
+      "member_id": "M-0010",
+      "group_id": "GRP-004",
+      "data_type": "ペット",
+      "relationship": "ペット",
+      "name": "コタロウ",
+      "gender": "男性",
+      "age": 6,
+      "attributes": [],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [
+        "人懐こい"
+      ],
+      "pet_type": "犬",
+      "pet_health_condition": [],
+      "pet_vulnerabilities": [
+        "無駄吠え・夜鳴き"
+      ],
+      "pet_skills": [
+        "人懐こい"
+      ],
+      "pet_housing": [
+        "リードのみ"
+      ],
+      "appearance": "赤柴のオス。興奮して時折吠える。アレルギー避難者とのゾーニングが必要",
+      "training_point": "アレルギー保持者や動物苦手な避難者とのトラブル防止区画管理。",
+      "statement": ""
+    },
+    {
+      "member_id": "M-0011",
+      "group_id": "GRP-005",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "英語 健治",
+      "gender": "男性",
+      "age": 45,
+      "attributes": [
+        "単身者",
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "視覚障害"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "statement": "全盲です。盲導犬のマックスと一緒に過ごせるスペースをお願いします。",
+      "pet_housing": [],
+      "appearance": "白杖を持ち、盲導犬を同伴している。全盲",
+      "training_point": "五小マニュアルでは補助犬連れ避難者は「多目的室」が専用スペースとなる知識の適用。"
+    },
+    {
+      "member_id": "M-0012",
+      "group_id": "GRP-005",
+      "data_type": "ペット",
+      "relationship": "ペット",
+      "name": "マックス",
+      "gender": "男性",
+      "age": 5,
+      "attributes": [],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [
+        "見張り・警戒"
+      ],
+      "pet_type": "犬",
+      "pet_health_condition": [],
+      "pet_vulnerabilities": [],
+      "pet_skills": [
+        "見張り・警戒"
+      ],
+      "pet_housing": [
+        "リードのみ"
+      ],
+      "appearance": "ハーネスを着用したラブラドールレトリバー（盲導犬）。非常に落ち着いている",
+      "training_point": "補助犬（盲導犬・介助犬・聴導犬）はペットと異なり同室受入れ可能であるルールの遵守。",
+      "statement": ""
+    },
+    {
+      "member_id": "M-0013",
+      "group_id": "GRP-006",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "体育 勇",
+      "gender": "男性",
+      "age": 45,
+      "attributes": [
+        "単身者",
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "発熱",
+        "感染症疑い"
+      ],
+      "skills": [],
+      "statement": "朝から38度以上の熱と咳が出ています。どこかで休ませてください。",
+      "pet_housing": [],
+      "appearance": "38.2℃の発熱と激しい咳。しんどそうに肩で息をしている",
+      "training_point": "五小マニュアルのトリアージに基づき「集会室」へ即座に誘導・隔離できるか。"
+    },
+    {
+      "member_id": "M-0014",
+      "group_id": "GRP-007",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "音楽 正",
+      "gender": "男性",
+      "age": 40,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "感染症疑い"
+      ],
+      "skills": [],
+      "statement": "濃厚接触者ですが自宅が危険なため避難しました。離れた場所で避難できますか？",
+      "pet_housing": [],
+      "appearance": "保健所から自宅療養指示を受けていたが自宅の身の危険を感じて避難してきた",
+      "training_point": "五小マニュアルに基づき濃厚接触者・自宅療養者用の「第2・3学童」へ案内する。"
+    },
+    {
+      "member_id": "M-0015",
+      "group_id": "GRP-007",
+      "data_type": "人物",
+      "relationship": "妻",
+      "name": "音楽 由美",
+      "gender": "女性",
+      "age": 38,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "感染症疑い"
+      ],
+      "skills": [],
+      "statement": "濃厚接触者です。うつさないよう一般の方と動線を分けた方がよいでしょうか？",
+      "pet_housing": [],
+      "appearance": "マスクを二重に着用し、静かに夫と待機している",
+      "training_point": "一般避難者との接触事故を防ぐ専用動線での誘導。"
+    },
+    {
+      "member_id": "M-0016",
+      "group_id": "GRP-008",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "図工 トミ",
+      "gender": "女性",
+      "age": 85,
+      "attributes": [
+        "単身者",
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "車椅子"
+      ],
+      "health_condition": [
+        "慢性疾患あり"
+      ],
+      "skills": [],
+      "statement": "車椅子を使っています。段差がなくトイレに近い場所はありますか？",
+      "pet_housing": [],
+      "appearance": "自操式車椅子に乗った一人暮らしの高齢女性",
+      "training_point": "段差解消と避難所内主要通路の幅（110cm以上）確保の指揮指示。"
+    },
+    {
+      "member_id": "M-0017",
+      "group_id": "GRP-009",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "家庭 恵子",
+      "gender": "女性",
+      "age": 34,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "statement": "5歳の娘が重度小麦アレルギーです。非常食のアレルギー表示はありますか？",
+      "pet_housing": [],
+      "appearance": "娘の手を引いている。「子どもが重度の小麦アレルギーです」と申し出る",
+      "training_point": "アレルギー情報の即時把握と配給物資の表示・個包装管理。"
+    },
+    {
+      "member_id": "M-0018",
+      "group_id": "GRP-009",
+      "data_type": "人物",
+      "relationship": "子",
+      "name": "家庭 さくら",
+      "gender": "女性",
+      "age": 5,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [
+        "アレルギー"
+      ],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "statement": "ママ、お腹すいたよ。わたしが食べられるごはんはあるかな？",
+      "pet_housing": [],
+      "appearance": "アレルギー対応キーホルダーを鞄につけている",
+      "training_point": "アレルギー対応食の誤食防止と配給ラインの分別徹底。"
+    },
+    {
+      "member_id": "M-0019",
+      "group_id": "GRP-010",
+      "data_type": "人物",
+      "relationship": "世帯主",
+      "name": "道徳 健太",
+      "gender": "男性",
+      "age": 38,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [
+        "力仕事"
+      ],
+      "statement": "車で逃げました。夜は車中泊したいのですが登録やトイレの利用はできますか？",
+      "pet_housing": [],
+      "appearance": "自家用車で来所。「余震が怖いので夜は校庭の車内で寝たい」と相談",
+      "training_point": "車中泊避難者の把握（登録）とエコノミークラス症候群予防の周知、日中情報提供の仕組み。"
+    },
+    {
+      "member_id": "M-0020",
+      "group_id": "GRP-010",
+      "data_type": "人物",
+      "relationship": "妻",
+      "name": "道徳 幸子",
+      "gender": "女性",
+      "age": 36,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "statement": "車中泊の私たちにも食事や連絡事項は教えてもらえるでしょうか？",
+      "pet_housing": [],
+      "appearance": "車内で過ごすための毛布やクッションを車に積んでいる",
+      "training_point": "在宅・車中泊避難者への物資配給・情報提供の公平性確保。"
+    },
+    {
+      "member_id": "M-0021",
+      "group_id": "GRP-010",
+      "data_type": "人物",
+      "relationship": "子",
+      "name": "道徳 翔太",
+      "gender": "男性",
+      "age": 8,
+      "attributes": [
+        "近隣住民"
+      ],
+      "vulnerabilities": [],
+      "health_condition": [
+        "良好"
+      ],
+      "skills": [],
+      "statement": "お家が怖かったので車にいたいけれど、ずっとだと退屈だなあ。",
+      "pet_housing": [],
+      "appearance": "車の中でゲームをしている",
+      "training_point": "車中泊世帯の子供のストレスケアと安全確保。"
+    }
+  ]
+}

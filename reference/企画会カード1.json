@@ -1,0 +1,2076 @@
+{
+  "cards_event": [
+    {
+      "card_id": "EV-001",
+      "event_name": "避難所開設情報の不徹底",
+      "category": [
+        "行政対応",
+        "避難所管理"
+      ],
+      "priority": 1,
+      "difficulty": "初級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "近隣住民・受付窓口",
+      "additional_equipment": null,
+      "required_people": 2,
+      "content": "「この避難所が開設されているのか分からない」と不安を抱えた地域住民が次々と押し寄せています。正確な開所状況と受付開始の周知を行ってください。",
+      "scene_description": "門の前で開所を待つ住民が集まり、混乱と不安の声が上がっている。",
+      "training_point": "公式開所宣言と情報発信（掲示板・広報広聴等）の迅速な実施体制の構築。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "通信障害"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-002",
+      "event_name": "停電による通信・充電の停止",
+      "category": [
+        "避難所設備",
+        "避難者対応"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "避難者有志",
+      "additional_equipment": "ポータブル電源、発電機",
+      "required_people": 2,
+      "content": "停電により携帯電話のバッテリーが切れ、家族や外部との連絡が取れない避難者が急増しています。充電用電源の管理と利用ルールの決定を行ってください。",
+      "scene_description": "コンセント周辺に充電を求める避難者が殺到している。",
+      "training_point": "限られた非常用電源の公平な割り振りと時間制限ルールの運用。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "停電",
+        "通信障害"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-003",
+      "event_name": "安否未確認による避難遅延",
+      "category": [
+        "避難者対応"
+      ],
+      "priority": 3,
+      "difficulty": "中級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "避難者世帯",
+      "additional_equipment": "安否確認掲示板",
+      "required_people": 1,
+      "content": "家族と連絡がつかず、自宅に残るべきか避難所へ移動すべきか判断に迷っている避難者が相談に訪れました。伝言板の設置と登録手続きを行ってください。",
+      "scene_description": "不安な表情でスマートフォンの画面を何度も見つめる避難者の姿がある。",
+      "training_point": "アナログな安否確認掲示板の有効活用と不安を和らげる情報収集支援。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "通信障害"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-004",
+      "event_name": "要配慮者への情報伝達遅延",
+      "category": [
+        "避難者対応",
+        "行政対応"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "福祉ボランティア",
+      "additional_equipment": "筆談用具、多言語カード",
+      "required_people": 2,
+      "content": "館内放送が聞き取れない聴覚障がい者や日本語を理解できない外国籍の避難者に必要な案内が届いていません。文字やピクトグラムでの周知体制を整えてください。",
+      "scene_description": "放送を聞いて移動する周囲の動きに取り残されている避難者がいる。",
+      "training_point": "視覚的情報伝達（文字・ピクトグラム）の導入と多様な避難者への配慮。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-005",
+      "event_name": "防災行政無線・スピーカーの難聴",
+      "category": [
+        "行政対応",
+        "避難所設備"
+      ],
+      "priority": 3,
+      "difficulty": "初級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "近隣住民",
+      "additional_equipment": "ハンドマイク",
+      "required_people": 1,
+      "content": "「外のスピーカーの音が反響して自治体の公式放送が聞こえない」との問い合わせが相次いでいます。本部で受信した情報をホワイトボードに転記して手動で広報してください。",
+      "scene_description": "屋外の放送が聞こえず、首をかしげる避難者が増えている。",
+      "training_point": "音声情報に依存しない情報掲示板の運営と手動広報の併用。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-006",
+      "event_name": "避難経路の損壊・遮断",
+      "category": [
+        "災害・被害",
+        "避難所管理"
+      ],
+      "priority": 1,
+      "difficulty": "上級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "情報収集班",
+      "additional_equipment": "パイロン、立入禁止テープ",
+      "required_people": 2,
+      "content": "地震により避難所周辺の主要道路が陥没し、通行不能になっています。安全な迂回路の特定と、危険個所の立ち入り禁止措置を行ってください。",
+      "scene_description": "道路の亀裂により避難者が足止めされている。",
+      "training_point": "周辺被害状況の迅速な把握と安全な避難ルートへの誘導。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "交通機関不通"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-007",
+      "event_name": "誤情報・デマの拡散",
+      "category": [
+        "避難所管理",
+        "避難者対応"
+      ],
+      "priority": 2,
+      "difficulty": "上級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "避難者有志",
+      "additional_equipment": "公式情報掲示板",
+      "required_people": 2,
+      "content": "「近隣で大規模な爆発事故が起きる」といった不確実な噂がSNS上で広まり、避難者がパニックになりかけています。公式情報の貼り出しと沈静化を行ってください。",
+      "scene_description": "デマを信じた避難者が周囲に危険を訴え、動揺が広がっている。",
+      "training_point": "デマ情報の打ち消しと正確な情報源に基づく沈静化広報。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "通信障害"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日",
+        "2日目"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "card_id": "EV-008",
+      "event_name": "避難所混雑状況の不明",
+      "category": [
+        "避難所管理",
+        "行政対応"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "市災害対策本部",
+      "additional_equipment": null,
+      "required_people": 1,
+      "content": "市本部から避難所の収容率および混雑状況の緊急報告を求められました。現在の受入人数を集計し、本部へ回答してください。",
+      "scene_description": "他の避難所からの流入が続いており、定員超過の懸念が出ている。",
+      "training_point": "定期的かつ正確な定員管理と市本部とのデータ連携。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-009",
+      "event_name": "道路閉塞・危険物の落下",
+      "category": [
+        "災害・被害",
+        "避難所管理"
+      ],
+      "priority": 1,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "近隣住民",
+      "additional_equipment": "コーン、ロープ",
+      "required_people": 2,
+      "content": "避難所正門前の道路でブロック塀が倒壊し、看板が落下の恐れがあります。歩行者の危険防止のための安全区域を設定してください。",
+      "scene_description": "ガラガラと音を立てて崩れたブロック塀が道を塞いでいる。",
+      "training_point": "二次災害防止のための迅速な立入禁止区域の確保。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-010",
+      "event_name": "夜間停電下での避難移動",
+      "category": [
+        "災害・被害",
+        "避難所設備"
+      ],
+      "priority": 1,
+      "difficulty": "上級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "設営班",
+      "additional_equipment": "投光器、懐中電灯",
+      "required_people": 3,
+      "content": "日没後の停電により、校庭および通路が漆黒の闇に包まれました。誘導灯や投光器を配置して避難者の安全な転倒防止ルートを確保してください。",
+      "scene_description": "真っ暗闇の中、避難者が足元を恐る恐る確認しながら歩いている。",
+      "training_point": "夜間における照明設備の優先配置と足元の安全確保。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [
+        "夜間 (20:00-24:00)",
+        "深夜 (00:00-05:00)"
+      ],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "停電"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-011",
+      "event_name": "相次ぐ余震と心理的動揺",
+      "category": [
+        "災害・被害",
+        "避難者対応"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "避難所内巡回班",
+      "additional_equipment": null,
+      "required_people": 2,
+      "content": "震度4クラスの余震が繰り返し発生し、体育館内の避難者がパニックになって外へ飛び出そうとしています。声かけと安全確保の徹底を行ってください。",
+      "scene_description": "揺れのたびに悲鳴が上がり、出口へ走り出そうとする人がいる。",
+      "training_point": "余震時の「頭を守る」行動指導と集団パニックの防止。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-012",
+      "event_name": "低温・悪天候による防寒防雨不足",
+      "category": [
+        "天候・気候",
+        "避難者対応"
+      ],
+      "priority": 1,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "救護班",
+      "additional_equipment": "毛布、シート",
+      "required_people": 3,
+      "content": "雨と冷え込みの影響で、濡れた衣服を着た避難者が低体温症の危険に晒されています。優先的な毛布配給と屋内への収容を行ってください。",
+      "scene_description": "雨で全身が濡れ、寒さにガタガタと震える子どもや高齢者の姿がある。",
+      "training_point": "天候に応じた優先対応（低体温症予防）と緊急避難スペースの開放。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [
+        "雨",
+        "大雨",
+        "極寒"
+      ],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-013",
+      "event_name": "避難路の群衆渋滞",
+      "category": [
+        "避難所管理",
+        "災害・被害"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "正門受付班",
+      "additional_equipment": "誘導旗、メガホン",
+      "required_people": 3,
+      "content": "校庭へ通じる小道に大量の避難者が殺到し、押し合いが発生しています。安全な一方向通行の誘導ルートを設定してください。",
+      "scene_description": "狭い通路で人と人がぶつかり合い、進めなくなっている。",
+      "training_point": "群衆雪崩の危険防止と一方向動線の確保。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-014",
+      "event_name": "避難車両による路上混雑",
+      "category": [
+        "避難所管理",
+        "避難者対応"
+      ],
+      "priority": 1,
+      "difficulty": "上級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "周辺警備班",
+      "additional_equipment": "駐車禁止看板",
+      "required_people": 2,
+      "content": "自家用車で避難してきた車両が周辺道路を塞ぎ、徒歩避難者や緊急車両の通行を阻害しています。原則徒歩避難の呼びかけと車両退去要請を行ってください。",
+      "scene_description": "学校周辺の道路がクラクションと渋滞で麻痺している。",
+      "training_point": "徒歩避難原則の徹底周知と車中泊等特殊事例への限定運用。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-015",
+      "event_name": "帰宅困難者・外来者の迷走",
+      "category": [
+        "避難者対応",
+        "避難所管理"
+      ],
+      "priority": 3,
+      "difficulty": "初級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "総合受付",
+      "additional_equipment": "広域地図",
+      "required_people": 1,
+      "content": "駅周辺で足止めされた帰宅困難者が避難所へ迷い込んできました。一時滞在スペースの案内と広域交通情報の提供を行ってください。",
+      "scene_description": "スーツ姿で大きな鞄を持った通勤・通学者たちが困惑して立ち尽くしている。",
+      "training_point": "地域住民と帰宅困難者の受入区分けと交通情報の整理。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "交通機関不通"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-016",
+      "event_name": "敷地内バリアによる移動困難",
+      "category": [
+        "避難所設備",
+        "避難者対応"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "案内班",
+      "additional_equipment": "スロープ、踏み台",
+      "required_people": 2,
+      "content": "体育館入口の段差や坂道のため、車椅子利用者やベビーカーが自力で入場できません。仮設スロープの設営や手助け要員を配置してください。",
+      "scene_description": "階段の前で車椅子の押す手が止まり、途方に暮れている。",
+      "training_point": "バリアフリー動線の即座の構築と介助要員の確保。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-017",
+      "event_name": "ペット同行避難の受け入れ混乱",
+      "category": [
+        "避難所管理",
+        "避難者対応"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "受付班",
+      "additional_equipment": "ブルーシート、ケージ",
+      "required_people": 2,
+      "content": "犬や猫を抱えた避難者が「一緒に体育館に入りたい」と主張し、他の避難者と揉めています。ペット専用の待機エリアの設定とルール周知を行ってください。",
+      "scene_description": "ペットの鳴き声が響き、アレルギーを懸念する声が上がっている。",
+      "training_point": "同行避難（飼育エリア分離）のルール徹底と飼い主への配慮。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-018",
+      "event_name": "大量持参荷物による避難阻害",
+      "category": [
+        "避難者対応",
+        "避難所管理"
+      ],
+      "priority": 3,
+      "difficulty": "初級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "会場整理班",
+      "additional_equipment": "手荷物一時保管ラベル",
+      "required_people": 1,
+      "content": "大型のスーツケースや段ボール箱を大量に持ち込んだ避難者により通路が塞がれています。手荷物の集約・整理指示を出してください。",
+      "scene_description": "積み上がった荷物で通路が狭まり、歩行に支障が出ている。",
+      "training_point": "安全通路の確保と個人持ち込み手荷物の管理ルール運用。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-019",
+      "event_name": "負傷者搬送資機材の不足",
+      "category": [
+        "災害・被害",
+        "避難所設備"
+      ],
+      "priority": 1,
+      "difficulty": "上級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "救護班",
+      "additional_equipment": "代替担架（毛布・物干し竿）",
+      "required_people": 3,
+      "content": "倒壊家屋から救出された負傷者が次々と担ぎ込まれますが、正規の担架が足りません。毛布や竹竿を用いた応急担架の作成を指示してください。",
+      "scene_description": "負傷者が地面に寝かされ、一刻も早い搬送手段が求められている。",
+      "training_point": "身近な資機材を活用した応急搬送手段の代替判断。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-020",
+      "event_name": "屋外待機要配慮者の体力限界",
+      "category": [
+        "避難者対応",
+        "衛生・ゴミ"
+      ],
+      "priority": 1,
+      "difficulty": "上級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "受付待機列",
+      "additional_equipment": "パイプ椅子、マット",
+      "required_people": 2,
+      "content": "受付待ちの長蛇の列の中で、高齢者や障がい者がパイプ椅子もなく立ち尽くし限界を訴えています。優先受付窓口の開設を行ってください。",
+      "scene_description": "立ち疲れて蹲る高齢女性の姿が見られる。",
+      "training_point": "受入時のトリアージと要配慮者のファストトラック（優先受付）対応。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-021",
+      "event_name": "乳幼児の泣き声と精神的摩擦",
+      "category": [
+        "避難者対応",
+        "避難所管理"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "居住エリア避難者",
+      "additional_equipment": "キッズスペース備品",
+      "required_people": 1,
+      "content": "夜間に赤ちゃんの泣き声が響き、「うるさくて眠れない」と周囲から苦情が出ました。母子優先の別室スペースの確保を検討してください。",
+      "scene_description": "肩を狭くして必死に赤ちゃんをあやし、涙ぐむ母親がいる。",
+      "training_point": "乳幼児世帯への配慮とゾーニング（母子優先室）の柔軟な対応。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日",
+        "2日目"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "card_id": "EV-022",
+      "event_name": "常用薬の不足と保冷管理",
+      "category": [
+        "避難者対応",
+        "行政対応"
+      ],
+      "priority": 1,
+      "difficulty": "上級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "救護スペース",
+      "additional_equipment": "クーラーボックス、氷",
+      "required_people": 2,
+      "content": "インスリンなどの持病薬を持ち出せなかった患者が体調悪化を訴えています。薬剤の保冷確保と市保健師・医療班への至急連絡を行ってください。",
+      "scene_description": "薬が手元にない不安から顔色を悪くした避難者が相談してくる。",
+      "training_point": "要支援者の服薬状況把握と緊急医療ニーズの行政連携。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "停電"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日",
+        "2日目"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-023",
+      "event_name": "避難者の過呼吸・急性パニック",
+      "category": [
+        "避難者対応",
+        "災害・被害"
+      ],
+      "priority": 1,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "居住エリア",
+      "additional_equipment": "救護用ベッド、紙袋",
+      "required_people": 2,
+      "content": "極度の恐怖から過呼吸を起こし、激しく動揺している避難者がいます。救護エリアへ移動させ、落ち着いて呼吸を整える看護対応を行ってください。",
+      "scene_description": "呼吸が荒くなり、胸を押さえて倒れ込んでいる。",
+      "training_point": "急性ストレス応答への初期心理ケアと静寂な環境への隔離。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-024",
+      "event_name": "家族未安否による精神的動揺",
+      "category": [
+        "避難者対応"
+      ],
+      "priority": 3,
+      "difficulty": "初級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "避難者",
+      "additional_equipment": null,
+      "required_people": 1,
+      "content": "帰宅していない子どもの安否が分からず、じっとしていられない親が危険な夜間捜索に出ようとしています。思いを受け止めつつ制止・傾聴してください。",
+      "scene_description": "涙を浮かべながら「今すぐ探しに行く」と外へ飛び出そうとする。",
+      "training_point": "二次被害を防ぐための傾聴対応と安全配慮。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "通信障害"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日",
+        "2日目"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-025",
+      "event_name": "集団生活への強い心理的抵抗",
+      "category": [
+        "避難者対応",
+        "避難所管理"
+      ],
+      "priority": 3,
+      "difficulty": "中級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "相談窓口",
+      "additional_equipment": "パーテーション",
+      "required_people": 1,
+      "content": "「大勢の人がいる場所にいるだけで苦しい」とプライベート空間の確保を強く望む避難者がいます。パーテーション配置等で個室感覚の区画を提示してください。",
+      "scene_description": "体育館の端で小さくなり、他者との接触を拒んでいる。",
+      "training_point": "プライバシーの尊重と個別の事情に応じた配慮区画の活用。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日",
+        "2日目"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "card_id": "EV-026",
+      "event_name": "着の身着のままの避難者殺到",
+      "category": [
+        "避難者対応",
+        "行政対応"
+      ],
+      "priority": 2,
+      "difficulty": "初級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "物資受付",
+      "additional_equipment": "衣料品備蓄",
+      "required_people": 2,
+      "content": "靴も履けずに裸足や薄着で逃げてきた避難者が多数います。備蓄倉庫から非常用スリッパや防寒着を取り出して配給してください。",
+      "scene_description": "靴下履きや薄着のまま身を縮めて震えている避難者が目立つ。",
+      "training_point": "着の身着のままの避難者への緊急生活資材の迅速配給。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-027",
+      "event_name": "学校管理者不参集下の開所",
+      "category": [
+        "避難所管理",
+        "行政対応"
+      ],
+      "priority": 0,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "地域防災リーダー",
+      "additional_equipment": "避難所開設マニュアル",
+      "required_people": 3,
+      "content": "校長・教職員が交通途絶のため到着していません。参集した地域住民自らの手で避難所開設マニュアルに従って本部を設置してください。",
+      "scene_description": "教職員の姿がなく、参集した住民が顔を見合わせている。",
+      "training_point": "行政・施設管理者に依存しない地域住民による自主初動の確立。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-028",
+      "event_name": "避難所鍵管理者不在と解錠問題",
+      "category": [
+        "避難所管理",
+        "避難所設備"
+      ],
+      "priority": 0,
+      "difficulty": "上級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "開所作業班",
+      "additional_equipment": "キーボックス、非常用鍵",
+      "required_people": 2,
+      "content": "体育館の鍵を持つ担当者が不在でドアが開きません。非常用キーボックスの解錠手順に従って鍵を取り出し、開錠を完了させてください。",
+      "scene_description": "施錠された体育館扉の前で大勢の住民が解錠を待っている。",
+      "training_point": "非常用鍵の保管場所・解錠ルールの事前周知と迅速な実行。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-029",
+      "event_name": "防災倉庫の開錠と搬出の停滞",
+      "category": [
+        "避難所設備",
+        "避難所管理"
+      ],
+      "priority": 1,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "物資班",
+      "additional_equipment": "バール、暗証番号リスト",
+      "required_people": 4,
+      "content": "暗闇の中、防災倉庫のダイヤル錠の番号が分からず資機材を取り出せません。照明を確保し正当な手順で倉庫を開封・搬出を行ってください。",
+      "scene_description": "暗い倉庫の前でライトをかざしながら鍵と格闘している。",
+      "training_point": "暗黒下における防災倉庫開封・搬出手順の習熟。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "停電"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-030",
+      "event_name": "運営リーダー不確定による指揮不在",
+      "category": [
+        "避難所管理"
+      ],
+      "priority": 0,
+      "difficulty": "極高（現場混乱）",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "避難所本部",
+      "additional_equipment": "腕章、組織図",
+      "required_people": 1,
+      "content": "誰が避難所の総責任者になるのか決まっておらず、各班に指示が出せません。即座に臨時本部長を選出し、指示系統を組織してください。",
+      "scene_description": "各自が思い思いに動いており、統括する者が誰もいない。",
+      "training_point": "指揮命令系統の明確化と本部長の迅速な選任。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-031",
+      "event_name": "地域役員安否不詳と組織不能",
+      "category": [
+        "避難所管理",
+        "行政対応"
+      ],
+      "priority": 1,
+      "difficulty": "上級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "自治会有志",
+      "additional_equipment": null,
+      "required_people": 3,
+      "content": "主要な自治会長や防災役員と連絡が取れず、事前の役割分担が機能しません。現場にいる有志で再編成を行ってください。",
+      "scene_description": "担当役員が来ず、事前の運営組織が破綻している。",
+      "training_point": "役員不在を想定した現場の臨時体制組換え能力。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "通信障害"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-032",
+      "event_name": "館内居住ゾーン初期レイアウト不徹底",
+      "category": [
+        "避難所管理",
+        "衛生・ゴミ"
+      ],
+      "priority": 1,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "設営班",
+      "additional_equipment": "養生テープ、ロープ",
+      "required_people": 3,
+      "content": "体育館内の区画割り前に避難者が自由に場所を取り始めました。一旦立ち入りを制限し、通路と居住ゾーンを養生テープで割り振ってください。",
+      "scene_description": "床一面に勝手に荷物が広げられ、通路が失われつつある。",
+      "training_point": "混乱前の初期レイアウト（通路・要配慮者枠等）設定の鉄則。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-033",
+      "event_name": "土足入館ルールの未徹底と混乱",
+      "category": [
+        "避難所管理",
+        "衛生・ゴミ"
+      ],
+      "priority": 2,
+      "difficulty": "初級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "衛生班",
+      "additional_equipment": "下駄箱、靴袋",
+      "required_people": 2,
+      "content": "土足で体育館へ上がり込む人と、靴を脱ぐ人が混在し、玄関口が泥と靴で溢れかえっています。「下足厳禁」または「シート上土足可」の判定を行ってください。",
+      "scene_description": "体育館の床が土足の泥で汚れ始めている。",
+      "training_point": "衛生面および安全面を考慮した土足ルールの早期決定と統一。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-034",
+      "event_name": "施設内環境未整備での立ち往生",
+      "category": [
+        "避難所管理",
+        "衛生・ゴミ"
+      ],
+      "priority": 2,
+      "difficulty": "初級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "清掃班",
+      "additional_equipment": "モップ、ほうき",
+      "required_people": 2,
+      "content": "体育館の床に埃やガラス片が散乱しており、そのままでは着座できません。迅速な簡易清掃と安全確認を行ってください。",
+      "scene_description": "床の危険物や汚れを心配して、荷物を抱えたまま誰も座れずにいる。",
+      "training_point": "安全確認後の誘導と事前清掃の手引き。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-035",
+      "event_name": "トイレ機能全停止と断水",
+      "category": [
+        "避難所設備",
+        "衛生・ゴミ"
+      ],
+      "priority": 0,
+      "difficulty": "極高（現場混乱）",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "施設管理班",
+      "additional_equipment": "仮設トイレ、携帯トイレ",
+      "required_people": 4,
+      "content": "断水と下水道損壊により校内の全水洗トイレが使用禁止となりました。「既存トイレ使用不可」の掲示と、非常用トイレの即時設置を指示してください。",
+      "scene_description": "水が流れないトイレに汚物が溜まり始め、悪臭が漂いかけている。",
+      "training_point": "断水時の水洗トイレ使用即時停止と代替トイレの初期設営。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "断水",
+        "下水道破損"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-036",
+      "event_name": "居住区の占有・場所取りトラブル",
+      "category": [
+        "避難者対応",
+        "避難所管理"
+      ],
+      "priority": 1,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "居住エリア",
+      "additional_equipment": null,
+      "required_people": 2,
+      "content": "1人で何人分もの広いスペースを荷物で占有している避難者に対し、後から来た人が「狭すぎる」と抗議し口論になっています。1人当たりの規定サイズを説明・再割り当てしてください。",
+      "scene_description": "「先に取ったんだから関係ない！」と声を荒げる姿がある。",
+      "training_point": "公平な居住スペース基準（例：畳1.5枚分/人）の提示と仲裁。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日",
+        "2日目"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-037",
+      "event_name": "助け合い拒否・共助意識の低下",
+      "category": [
+        "避難者対応",
+        "避難所管理"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "運営ボランティア",
+      "additional_equipment": null,
+      "required_people": 1,
+      "content": "「自分たちも被災者だから作業は手伝わない」と物資搬入や清掃への協力を拒否する声が上がっています。避難者自身による自主運営への理解を求めてください。",
+      "scene_description": "「指示を出すのは役所の仕事だろ」と腕を組んで座り込んでいる。",
+      "training_point": "「お客様」から「運営の担い手」への意識変革を促す働きかけ。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日",
+        "2日目"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "card_id": "EV-038",
+      "event_name": "地域感情の確執と感情的対立",
+      "category": [
+        "避難者対応"
+      ],
+      "priority": 3,
+      "difficulty": "上級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "自治会関係者",
+      "additional_equipment": null,
+      "required_people": 2,
+      "content": "普段から仲の悪い隣町会同士が、居住区の境界や物資の配給順番を巡って激しくいがみ合っています。中立な姿勢での間を取り持ってください。",
+      "scene_description": "「あっちの町会ばかり優遇されている」と不満が噴出している。",
+      "training_point": "公平・不偏不党な避難所運営態勢の堅持と感情的摩擦の平裁。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "2日目",
+        "3日目"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "card_id": "EV-039",
+      "event_name": "運営作業の押し付け合い",
+      "category": [
+        "避難所管理",
+        "避難者対応"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "衛生班",
+      "additional_equipment": "当番表",
+      "required_people": 1,
+      "content": "仮設トイレの清掃やゴミ集積所の管理当番をどのグループがやるかで押し付け合いが起きています。班ごとの日替わり当番表を作成し定着させてください。",
+      "scene_description": "「なぜうちの班ばかり汚い仕事をやらせるのか」と不満の声が出ている。",
+      "training_point": "透明性の高い輪番制（日替わりシフト）の導入による不満解消。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "2日目",
+        "3日目"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "card_id": "EV-040",
+      "event_name": "酩酊者・興奮者のトラブル発生",
+      "category": [
+        "避難所管理",
+        "避難者対応"
+      ],
+      "priority": 1,
+      "difficulty": "上級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "巡回警備員",
+      "additional_equipment": null,
+      "required_people": 3,
+      "content": "持ち込んだ酒を飲んで泥酔した避難者が、周囲の避難者に絡んで大声を出しています。別室への隔離または安全な対応を行ってください。",
+      "scene_description": "酒臭い息で他の避難者に近付き、大声で怒鳴り散らしている。",
+      "training_point": "飲酒ルールの適用と他の避難者の安全・静穏の確保。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日",
+        "2日目"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "card_id": "EV-041",
+      "event_name": "プライバシー欠如による不満増幅",
+      "category": [
+        "避難者対応",
+        "避難所設備"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "なし",
+      "prerequisite_card_id": null,
+      "source": "女性避難者有志",
+      "additional_equipment": "着替え用テント、パーテーション",
+      "required_people": 2,
+      "content": "「外から着替えが見えそう」「視線が気になって休めない」と女性避難者から強い不満が寄せられました。着替え専用テントや目隠しの設置を行ってください。",
+      "scene_description": "毛布をかぶって視線から隠れながら着替えをしている。",
+      "training_point": "特に女性や配慮が必要な層へのプライバシー空間の確保。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "2日目",
+        "3日目"
+      ],
+      "relative_timing": [
+        "中盤"
+      ]
+    },
+    {
+      "card_id": "EV-042",
+      "event_name": "一部有志による理不尽な指示・命令",
+      "category": [
+        "避難所管理",
+        "避難者対応"
+      ],
+      "priority": 2,
+      "difficulty": "上級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "一般避難者",
+      "additional_equipment": null,
+      "required_people": 2,
+      "content": "地域の力関係を背景に、一部の人物が勝手に独自のルールを作って他の避難者に命令を出しています。本部の統一指示に従うよう是正してください。",
+      "scene_description": "「俺の言うことが聞けないなら出て行け」と威圧的に振る舞っている。",
+      "training_point": "本部の権限の明確化と一部権力者による私物化の阻止。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日",
+        "2日目"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-043",
+      "event_name": "初期消火後の生活用水枯渇",
+      "category": [
+        "避難所設備",
+        "衛生・ゴミ"
+      ],
+      "priority": 1,
+      "difficulty": "上級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "防火班",
+      "additional_equipment": "受水槽、ポリタンク",
+      "required_people": 3,
+      "content": "発災直後の初期消火に校内の受水槽の水を使い果たし、トイレや手洗いの生活用水がゼロになりました。給水車要請と水節約ルールを徹底してください。",
+      "scene_description": "蛇口をひねっても空気が抜ける音だけで水が一切出ない。",
+      "training_point": "消火用水使用後の生活用水急減への対応と給水活動体制構築。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "断水"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-044",
+      "event_name": "暗闇の中の非常照明装置不足",
+      "category": [
+        "避難所設備",
+        "災害・被害"
+      ],
+      "priority": 1,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "施設管理班",
+      "additional_equipment": "発電機、コードリール",
+      "required_people": 2,
+      "content": "夜間の停電により体育館が真っ暗ですが、懐中電灯の備蓄が僅かしかありません。発電機を起動し非常用ライトの点灯作業を行ってください。",
+      "scene_description": "スマートフォンのライトの明かりだけが点々と揺れている。",
+      "training_point": "非常用電源・照明器具の迅速な起動・安全な配線作業。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [
+        "夜間 (20:00-24:00)",
+        "深夜 (00:00-05:00)"
+      ],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "停電"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    },
+    {
+      "card_id": "EV-045",
+      "event_name": "毛布・敷マットの絶対的不足",
+      "category": [
+        "避難所設備",
+        "避難者対応"
+      ],
+      "priority": 1,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "物資班",
+      "additional_equipment": "段ボール底敷き",
+      "required_people": 2,
+      "content": "避難者数が想定を超え、備蓄毛布が底をつきました。床の底冷えを防ぐため段ボールの敷き詰め対応と追加物資要請を行ってください。",
+      "scene_description": "体育館の冷たい床に直接座り込んで身を縮めている。",
+      "training_point": "限られた防寒備品の優先配布と段ボール等の代替資材活用。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-046",
+      "event_name": "感染症対策衛生資材の不足",
+      "category": [
+        "衛生・ゴミ",
+        "避難所設備"
+      ],
+      "priority": 1,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "衛生班",
+      "additional_equipment": "消毒液、マスク",
+      "required_people": 2,
+      "content": "受付での消毒液とマスクが枯渇し、無対策で入館する人が出始めています。感染予防のため備蓄品の放出と受入口での管理を再徹底してください。",
+      "scene_description": "マスク未着用で咳をする人が増え、周囲が不安視している。",
+      "training_point": "衛生資材の継続的在庫管理と感染症水際対策の堅持。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日",
+        "2日目"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-047",
+      "event_name": "授乳・オムツ替えスペースの未確保",
+      "category": [
+        "避難所設備",
+        "避難者対応"
+      ],
+      "priority": 2,
+      "difficulty": "初級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "子育て世代避難者",
+      "additional_equipment": "仕切り用簡易テント",
+      "required_people": 1,
+      "content": "乳幼児を抱えた母親から「授乳やオムツ替えをする場所がなくて困っている」との訴えがありました。保健室や空き教室を専用スペースとして開放してください。",
+      "scene_description": "周囲の目を気にして物陰で小さくなって授乳しようとしている。",
+      "training_point": "配慮が必要な女性・子育て層へのプライベート空間の迅速設置。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-048",
+      "event_name": "障害者用配慮物資の現場未備蓄",
+      "category": [
+        "避難所設備",
+        "避難者対応"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "福祉避難班",
+      "additional_equipment": "大人用オムツ、筆談ボード",
+      "required_people": 2,
+      "content": "大人用オムツや筆談ボードなどの特定障害・要配慮者向け物資が一般備蓄に含まれていません。市本部へ急遽調達要請を行ってください。",
+      "scene_description": "必要な物資が見当たらないと言われ、家族が落胆している。",
+      "training_point": "標準備蓄の限界把握と行政・福祉避難所への迅速な調達要請。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日",
+        "2日目"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-049",
+      "event_name": "避難者名簿作成の遅延と混乱",
+      "category": [
+        "避難所管理",
+        "行政対応"
+      ],
+      "priority": 2,
+      "difficulty": "中級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "総合受付班",
+      "additional_equipment": "避難者名簿用紙、筆記具",
+      "required_people": 3,
+      "content": "手書きによる避難者名簿の作成に時間がかかり、受付に長蛇の列ができています。要配慮者の優先抽出と効率的な受付名簿の運用を行ってください。",
+      "scene_description": "受付で名簿記入を待つ人々がイライラし、記入漏れも多発している。",
+      "training_point": "正確かつ迅速な避難者名簿の作成と、安否照会・物資配給への活用。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "初日"
+      ],
+      "relative_timing": [
+        "序盤"
+      ]
+    },
+    {
+      "card_id": "EV-050",
+      "event_name": "対行政通信手段の不通",
+      "category": [
+        "行政対応",
+        "避難所設備"
+      ],
+      "priority": 1,
+      "difficulty": "上級",
+      "must_respond": "あり（要即時対応）",
+      "prerequisite_card_id": null,
+      "source": "避難所本部",
+      "additional_equipment": "防災行政無線、衛星電話",
+      "required_people": 2,
+      "content": "固定電話や携帯電話が不通となり、市災害対策本部への状況報告や物資要請が送信できません。特設公衆電話や防災行政無線等の代替通信手段を確保してください。",
+      "scene_description": "スマホのアンテナが立たず、本部との連絡が途絶えて現場が孤立しかけている。",
+      "training_point": "通信インフラ障害時における代替通信手段（防災行政無線・衛星電話等）の優先運用。",
+      "match_shelters": [],
+      "exclude_shelters": [],
+      "match_dates": null,
+      "exclude_dates": null,
+      "match_holiday_type": [],
+      "exclude_holiday_type": [],
+      "match_time_slots": [],
+      "exclude_time_slots": [],
+      "match_disaster_types": [
+        "地震"
+      ],
+      "exclude_disaster_types": [],
+      "match_infrastructure": [
+        "通信障害"
+      ],
+      "exclude_infrastructure": [],
+      "match_weather": [],
+      "exclude_weather": [],
+      "disaster_phase": [
+        "発災直後",
+        "初日"
+      ],
+      "relative_timing": [
+        "先頭（開所・初期）"
+      ]
+    }
+  ],
+  "evacuee_groups": [],
+  "group_members": []
+}
