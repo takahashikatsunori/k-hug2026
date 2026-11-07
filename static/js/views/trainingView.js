@@ -2,7 +2,7 @@
  * 全画面1枚ずつカード閲覧モード（訓練モード, UI-21）.
  */
 import { escapeHtml } from "../util.js";
-import { store } from "../store.js";
+import { toCardRenderModel, bindCardCanvasImage } from "../cardCanvas.js";
 
 let activeTrainingKeyHandler = null;
 
@@ -68,62 +68,29 @@ export function openTrainingView(cards) {
       : "";
 
     const origId = String(card.original_id || "");
-    const hasImg = Boolean(origId && store.imageIds && store.imageIds.has(origId));
-    const ver = (store.imageCacheBust && store.imageCacheBust[origId]) || "";
-    const imgUrl = hasImg ? `/api/images/${encodeURIComponent(origId)}${ver ? `?v=${ver}` : ""}` : "";
-    const illustHtml = hasImg
-      ? `<div class="training-illust-wrap"><img src="${escapeHtml(imgUrl)}" alt="" class="training-card-illust" data-testid="training-card-image" /></div>`
-      : "";
+    const cardModel = toCardRenderModel(card, grp, {
+      cardNumber: card.card_number,
+    });
+    const titleStr = isEvent
+      ? rec.event_name || card.title || ""
+      : rec.name || card.title || "";
+    const contentStr = isEvent
+      ? rec.content || ""
+      : rec.statement || rec.appearance || "";
 
-    const bodyHtml = isEvent
-      ? `
-        <div class="training-card-box training-card-event">
-          <div class="training-card-top">
-            <span class="type-pill pill-event">イベント</span>
-            <span class="training-orig-id">${escapeHtml(card.original_id)}</span>
-            <span class="badge badge-timing">${escapeHtml((rec.relative_timing || []).join("・") || "-")}</span>
-            <span class="badge badge-phase">${escapeHtml((rec.disaster_phase || []).join("・") || "-")}</span>
-          </div>
-          <h2 class="training-card-title" data-testid="training-card-title">${escapeHtml(rec.event_name || card.title || "")}</h2>
-          ${illustHtml}
-          <div class="training-meta-row">
-            <span>発生源: <strong>${escapeHtml(rec.source || "-")}</strong></span>
-            <span>種別: ${escapeHtml((rec.category || []).join(" / "))}</span>
-          </div>
-          ${rec.scene_description ? `<p class="training-scene">${escapeHtml(rec.scene_description)}</p>` : ""}
-          <div class="training-main-statement" data-testid="training-card-content">
-            ${escapeHtml(rec.content || "")}
-          </div>
+    const bodyHtml = `
+      <div class="training-card-box ${isEvent ? "training-card-event" : isPet ? "training-card-pet" : "training-card-person"} training-card-image-stage">
+        <h2 class="training-card-title sr-only" data-testid="training-card-title">${escapeHtml(titleStr)}</h2>
+        <div class="training-main-statement sr-only" data-testid="training-card-content">${escapeHtml(contentStr)}</div>
+        <div class="training-rendered-card-wrap">
+          <img
+            alt="${escapeHtml(titleStr || origId)}"
+            class="training-rendered-card-img"
+            data-testid="training-card-image"
+          />
         </div>
-      `
-      : `
-        <div class="training-card-box ${isPet ? "training-card-pet" : "training-card-person"}">
-          <div class="training-card-top">
-            <span class="type-pill ${isPet ? "pill-pet" : "pill-person"}">${escapeHtml(rec.data_type || "人物")}</span>
-            <span class="training-orig-id">${escapeHtml(card.original_id)}</span>
-            <span class="badge">${escapeHtml(rec.relationship || "ペット")}</span>
-            <span class="badge">${escapeHtml(rec.age ?? "-")}歳</span>
-            <span class="badge">${escapeHtml(rec.gender || "-")}</span>
-          </div>
-          <h2 class="training-card-title" data-testid="training-card-title">${escapeHtml(rec.name || card.title || "")}</h2>
-          ${illustHtml}
-          <div class="training-meta-row">
-            ${
-              isPet
-                ? `<span>種別: ${escapeHtml(rec.pet_type || "-")}</span>
-                   <span>健康: ${escapeHtml((rec.pet_health_condition || []).join("、") || "-")}</span>
-                   <span>配慮: ${escapeHtml((rec.pet_vulnerabilities || []).join("、") || "なし")}</span>`
-                : `<span>体調: ${escapeHtml((rec.health_condition || []).join("、") || "-")}</span>
-                   <span>配慮特性: ${escapeHtml((rec.vulnerabilities || []).join("、") || "なし")}</span>
-                   <span>スキル: ${escapeHtml((rec.skills || []).join("、") || "なし")}</span>`
-            }
-          </div>
-          ${rec.appearance ? `<p class="training-scene">様子: ${escapeHtml(rec.appearance)}</p>` : ""}
-          <div class="training-main-statement" data-testid="training-card-content">
-            ${escapeHtml(rec.statement || rec.appearance || "")}
-          </div>
-        </div>
-      `;
+      </div>
+    `;
 
     overlay.innerHTML = `
       <div class="training-topbar">
@@ -190,6 +157,11 @@ export function openTrainingView(cards) {
         </button>
       </div>
     `;
+
+    const renderedCardImg = overlay.querySelector(".training-rendered-card-img");
+    if (renderedCardImg && cardModel) {
+      bindCardCanvasImage(renderedCardImg, cardModel, { showNumber: true });
+    }
 
     overlay
       .querySelector("#training-close-btn")

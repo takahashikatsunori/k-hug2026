@@ -13,6 +13,6 @@ echo [HUG-DB] Installing dependencies...
 
 :run
 echo [HUG-DB] Starting HUG Card Database Management Tool (http://127.0.0.1:8000)...
-start "" "http://127.0.0.1:8000"
+start /b cmd /c "timeout /t 2 /nobreak >nul & start """" ""http://127.0.0.1:8000"""
 ".venv\Scripts\python.exe" -m uvicorn hugdb.main:app --host 127.0.0.1 --port 8000
 pause

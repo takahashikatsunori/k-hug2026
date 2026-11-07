@@ -141,3 +141,40 @@ def test_ui_22_download_deck_json_and_csv(page, e2e_server):
     rows = list(csv.reader(io.StringIO(csv_bytes.decode("utf-8-sig"))))
     assert len(rows) == 42  # ヘッダ1 + 41枚
     assert [r[0] for r in rows[1:]] == [str(i) for i in range(1, 42)]
+
+
+def test_ui_23_exclude_and_restore_units_in_deck_without_deleting_from_db(page, e2e_server):
+    """UI-23: デッキ構築でカード/単位をデッキから除外・復帰でき、データベースの件数は変わらない."""
+    _load_demo_and_open_deck(page, e2e_server["base_url"])
+
+    expect(page.get_by_test_id("deck-stat-total-cards")).to_have_text("41枚")
+    expect(page.get_by_test_id("hdr-count-events")).to_have_text("20")
+    expect(page.get_by_test_id("hdr-count-households")).to_have_text("10")
+
+    # 1. 一覧行の「✕ デッキから除外」ボタンで GRP-001 (2名) を除外
+    page.get_by_test_id("unit-exclude-GRP-001").click()
+    expect(page.get_by_test_id("deck-stat-total-cards")).to_have_text("39枚")
+    # ヘッダのDB件数はイベント20・世帯10のまま（DBからは削除されていない）
+    expect(page.get_by_test_id("hdr-count-events")).to_have_text("20")
+    expect(page.get_by_test_id("hdr-count-households")).to_have_text("10")
+    expect(page.get_by_test_id("excluded-unit-GRP-001")).to_be_visible()
+
+    # 2. デッキ単位（EV-003）をクリックして詳細モーダルを開くと、DB削除ボタンではなくデッキ除外ボタンが表示される
+    page.get_by_test_id("deck-unit-EV-003").click()
+    expect(page.get_by_test_id("modal-delete-btn")).to_have_count(0)
+    exclude_btn = page.get_by_test_id("modal-deck-exclude-btn")
+    expect(exclude_btn).to_be_visible()
+    expect(exclude_btn).to_contain_text("このデッキから除外")
+    exclude_btn.click()
+
+    expect(page.get_by_test_id("deck-stat-total-cards")).to_have_text("37枚")  # EV-003 + 前提連鎖EV-004
+    expect(page.get_by_test_id("hdr-count-events")).to_have_text("20")
+
+    # 3. 除外された単位リストの「＋ デッキに戻す」ボタンで EV-003 を戻す
+    page.get_by_test_id("unit-restore-EV-003").click()
+    expect(page.get_by_test_id("deck-stat-total-cards")).to_have_text("39枚")
+
+    # 4. 「手動除外をすべて戻す」で GRP-001 も戻す
+    page.get_by_test_id("restore-all-excluded-btn").click()
+    expect(page.get_by_test_id("deck-stat-total-cards")).to_have_text("41枚")
+

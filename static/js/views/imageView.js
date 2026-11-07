@@ -686,18 +686,14 @@ export async function renderImageView(container) {
               <option value="has_image" ${cardFilterStatus === "has_image" ? "selected" : ""}>設定済みのみ</option>
             </select>
 
-            <label>カードデザイン:</label>
-            <select id="img-card-design-mode" class="form-select form-input-sm" data-testid="img-card-design-mode">
-              <option value="standard" ${store.cardDesignMode === "standard" ? "selected" : ""}>標準サイズ</option>
-              <option value="largeText" ${store.cardDesignMode === "largeText" ? "selected" : ""}>文字拡大</option>
-            </select>
+            <span class="badge">標準デザイン / 名刺サイズ (5.5×9.1cm)</span>
           </div>
           <div>
             <span class="count-badge">表示中: <strong>${filtered.length}枚</strong></span>
           </div>
         </div>
 
-        <div id="img-cards-preview-grid" class="gen-cards-grid" data-testid="img-cards-preview-grid"></div>
+        <div id="img-cards-preview-grid" class="gen-cards-preview-grid" data-testid="img-cards-preview-grid"></div>
       </div>
     `;
 
@@ -706,7 +702,8 @@ export async function renderImageView(container) {
       const itemWrap = document.createElement("div");
       itemWrap.className = "img-card-manage-item";
       const previewEl = renderCardPreviewElement(card, {
-        designMode: store.cardDesignMode,
+        designMode: "standard",
+        showNumber: false,
       });
       itemWrap.appendChild(previewEl);
 
@@ -751,12 +748,6 @@ export async function renderImageView(container) {
       .querySelector("#img-card-filter-status")
       .addEventListener("change", (e) => {
         cardFilterStatus = e.target.value;
-        render();
-      });
-    bodyEl
-      .querySelector("#img-card-design-mode")
-      .addEventListener("change", (e) => {
-        store.cardDesignMode = e.target.value;
         render();
       });
 

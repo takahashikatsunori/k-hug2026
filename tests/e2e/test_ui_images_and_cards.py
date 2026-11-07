@@ -75,7 +75,7 @@ def test_cv_01_slice_grid_image_4x3_and_3x3(page, e2e_server) -> None:
 
 
 def test_cv_02_and_cv_03_canvas_render_standard_and_large_text(page, e2e_server) -> None:
-    """CV-02 & CV-03: 避難者・ペット・イベント各カードの standard / largeText Canvas描画 (600×800px)."""
+    """CV-02 & CV-03: 避難者・ペット・イベント各カードの standard / largeText Canvas描画 (600×993px 名刺縦横比)."""
     page.goto(e2e_server["base_url"])
     res = page.evaluate(
         """async () => {
@@ -172,10 +172,10 @@ def test_cv_02_and_cv_03_canvas_render_standard_and_large_text(page, e2e_server)
             };
         }"""
     )
-    assert res["pInfo"]["width"] == 600 and res["pInfo"]["height"] == 800
-    assert res["ptInfo"]["width"] == 600 and res["ptInfo"]["height"] == 800
-    assert res["evInfo"]["width"] == 600 and res["evInfo"]["height"] == 800
-    assert res["lgInfo"]["width"] == 600 and res["lgInfo"]["height"] == 800
+    assert res["pInfo"]["width"] == 600 and res["pInfo"]["height"] == 993
+    assert res["ptInfo"]["width"] == 600 and res["ptInfo"]["height"] == 993
+    assert res["evInfo"]["width"] == 600 and res["evInfo"]["height"] == 993
+    assert res["lgInfo"]["width"] == 600 and res["lgInfo"]["height"] == 993
     # 避難者枠 (#3b82f6 -> R=59, G=130, B=246)、ペット枠 (#10b981 -> R=16, G=185, B=129)、イベント枠 (#ef4444 -> R=239, G=68, B=68)
     assert res["pInfo"]["borderPx"][:3] == [59, 130, 246]
     assert res["ptInfo"]["borderPx"][:3] == [16, 185, 129]
@@ -449,9 +449,80 @@ def test_ui_im_04_deck_direct_card_preview_and_master_ledger(
     expect(page.get_by_test_id("gen-card-1")).to_be_visible()
     expect(page.get_by_test_id("gen-card-no-1")).to_have_text("No. 1")
 
-    # デザインモードを「大きな文字」に切替できることを確認
-    page.get_by_test_id("deck-card-design-select").select_option("largeText")
-    expect(page.locator("#deck-cards-preview-section .mode-large").first).to_be_visible()
+    # 標準デザイン・名刺サイズ固定仕様のバッジが表示され、出力予定のCanvasカード画像が表示されていることを確認
+    expect(page.get_by_test_id("deck-fixed-card-spec")).to_contain_text("名刺サイズ")
+    expect(page.get_by_test_id("gen-card-img-1")).to_be_visible()
+
+    # ベース画像（番号なし）と連番合成済み画像、右下のDBカードID描画を検証
+    canvas_check = page.evaluate(
+        """async () => {
+            const { generateBaseCardCanvas, generateCardImageCanvas, FIXED_DESIGN_MODE, FIXED_PRINT_SIZE_ID } = await import('/static/js/cardCanvas.js');
+            const sample = {
+                id: '1',
+                original_id: 'EV-001',
+                text: 'ペットの同行避難について相談があった。',
+                is_event: true,
+                has_image: false,
+            };
+            const baseEntry = await generateBaseCardCanvas(sample);
+            const numberedUrl = await generateCardImageCanvas(sample, FIXED_DESIGN_MODE, { showNumber: true });
+            const unnumberedUrl = await generateCardImageCanvas(
+                { ...sample, id: 'EV-001' },
+                FIXED_DESIGN_MODE,
+                { showNumber: false }
+            );
+
+            const loadImg = (url) => new Promise((res) => {
+                const img = new Image();
+                img.onload = () => res(img);
+                img.src = url;
+            });
+            const numberedImg = await loadImg(numberedUrl);
+            const nCanvas = document.createElement('canvas');
+            nCanvas.width = baseEntry.canvas.width;
+            nCanvas.height = baseEntry.canvas.height;
+            const nCtx = nCanvas.getContext('2d');
+            nCtx.drawImage(numberedImg, 0, 0);
+
+            // 左上領域(No.1が描画される位置: x=20..180, y=20..65)のピクセル差分を確認
+            const bCtx = baseEntry.canvas.getContext('2d');
+            const bTopLeft = bCtx.getImageData(25, 22, 140, 42).data;
+            const nTopLeft = nCtx.getImageData(25, 22, 140, 42).data;
+            let topLeftDiff = 0;
+            for (let i = 0; i < bTopLeft.length; i += 4) {
+                if (
+                    Math.abs(bTopLeft[i] - nTopLeft[i]) > 10 ||
+                    Math.abs(bTopLeft[i + 1] - nTopLeft[i + 1]) > 10 ||
+                    Math.abs(bTopLeft[i + 2] - nTopLeft[i + 2]) > 10
+                ) {
+                    topLeftDiff++;
+                }
+            }
+
+            // 右下隅(ID: EV-001 が描画される位置: x=420..580, y=948..981)に文字ピクセルが存在することを確認
+            const brData = bCtx.getImageData(420, 948, 160, 32).data;
+            let idInkPixels = 0;
+            for (let i = 0; i < brData.length; i += 4) {
+                // 背景は白(255,255,255)なので非白ピクセルをカウント
+                if (brData[i] < 220 || brData[i + 1] < 220 || brData[i + 2] < 220) {
+                    idInkPixels++;
+                }
+            }
+
+            return {
+                fixedDesign: FIXED_DESIGN_MODE,
+                fixedPrintSize: FIXED_PRINT_SIZE_ID,
+                topLeftDiff,
+                idInkPixels,
+                sameUnnumberedAsBase: baseEntry.dataUrl === unnumberedUrl,
+            };
+        }"""
+    )
+    assert canvas_check["fixedDesign"] == "standard"
+    assert canvas_check["fixedPrintSize"] == "business"
+    assert canvas_check["topLeftDiff"] > 50
+    assert canvas_check["idInkPixels"] > 30
+    assert canvas_check["sameUnnumberedAsBase"] is True
 
     # 「避難者台帳」サブモードに切替
     page.get_by_test_id("deck-submode-ledger").click()

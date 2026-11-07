@@ -130,10 +130,49 @@ export const PRINT_SIZES = {
   },
 };
 
+export const FIXED_DESIGN_MODE = "standard";
+export const FIXED_PRINT_SIZE_ID = "business";
+
 const cardImageCache = new Map();
+const baseCardCanvasCache = new Map();
+const baseCardDataUrlCache = new Map();
+const loadedImageElementCache = new Map();
+
+const MAX_CANVAS_CACHE_ENTRIES = 36;
+const MAX_IMAGE_ELEMENT_CACHE_ENTRIES = 48;
+const MAX_DATAURL_CACHE_ENTRIES = 450;
+
+export const CARD_CANVAS_WIDTH = 600;
+export const CARD_CANVAS_HEIGHT = Math.round(
+  (CARD_CANVAS_WIDTH * PRINT_SIZES.business.height) / PRINT_SIZES.business.width
+); // 993px (名刺サイズ 55:91 縦横比)
+
+const PLACEHOLDER_CARD_DATA_URL =
+  "data:image/svg+xml;utf8," +
+  encodeURIComponent(
+    `<svg xmlns="http://www.w3.org/2000/svg" width="${CARD_CANVAS_WIDTH}" height="${CARD_CANVAS_HEIGHT}" viewBox="0 0 ${CARD_CANVAS_WIDTH} ${CARD_CANVAS_HEIGHT}">` +
+      `<rect width="${CARD_CANVAS_WIDTH}" height="${CARD_CANVAS_HEIGHT}" fill="#ffffff"/>` +
+      `<rect x="15" y="15" width="${CARD_CANVAS_WIDTH - 30}" height="${CARD_CANVAS_HEIGHT - 30}" rx="20" ry="20" fill="none" stroke="#cbd5e1" stroke-width="6"/>` +
+      "</svg>"
+  );
+
+function setBoundedMap(map, key, val, maxEntries) {
+  if (map.has(key)) {
+    map.delete(key);
+  } else if (map.size >= maxEntries) {
+    const oldestKey = map.keys().next().value;
+    if (oldestKey !== undefined) {
+      map.delete(oldestKey);
+    }
+  }
+  map.set(key, val);
+}
 
 export function clearCardImageCache() {
   cardImageCache.clear();
+  baseCardCanvasCache.clear();
+  baseCardDataUrlCache.clear();
+  loadedImageElementCache.clear();
 }
 
 /**
@@ -402,21 +441,67 @@ function drawRoundRect(ctx, x, y, w, h, r) {
 }
 
 /**
- * 完成カード画像 (600x800 PNG DataURL) を Canvas で描画する (hug-card-gen の generateCardImageCanvas 完全移植).
+ * カード左上に通し番号 (`No. X`) を描画すべきかどうかを判定する.
+ * マスタIDのまま（EV-xxx / M-xxxx / PREVIEW）で通し番号が未確定の場合は false を返す.
+ * @param {Record<string, any>} card
+ * @param {{ showNumber?: boolean }} [options]
+ * @returns {boolean}
+ */
+export function shouldDrawCardNumber(card, options = {}) {
+  if (options && typeof options.showNumber === "boolean") {
+    return options.showNumber;
+  }
+  const idStr = String((card && card.id) ?? "").trim();
+  const origStr = String((card && card.original_id) ?? "").trim();
+  if (!idStr || idStr === "PREVIEW") return false;
+  if (/^(EV|M|GRP)-\d+$/i.test(idStr) && (!origStr || idStr === origStr)) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * ベースカード画像（番号以外の部分）のキャッシュキーを生成する.
  * @param {Record<string, any>} card
  * @param {'standard' | 'largeText'} [designMode='standard']
- * @returns {Promise<string>}
+ * @param {boolean} [withImage=true]
+ * @returns {string}
  */
-export const generateCardImageCanvas = async (
+function buildBaseCardCacheKey(card, designMode = "standard", withImage = true) {
+  return JSON.stringify({
+    original_id: String(card.original_id || card.id || ""),
+    type: String(card.type || ""),
+    name: String(card.name || ""),
+    origin: String(card.origin || ""),
+    age: String(card.age ?? ""),
+    gender: String(card.gender || ""),
+    attributes: String(card.attributes || ""),
+    detailedFlags: Array.isArray(card.detailedFlags) ? card.detailedFlags : [],
+    dialogue: String(card.dialogue || ""),
+    imageUrl: withImage ? String(card.imageUrl || "") : "",
+    designMode: designMode || "standard",
+  });
+}
+
+/**
+ * ロード済みの HTMLImageElement を使って、番号部分以外のベースカード Canvas を同期描画する.
+ * 右下隅にはデータベース上の一意のカードID (`original_id`) を小さく描画する.
+ * @param {Record<string, any>} card
+ * @param {'standard' | 'largeText'} [designMode='standard']
+ * @param {HTMLImageElement | null} [loadedImg=null]
+ * @returns {HTMLCanvasElement}
+ */
+function renderBaseCardCanvasSync(
   card,
-  designMode = "standard"
-) => {
+  designMode = "standard",
+  loadedImg = null
+) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("Canvas not supported");
 
-  const width = 600;
-  const height = 800;
+  const width = CARD_CANVAS_WIDTH;
+  const height = CARD_CANVAS_HEIGHT;
   canvas.width = width;
   canvas.height = height;
 
@@ -438,12 +523,7 @@ export const generateCardImageCanvas = async (
   ctx.lineWidth = 6;
   ctx.strokeRect(15, 15, width - 30, height - 30);
 
-  // Header
-  ctx.fillStyle = "#0f172a";
-  ctx.font = isLarge ? "bold 50px monospace" : "bold 39px monospace";
-  ctx.fillText(`No. ${card.id}`, 35, isLarge ? 60 : 55);
-
-  // Badge
+  // Badge (右上: 種別)
   ctx.fillStyle = isEvent ? "#fee2e2" : isPet ? "#d1fae5" : "#dbeafe";
   if (isLarge) {
     drawRoundRect(ctx, width - 180, 20, 150, 48, 24);
@@ -492,7 +572,7 @@ export const generateCardImageCanvas = async (
   };
 
   let currentY = isLarge ? 130 : 110;
-  const cardName = String(card.name || "");
+  const cardName = String(card.name || (isEvent ? "(イベント名未設定)" : "(氏名自動生成)"));
 
   if (!isEvent) {
     let titleFontSize = isLarge ? 72 : 54;
@@ -561,80 +641,68 @@ export const generateCardImageCanvas = async (
 
   // Image
   let hasDrawnSideBadges = false;
-  if (card.imageUrl) {
-    try {
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = card.imageUrl;
-      await new Promise((resolve, reject) => {
-        img.onload = resolve;
-        img.onerror = reject;
-      });
-
-      let imgAreaWidth = width - 70;
-      if (!isEvent && (validAge || validGender)) {
-        imgAreaWidth = width - 70 - (isLarge ? 150 : 110);
-      }
-
-      const imgAreaHeight = 240;
-      const scale = Math.min(
-        imgAreaWidth / img.width,
-        imgAreaHeight / img.height
-      );
-      const drawWidth = img.width * scale;
-      const drawHeight = img.height * scale;
-      const drawX = 35 + (imgAreaWidth - drawWidth) / 2;
-      const drawY = currentY + 10 + (imgAreaHeight - drawHeight) / 2;
-
-      ctx.fillStyle = "#f8fafc";
-      ctx.fillRect(35, currentY + 10, imgAreaWidth, imgAreaHeight);
-      ctx.strokeStyle = "#e2e8f0";
-      ctx.lineWidth = 1;
-      ctx.strokeRect(35, currentY + 10, imgAreaWidth, imgAreaHeight);
-
-      ctx.drawImage(img, drawX, drawY, drawWidth, drawHeight);
-
-      if (!isEvent && (validAge || validGender)) {
-        const sideX = 35 + imgAreaWidth + 10;
-        const badgesCount = (validAge ? 1 : 0) + (validGender ? 1 : 0);
-        const badgeFontSize = isLarge ? 56 : 36;
-        const badgeHeight = badgeFontSize + 12;
-        const totalSideHeight =
-          badgesCount * badgeHeight +
-          (badgesCount > 0 ? badgesCount - 1 : 0) * 20;
-
-        let sideY = currentY + 10 + (imgAreaHeight - totalSideHeight) / 2;
-
-        const drawSideBadge = (text) => {
-          ctx.font = `bold ${badgeFontSize}px sans-serif`;
-          ctx.fillStyle = "#f1f5f9";
-          const textWidth = ctx.measureText(text).width;
-          drawRoundRect(ctx, sideX, sideY, textWidth + 20, badgeHeight, 6);
-          ctx.fill();
-          ctx.fillStyle = "#334155";
-          ctx.fillText(
-            text,
-            sideX + 10,
-            sideY + badgeHeight / 2 + badgeFontSize / 3
-          );
-          sideY += badgeHeight + 20;
-        };
-
-        if (validAge) {
-          drawSideBadge(
-            validAge.includes("歳") ? validAge : `${validAge}歳`
-          );
-        }
-        if (validGender) {
-          drawSideBadge(validGender);
-        }
-        hasDrawnSideBadges = true;
-      }
-
-      currentY += imgAreaHeight + (isLarge ? 20 : 15);
-    } catch {
-      currentY += isLarge ? 10 : 5;
+  if (loadedImg && loadedImg.width > 0 && loadedImg.height > 0) {
+    let imgAreaWidth = width - 70;
+    if (!isEvent && (validAge || validGender)) {
+      imgAreaWidth = width - 70 - (isLarge ? 150 : 110);
     }
+
+    const imgAreaHeight = 300;
+    const scale = Math.min(
+      imgAreaWidth / loadedImg.width,
+      imgAreaHeight / loadedImg.height
+    );
+    const drawWidth = loadedImg.width * scale;
+    const drawHeight = loadedImg.height * scale;
+    const drawX = 35 + (imgAreaWidth - drawWidth) / 2;
+    const drawY = currentY + 10 + (imgAreaHeight - drawHeight) / 2;
+
+    ctx.fillStyle = "#f8fafc";
+    ctx.fillRect(35, currentY + 10, imgAreaWidth, imgAreaHeight);
+    ctx.strokeStyle = "#e2e8f0";
+    ctx.lineWidth = 1;
+    ctx.strokeRect(35, currentY + 10, imgAreaWidth, imgAreaHeight);
+
+    ctx.drawImage(loadedImg, drawX, drawY, drawWidth, drawHeight);
+
+    if (!isEvent && (validAge || validGender)) {
+      const sideX = 35 + imgAreaWidth + 10;
+      const badgesCount = (validAge ? 1 : 0) + (validGender ? 1 : 0);
+      const badgeFontSize = isLarge ? 56 : 36;
+      const badgeHeight = badgeFontSize + 12;
+      const totalSideHeight =
+        badgesCount * badgeHeight +
+        (badgesCount > 0 ? badgesCount - 1 : 0) * 20;
+
+      let sideY = currentY + 10 + (imgAreaHeight - totalSideHeight) / 2;
+
+      const drawSideBadge = (text) => {
+        ctx.font = `bold ${badgeFontSize}px sans-serif`;
+        ctx.fillStyle = "#f1f5f9";
+        const textWidth = ctx.measureText(text).width;
+        drawRoundRect(ctx, sideX, sideY, textWidth + 20, badgeHeight, 6);
+        ctx.fill();
+        ctx.fillStyle = "#334155";
+        ctx.fillText(
+          text,
+          sideX + 10,
+          sideY + badgeHeight / 2 + badgeFontSize / 3
+        );
+        sideY += badgeHeight + 20;
+      };
+
+      if (validAge) {
+        drawSideBadge(
+          validAge.includes("歳") ? validAge : `${validAge}歳`
+        );
+      }
+      if (validGender) {
+        drawSideBadge(validGender);
+      }
+      hasDrawnSideBadges = true;
+    }
+
+    currentY += imgAreaHeight + (isLarge ? 20 : 15);
   } else {
     currentY += isLarge ? 10 : 5;
   }
@@ -749,9 +817,9 @@ export const generateCardImageCanvas = async (
     currentY += isLarge ? 80 : 50;
   }
 
-  // Dialogue Box
+  // Dialogue Box (下部にデータベース一意ID用の余白を確保)
   if (!isLarge) {
-    const boxHeight = Math.max(60, height - currentY - 35);
+    const boxHeight = Math.max(60, height - currentY - 46);
     ctx.fillStyle = bgColor;
     drawRoundRect(ctx, 35, currentY, width - 70, boxHeight, 8);
     ctx.fill();
@@ -800,7 +868,380 @@ export const generateCardImageCanvas = async (
     );
   }
 
+  // カード画像の右下隅にデータベース上の一意のカードID (EV-xxx / M-xxxx 等) を小さく描画
+  const dbCardId = String(card.original_id || card.id || "").trim();
+  if (dbCardId) {
+    ctx.save();
+    ctx.font = "bold 17px monospace";
+    ctx.fillStyle = "#64748b";
+    ctx.textAlign = "right";
+    ctx.textBaseline = "alphabetic";
+    ctx.fillText(`ID: ${dbCardId}`, width - 26, height - 23);
+    ctx.restore();
+  }
+
+  return canvas;
+}
+
+/**
+ * ベースカード Canvas の上にカード番号 (`No. X`) を合成して DataURL を返す.
+ * @param {HTMLCanvasElement} baseCanvas
+ * @param {string} numberText
+ * @param {'standard' | 'largeText'} [designMode='standard']
+ * @returns {string}
+ */
+function composeCardNumberOnBaseCanvas(
+  baseCanvas,
+  numberText,
+  designMode = "standard"
+) {
+  const canvas = document.createElement("canvas");
+  canvas.width = baseCanvas.width;
+  canvas.height = baseCanvas.height;
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return baseCanvas.toDataURL("image/png");
+
+  ctx.drawImage(baseCanvas, 0, 0);
+  const isLarge = designMode === "largeText";
+  ctx.fillStyle = "#0f172a";
+  ctx.font = isLarge ? "bold 50px monospace" : "bold 39px monospace";
+  ctx.textAlign = "left";
+  ctx.fillText(`No. ${numberText}`, 35, isLarge ? 60 : 55);
   return canvas.toDataURL("image/png");
+}
+
+/**
+ * イラスト画像を非同期ロードしてキャッシュする.
+ * @param {string} url
+ * @returns {Promise<HTMLImageElement | null>}
+ */
+async function loadImageElement(url) {
+  if (!url) return null;
+  if (loadedImageElementCache.has(url)) {
+    return loadedImageElementCache.get(url);
+  }
+  return new Promise((resolve) => {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.onload = () => {
+      setBoundedMap(
+        loadedImageElementCache,
+        url,
+        img,
+        MAX_IMAGE_ELEMENT_CACHE_ENTRIES
+      );
+      resolve(img);
+    };
+    img.onerror = () => resolve(null);
+    img.src = url;
+  });
+}
+
+/**
+ * 番号以外のベースカード Canvas と DataURL を取得（キャッシュ済みなら即返却）する.
+ * @param {Record<string, any>} card
+ * @param {'standard' | 'largeText'} [designMode='standard']
+ * @returns {Promise<{ canvas: HTMLCanvasElement, dataUrl: string }>}
+ */
+export async function generateBaseCardCanvas(card, designMode = "standard") {
+  const key = buildBaseCardCacheKey(card, designMode, true);
+  if (baseCardCanvasCache.has(key)) {
+    return baseCardCanvasCache.get(key);
+  }
+  const loadedImg = card.imageUrl ? await loadImageElement(card.imageUrl) : null;
+  const canvas = renderBaseCardCanvasSync(card, designMode, loadedImg);
+  const dataUrl = canvas.toDataURL("image/png");
+  const entry = {
+    canvas,
+    dataUrl,
+  };
+  setBoundedMap(baseCardCanvasCache, key, entry, MAX_CANVAS_CACHE_ENTRIES);
+  setBoundedMap(baseCardDataUrlCache, key, dataUrl, MAX_DATAURL_CACHE_ENTRIES);
+  return entry;
+}
+
+/**
+ * 同期的に即座に取得可能なカード画像 DataURL を返す.
+ * イラスト画像が未ロードの場合でも、まずイラストなしベース画像を即座に返すため白紙にならない.
+ * @param {Record<string, any>} card
+ * @param {'standard' | 'largeText'} [designMode='standard']
+ * @param {{ showNumber?: boolean }} [options]
+ * @returns {{ dataUrl: string, isComplete: boolean }}
+ */
+export function getCardImageDataUrlSync(
+  card,
+  designMode = "standard",
+  options = {}
+) {
+  const showNum = shouldDrawCardNumber(card, options);
+  const baseCompleteKey = buildBaseCardCacheKey(card, designMode, true);
+  const fullCacheKey = JSON.stringify({
+    baseKey: baseCompleteKey,
+    id: showNum ? String(card.id) : "",
+    showNum,
+  });
+  if (cardImageCache.has(fullCacheKey)) {
+    return { dataUrl: cardImageCache.get(fullCacheKey), isComplete: true };
+  }
+  if (!showNum && baseCardDataUrlCache.has(baseCompleteKey)) {
+    const cachedUrl = baseCardDataUrlCache.get(baseCompleteKey);
+    setBoundedMap(
+      cardImageCache,
+      fullCacheKey,
+      cachedUrl,
+      MAX_DATAURL_CACHE_ENTRIES
+    );
+    return { dataUrl: cachedUrl, isComplete: true };
+  }
+
+  const hasReadyImage =
+    !card.imageUrl || loadedImageElementCache.has(card.imageUrl);
+  const baseKey = buildBaseCardCacheKey(card, designMode, hasReadyImage);
+  let baseEntry = baseCardCanvasCache.get(baseKey);
+  if (!baseEntry) {
+    const imgEl =
+      hasReadyImage && card.imageUrl
+        ? loadedImageElementCache.get(card.imageUrl)
+        : null;
+    const canvas = renderBaseCardCanvasSync(card, designMode, imgEl);
+    const dataUrl = canvas.toDataURL("image/png");
+    baseEntry = { canvas, dataUrl };
+    setBoundedMap(baseCardCanvasCache, baseKey, baseEntry, MAX_CANVAS_CACHE_ENTRIES);
+    if (hasReadyImage) {
+      setBoundedMap(
+        baseCardDataUrlCache,
+        baseKey,
+        dataUrl,
+        MAX_DATAURL_CACHE_ENTRIES
+      );
+    }
+  }
+
+  const outUrl = showNum
+    ? composeCardNumberOnBaseCanvas(baseEntry.canvas, String(card.id), designMode)
+    : baseEntry.dataUrl;
+
+  if (hasReadyImage) {
+    setBoundedMap(
+      cardImageCache,
+      fullCacheKey,
+      outUrl,
+      MAX_DATAURL_CACHE_ENTRIES
+    );
+  }
+  return { dataUrl: outUrl, isComplete: hasReadyImage };
+}
+
+// 非同期・ビューポート優先レンダリングキュー（メインスレッドとHTTP接続の飽和を防止）
+const renderQueue = [];
+const queuedElementMap = new WeakMap();
+let activeRenderCount = 0;
+const MAX_CONCURRENT_RENDERS = 3;
+let syncRendersThisFrame = 0;
+let syncResetScheduled = false;
+let cardVisibilityObserver = null;
+
+function scheduleSyncCounterReset() {
+  if (syncResetScheduled) return;
+  syncResetScheduled = true;
+  setTimeout(() => {
+    syncRendersThisFrame = 0;
+    syncResetScheduled = false;
+  }, 16);
+}
+
+function pumpRenderQueue() {
+  while (activeRenderCount < MAX_CONCURRENT_RENDERS && renderQueue.length > 0) {
+    const task = renderQueue.shift();
+    if (!task || !task.imgEl) continue;
+    const currentToken = queuedElementMap.get(task.imgEl);
+    if (currentToken && currentToken !== task) continue;
+    queuedElementMap.delete(task.imgEl);
+
+    activeRenderCount++;
+    generateCardImageCanvas(task.card, task.designMode, task.options)
+      .then((finalUrl) => {
+        if (task.imgEl.isConnected || !task.imgEl.src || task.imgEl.src.startsWith("data:image/svg+xml")) {
+          task.imgEl.src = finalUrl;
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        activeRenderCount = Math.max(0, activeRenderCount - 1);
+        if (renderQueue.length > 0) {
+          setTimeout(pumpRenderQueue, 0);
+        }
+      });
+  }
+}
+
+function enqueueCardRenderTask(task, highPriority = false) {
+  const existingIdx = renderQueue.indexOf(task);
+  if (existingIdx !== -1) {
+    if (highPriority && existingIdx > 0) {
+      renderQueue.splice(existingIdx, 1);
+      renderQueue.unshift(task);
+    }
+    pumpRenderQueue();
+    return;
+  }
+  if (highPriority) {
+    renderQueue.unshift(task);
+  } else {
+    renderQueue.push(task);
+  }
+  pumpRenderQueue();
+}
+
+function getCardVisibilityObserver() {
+  if (cardVisibilityObserver || typeof IntersectionObserver === "undefined") {
+    return cardVisibilityObserver;
+  }
+  cardVisibilityObserver = new IntersectionObserver(
+    (entries) => {
+      for (const entry of entries) {
+        if (entry.isIntersecting) {
+          const imgEl = entry.target;
+          cardVisibilityObserver.unobserve(imgEl);
+          const task = queuedElementMap.get(imgEl);
+          if (task) {
+            enqueueCardRenderTask(task, true);
+          }
+        }
+      }
+    },
+    { rootMargin: "500px 0px" }
+  );
+  return cardVisibilityObserver;
+}
+
+/**
+ * `<img>` 要素に対して出力予定のカード画像をバインドする（キャッシュ即時表示＋ビューポート優先非同期描画）.
+ * @param {HTMLImageElement} imgEl
+ * @param {Record<string, any>} card
+ * @param {{ showNumber?: boolean, designMode?: 'standard' | 'largeText' }} [options]
+ */
+export function bindCardCanvasImage(imgEl, card, options = {}) {
+  if (!imgEl || !card) return;
+  const designMode = options.designMode || FIXED_DESIGN_MODE;
+  const showNum = shouldDrawCardNumber(card, options);
+  const baseCompleteKey = buildBaseCardCacheKey(card, designMode, true);
+  const fullCacheKey = JSON.stringify({
+    baseKey: baseCompleteKey,
+    id: showNum ? String(card.id) : "",
+    showNum,
+  });
+
+  // 1. すでに完成画像がキャッシュ済みなら 0ms で即時設定
+  if (cardImageCache.has(fullCacheKey)) {
+    imgEl.src = cardImageCache.get(fullCacheKey);
+    return;
+  }
+  if (!showNum && baseCardDataUrlCache.has(baseCompleteKey)) {
+    const cachedUrl = baseCardDataUrlCache.get(baseCompleteKey);
+    setBoundedMap(
+      cardImageCache,
+      fullCacheKey,
+      cachedUrl,
+      MAX_DATAURL_CACHE_ENTRIES
+    );
+    imgEl.src = cachedUrl;
+    return;
+  }
+
+  // 2. 1フレーム内の最初の数枚（ライブプレビュー・訓練表示・一覧先頭）でイラスト待ちが不要な場合は同期描画
+  const hasReadyImage =
+    !card.imageUrl || loadedImageElementCache.has(card.imageUrl);
+  scheduleSyncCounterReset();
+  if (hasReadyImage && syncRendersThisFrame < 4) {
+    syncRendersThisFrame++;
+    const syncRes = getCardImageDataUrlSync(card, designMode, options);
+    imgEl.src = syncRes.dataUrl;
+    return;
+  }
+
+  // 3. それ以外は軽量SVGプレースホルダを即座に設定し、非同期キュー（ビューポート優先）で描画
+  imgEl.src = PLACEHOLDER_CARD_DATA_URL;
+  const task = { imgEl, card, designMode, options };
+  queuedElementMap.set(imgEl, task);
+
+  const observer = getCardVisibilityObserver();
+  if (observer) {
+    observer.observe(imgEl);
+  }
+  enqueueCardRenderTask(task, syncRendersThisFrame < 8);
+  syncRendersThisFrame++;
+}
+
+/**
+ * 複数カードの「番号なしベース画像」をあらかじめバックグラウンド（アイドル時）で少数ずつ生成・キャッシュする.
+ * @param {Array<Record<string, any>>} cards
+ */
+export async function prebuildCardBaseImages(cards) {
+  if (!Array.isArray(cards) || cards.length === 0) return;
+  const limit = Math.min(cards.length, 12);
+  for (let i = 0; i < limit; i++) {
+    while (activeRenderCount > 0 || renderQueue.length > 0) {
+      await new Promise((r) => setTimeout(r, 120));
+    }
+    const model = toCardRenderModel(cards[i]);
+    if (model) {
+      try {
+        await generateBaseCardCanvas(model, FIXED_DESIGN_MODE);
+      } catch {
+        // ignore individual card prebuild errors
+      }
+    }
+    await new Promise((r) => setTimeout(r, 40));
+  }
+}
+
+/**
+ * 完成カード画像 (600x993 名刺縦横比 PNG DataURL) を Canvas で描画する.
+ * あらかじめ生成・キャッシュされたベース画像（番号以外）を利用し、通し番号がある場合のみ左上に `No. X` を合成する.
+ * @param {Record<string, any>} card
+ * @param {'standard' | 'largeText'} [designMode='standard']
+ * @param {{ showNumber?: boolean }} [options]
+ * @returns {Promise<string>}
+ */
+export const generateCardImageCanvas = async (
+  card,
+  designMode = "standard",
+  options = {}
+) => {
+  const showNum = shouldDrawCardNumber(card, options);
+  const baseCompleteKey = buildBaseCardCacheKey(card, designMode, true);
+  const fullCacheKey = JSON.stringify({
+    baseKey: baseCompleteKey,
+    id: showNum ? String(card.id) : "",
+    showNum,
+  });
+  if (cardImageCache.has(fullCacheKey)) {
+    return cardImageCache.get(fullCacheKey);
+  }
+  if (!showNum && baseCardDataUrlCache.has(baseCompleteKey)) {
+    const cachedUrl = baseCardDataUrlCache.get(baseCompleteKey);
+    setBoundedMap(
+      cardImageCache,
+      fullCacheKey,
+      cachedUrl,
+      MAX_DATAURL_CACHE_ENTRIES
+    );
+    return cachedUrl;
+  }
+
+  const baseEntry = await generateBaseCardCanvas(card, designMode);
+  const finalDataUrl = showNum
+    ? composeCardNumberOnBaseCanvas(baseEntry.canvas, String(card.id), designMode)
+    : baseEntry.dataUrl;
+
+  setBoundedMap(
+    cardImageCache,
+    fullCacheKey,
+    finalDataUrl,
+    MAX_DATAURL_CACHE_ENTRIES
+  );
+  return finalDataUrl;
 };
 
 /**
@@ -1043,16 +1484,16 @@ async function ensureVendorLibraries() {
 }
 
 /**
- * カード配列を指定印刷サイズで A4横・裁断線付き PDF に変換して出力する.
+ * カード配列を指定印刷サイズ（デフォルト: 名刺サイズ 5.5×9.1cm）で A4横・裁断線付き PDF に変換して出力する.
  * @param {Array<Record<string, any>>} cards
- * @param {keyof typeof PRINT_SIZES} [printSizeId='4.5x6.5']
+ * @param {keyof typeof PRINT_SIZES} [printSizeId='business']
  * @param {'standard' | 'largeText'} [designMode='standard']
  * @param {{ download?: boolean, filename?: string, onProgress?: (c: number, t: number) => void, signal?: { cancelled?: boolean } }} [options]
  * @returns {Promise<{ blob: Blob, pageCount: number, cols: number, rows: number }>}
  */
 export async function exportCardsAsPdf(
   cards,
-  printSizeId = "4.5x6.5",
+  printSizeId = "business",
   designMode = "standard",
   options = {}
 ) {
@@ -1065,7 +1506,7 @@ export async function exportCardsAsPdf(
     format: "a4",
   });
 
-  const printConfig = PRINT_SIZES[printSizeId] || PRINT_SIZES["4.5x6.5"];
+  const printConfig = PRINT_SIZES[printSizeId] || PRINT_SIZES.business;
   const cols = printConfig.cols;
   const rows = printConfig.rows;
   const cardsPerPage = cols * rows;
@@ -1164,116 +1605,35 @@ export async function exportCardsAsZip(
 }
 
 /**
- * DOM版の完成カードプレビュー要素を生成する (hug-card-gen の CardPreview 準拠).
+ * 出力される予定の完成カード画像（Canvas描画PNG）をそのまま表示するプレビュー要素を生成する.
  * @param {Record<string, any>} card
- * @param {{ designMode?: 'standard' | 'largeText', onClick?: (card: Record<string, any>) => void, actionsHtml?: string }} [options]
+ * @param {{ designMode?: 'standard' | 'largeText', showNumber?: boolean, onClick?: (card: Record<string, any>) => void, actionsHtml?: string }} [options]
  * @returns {HTMLElement}
  */
 export function renderCardPreviewElement(card, options = {}) {
-  const designMode = options.designMode || "standard";
-  const isLarge = designMode === "largeText";
+  const designMode = FIXED_DESIGN_MODE;
   const isEvent = card.type === "イベント";
   const isPet = card.type === "ペット";
+  const origId = String(card.original_id || card.id || "");
+  const showNum = shouldDrawCardNumber(card, options);
 
   const wrapper = document.createElement("div");
   wrapper.className = "hug-gen-card-outer";
   wrapper.dataset.cardId = String(card.id);
-  wrapper.dataset.originalId = String(card.original_id || card.id);
+  wrapper.dataset.originalId = origId;
   wrapper.setAttribute("data-testid", `gen-card-${card.id}`);
 
-  const validAge =
-    card.age && card.age !== "-"
-      ? card.age.includes("歳")
-        ? card.age
-        : `${card.age}歳`
-      : "";
-  const validGender = card.gender && card.gender !== "-" ? card.gender : "";
-  const validOrigin = card.origin && card.origin !== "-" ? card.origin : "";
-
-  const flagsHtml = (card.detailedFlags || [])
-    .map((flag) => {
-      const cat = getFlagCategory(flag);
-      const cls =
-        cat === "健康"
-          ? "gen-flag-health"
-          : cat === "スキル"
-            ? "gen-flag-skill"
-            : cat === "配慮事項"
-              ? "gen-flag-care"
-              : "gen-flag-other";
-      return `<span class="gen-flag-badge ${cls} ${isLarge ? "gen-flag-lg" : ""}">${escapeHtml(flag)}</span>`;
-    })
-    .join("");
-
-  const hasSideBadges = Boolean(card.imageUrl && !isEvent && (validAge || validGender));
+  const noLabel = showNum ? `No. ${card.id}` : origId;
 
   wrapper.innerHTML = `
-    <div class="hug-gen-card-frame ${isEvent ? "frame-event" : isPet ? "frame-pet" : "frame-person"} ${isLarge ? "mode-large" : "mode-standard"}">
-      <div class="gen-card-header">
-        <span class="gen-card-no" data-testid="gen-card-no-${escapeHtml(card.id)}">No. ${escapeHtml(card.id)}</span>
-        <span class="gen-card-type-pill ${isEvent ? "pill-ev" : isPet ? "pill-pt" : "pill-ps"}">${escapeHtml(card.type)}</span>
-      </div>
-      <h3 class="gen-card-title ${isEvent ? "title-ev" : ""}">${escapeHtml(card.name || "(名称未設定)")}</h3>
-      ${
-        card.imageUrl
-          ? `
-        <div class="gen-card-image-row">
-          <div class="gen-card-image-box">
-            <img src="${escapeHtml(card.imageUrl)}" alt="${escapeHtml(card.name)}" class="gen-card-img" />
-          </div>
-          ${
-            hasSideBadges
-              ? `
-            <div class="gen-card-side-badges">
-              ${validAge ? `<span class="gen-meta-badge">${escapeHtml(validAge)}</span>` : ""}
-              ${validGender ? `<span class="gen-meta-badge">${escapeHtml(validGender)}</span>` : ""}
-            </div>
-          `
-              : ""
-          }
-        </div>
-      `
-          : ""
-      }
-      ${
-        !isEvent
-          ? `
-        <div class="gen-card-meta-section">
-          ${
-            !hasSideBadges && (validAge || validGender)
-              ? `
-            <div class="gen-card-meta-inline">
-              ${validAge ? `<span class="gen-meta-badge">${escapeHtml(validAge)}</span>` : ""}
-              ${validGender ? `<span class="gen-meta-badge">${escapeHtml(validGender)}</span>` : ""}
-            </div>
-          `
-              : ""
-          }
-          ${validOrigin ? `<div class="gen-card-origin"><span class="gen-meta-badge">${escapeHtml(validOrigin)}</span></div>` : ""}
-        </div>
-      `
-          : ""
-      }
-      ${
-        card.attributes
-          ? `
-        <div class="gen-card-attr-row">
-          <span class="gen-attr-label">属性:</span>
-          <span class="gen-attr-val">${escapeHtml(card.attributes)}</span>
-        </div>
-      `
-          : ""
-      }
-      ${flagsHtml ? `<div class="gen-card-flags-row">${flagsHtml}</div>` : ""}
-      ${
-        !isLarge
-          ? `
-        <div class="gen-card-dialogue ${isEvent ? "dlg-ev" : isPet ? "dlg-pt" : "dlg-ps"}">
-          <div class="gen-card-dialogue-text">${escapeHtml(card.dialogue || "")}</div>
-        </div>
-      `
-          : ""
-      }
+    <div class="hug-gen-card-frame hug-gen-card-image-mode ${isEvent ? "frame-event" : isPet ? "frame-pet" : "frame-person"} mode-standard">
+      <img
+        alt="${escapeHtml(card.name || origId)}"
+        class="gen-card-canvas-img"
+        data-testid="gen-card-img-${escapeHtml(card.id)}"
+      />
+      <span class="sr-only gen-card-no" data-testid="gen-card-no-${escapeHtml(card.id)}">${escapeHtml(noLabel)}</span>
+      <span class="sr-only gen-card-orig-id" data-testid="gen-card-orig-id-${escapeHtml(origId)}">${escapeHtml(origId)}</span>
     </div>
     <button type="button" class="gen-card-download-btn" title="完成カードPNGをダウンロード" data-testid="download-card-png-${escapeHtml(card.id)}">
       ⬇ PNG
@@ -1281,12 +1641,22 @@ export function renderCardPreviewElement(card, options = {}) {
     ${options.actionsHtml || ""}
   `;
 
+  const canvasImg = wrapper.querySelector(".gen-card-canvas-img");
+  if (canvasImg) {
+    bindCardCanvasImage(canvasImg, card, {
+      designMode,
+      showNumber: options.showNumber,
+    });
+  }
+
   const dlBtn = wrapper.querySelector(".gen-card-download-btn");
   if (dlBtn) {
     dlBtn.addEventListener("click", async (e) => {
       e.stopPropagation();
       try {
-        const dataUrl = await generateCardImageCanvas(card, designMode);
+        const dataUrl = await generateCardImageCanvas(card, designMode, {
+          showNumber: options.showNumber,
+        });
         const link = document.createElement("a");
         link.download = `hug-card-${card.id}.png`;
         link.href = dataUrl;

@@ -44,6 +44,7 @@ function buildDeckRequestPayload() {
       dc.max_households !== undefined
         ? Number(dc.max_households)
         : null,
+    excluded_ids: Array.isArray(dc.excluded_ids) ? [...dc.excluded_ids] : [],
   };
   return {
     conditions,
@@ -211,24 +212,7 @@ export async function renderDeckView(container) {
           </div>
 
           <div class="toolbar-actions">
-            <label class="inline-ctrl-label">
-              デザイン:
-              <select id="deck-card-design-select" class="form-select form-input-sm" data-testid="deck-card-design-select">
-                <option value="standard" ${store.cardDesignMode !== "largeText" ? "selected" : ""}>標準デザイン</option>
-                <option value="largeText" ${store.cardDesignMode === "largeText" ? "selected" : ""}>大きな文字 (シニア・視認性重視)</option>
-              </select>
-            </label>
-            <label class="inline-ctrl-label">
-              印刷サイズ:
-              <select id="deck-print-size-select" class="form-select form-input-sm" data-testid="deck-print-size-select">
-                ${Object.entries(PRINT_SIZES)
-                  .map(
-                    ([psId, ps]) =>
-                      `<option value="${escapeHtml(psId)}" ${(store.printSizeId || "4.5x6.5") === psId ? "selected" : ""}>${escapeHtml(ps.label || ps.name || psId)}</option>`
-                  )
-                  .join("")}
-              </select>
-            </label>
+            <span class="badge" data-testid="deck-fixed-card-spec">標準デザイン / 名刺サイズ (5.5×9.1cm)</span>
             <button type="button" class="btn btn-sm btn-primary" id="export-deck-pdf-btn" data-testid="export-deck-pdf-btn">
               カードPDF保存
             </button>
@@ -250,13 +234,28 @@ export async function renderDeckView(container) {
         <div id="deck-conflict-container"></div>
         <div id="deck-reorder-error" class="validation-errors-box" data-testid="deck-reorder-error" style="display:none;"></div>
 
+        <div class="deck-operation-guide" data-testid="deck-operation-guide">
+          <span>💡 <strong>操作ヒント:</strong> ここでの「↑↓・ドラッグでの順番入れ替え」や「✕ デッキから除外」は、<strong>この訓練デッキの構成のみを変更します（データベース上の元カードは削除されません）</strong>。除外したカードは右側の「除外された単位」からいつでもデッキに戻せます。</span>
+        </div>
+
         <div class="deck-lists-grid" id="deck-units-grid-wrap">
           <div class="deck-units-section">
-            <h4>カード提出順（単位一覧: ↑↓ボタンまたはドラッグで並べ替え）</h4>
+            <h4>カード提出順（単位一覧: ↑↓・ドラッグで並べ替え ／ 「✕ デッキから除外」でデッキから外す）</h4>
             <div id="deck-units-container"></div>
           </div>
           <div class="deck-excluded-section">
-            <h4>除外された単位 (<span id="deck-excluded-count">0</span>件)</h4>
+            <div class="deck-excluded-header">
+              <h4>除外された単位 (<span id="deck-excluded-count">0</span>件)</h4>
+              <button
+                type="button"
+                class="btn btn-xs btn-secondary"
+                id="restore-all-excluded-btn"
+                data-testid="restore-all-excluded-btn"
+                style="display:none;"
+              >
+                手動除外をすべて戻す
+              </button>
+            </div>
             <ul id="deck-excluded-list" class="excluded-list" data-testid="deck-excluded-list"></ul>
           </div>
         </div>
@@ -271,8 +270,64 @@ export async function renderDeckView(container) {
   const conflictContainer = container.querySelector("#deck-conflict-container");
   const unitsContainer = container.querySelector("#deck-units-container");
   const excludedList = container.querySelector("#deck-excluded-list");
+  const restoreAllExcludedBtn = container.querySelector("#restore-all-excluded-btn");
   const reorderErrorBox = container.querySelector("#deck-reorder-error");
   const changedBannerWrap = container.querySelector("#deck-changed-banner-wrap");
+
+  const getExcludedIdsSet = () =>
+    new Set(
+      Array.isArray(store.deckConditions.excluded_ids)
+        ? store.deckConditions.excluded_ids
+        : []
+    );
+
+  const excludeUnitFromDeck = async (unitId, unitName = "") => {
+    if (!unitId) return;
+    const set = getExcludedIdsSet();
+    set.add(unitId);
+    store.deckConditions.excluded_ids = Array.from(set);
+    if (Array.isArray(store.deckManualOrder)) {
+      store.deckManualOrder = store.deckManualOrder.filter((id) => id !== unitId);
+    }
+    await runBuildDeck();
+    const label = unitName ? `${unitId} (${unitName})` : unitId;
+    showToast(
+      `${label} をこのデッキから除外しました（DB上のカードは削除されません）`,
+      "info"
+    );
+  };
+
+  const restoreUnitToDeck = async (unitId, unitName = "") => {
+    if (!unitId) return;
+    const set = getExcludedIdsSet();
+    set.delete(unitId);
+    store.deckConditions.excluded_ids = Array.from(set);
+    await runBuildDeck();
+    const label = unitName ? `${unitId} (${unitName})` : unitId;
+    showToast(`${label} をデッキに戻しました`, "success");
+  };
+
+  const restoreAllExcludedUnits = async () => {
+    store.deckConditions.excluded_ids = [];
+    await runBuildDeck();
+    showToast("手動除外したカードをすべてデッキに戻しました", "success");
+  };
+
+  if (restoreAllExcludedBtn) {
+    restoreAllExcludedBtn.addEventListener("click", () => {
+      restoreAllExcludedUnits();
+    });
+  }
+
+  const openDeckDetailModal = (kind, id) => {
+    openDetailModal({
+      kind,
+      id,
+      onExcludeFromDeck: excludeUnitFromDeck,
+      onRestoreToDeck: restoreUnitToDeck,
+      excludedIdsSet: getExcludedIdsSet(),
+    });
+  };
 
   const renderHolidayChips = () => {
     renderMultiSelectChips(
@@ -507,24 +562,76 @@ export async function renderDeckView(container) {
           }
         },
         (unit) => {
-          openDetailModal({
-            kind: unit.kind === "event" ? "event" : "household",
-            id: unit.id,
-          });
+          openDeckDetailModal(
+            unit.kind === "event" ? "event" : "household",
+            unit.id
+          );
+        },
+        (unit) => {
+          excludeUnitFromDeck(unit.id, unit.name);
         }
       );
 
       // 除外一覧
       const exc = deck.excluded || [];
+      const manualExcludedSet = getExcludedIdsSet();
+      const manualExcCount = exc.filter(
+        (item) => item.manual || manualExcludedSet.has(item.id)
+      ).length;
+      if (restoreAllExcludedBtn) {
+        if (manualExcCount > 0) {
+          restoreAllExcludedBtn.style.display = "inline-flex";
+          restoreAllExcludedBtn.textContent = `手動除外をすべて戻す (${manualExcCount}件)`;
+        } else {
+          restoreAllExcludedBtn.style.display = "none";
+        }
+      }
       container.querySelector("#deck-excluded-count").textContent = String(
         exc.length
       );
       excludedList.innerHTML = exc
-        .map(
-          (item) =>
-            `<li><strong>${escapeHtml(item.id)}</strong> (${escapeHtml(item.kind)}): ${escapeHtml((item.reasons || []).join(", "))}</li>`
-        )
+        .map((item) => {
+          const isManual = Boolean(item.manual || manualExcludedSet.has(item.id));
+          const kindLabel = item.kind === "event" ? "イベント" : "世帯";
+          return `
+            <li class="excluded-unit-item ${isManual ? "excluded-unit-manual" : ""}" data-unit-id="${escapeHtml(item.id)}" data-unit-kind="${escapeHtml(item.kind)}" data-testid="excluded-unit-${escapeHtml(item.id)}">
+              <div class="excluded-unit-info">
+                <span class="type-pill ${item.kind === "event" ? "pill-event" : "pill-household"}">${kindLabel}</span>
+                <strong>${escapeHtml(item.id)}</strong>
+                <span>${escapeHtml(item.name || "")}</span>
+                <span class="text-muted">（${escapeHtml((item.reasons || []).join(", "))}）</span>
+              </div>
+              ${
+                isManual
+                  ? `<button
+                      type="button"
+                      class="btn btn-xs btn-primary unit-restore-btn"
+                      data-unit-id="${escapeHtml(item.id)}"
+                      data-unit-name="${escapeHtml(item.name || "")}"
+                      data-testid="unit-restore-${escapeHtml(item.id)}"
+                    >＋ デッキに戻す</button>`
+                  : ""
+              }
+            </li>
+          `;
+        })
         .join("");
+
+      excludedList.querySelectorAll(".excluded-unit-item").forEach((li) => {
+        li.addEventListener("click", (e) => {
+          if (e.target.closest(".unit-restore-btn")) return;
+          const uid = li.dataset.unitId;
+          const ukind = li.dataset.unitKind === "event" ? "event" : "household";
+          if (uid) openDeckDetailModal(ukind, uid);
+        });
+      });
+
+      excludedList.querySelectorAll(".unit-restore-btn").forEach((btn) => {
+        btn.addEventListener("click", (e) => {
+          e.stopPropagation();
+          restoreUnitToDeck(btn.dataset.unitId, btn.dataset.unitName);
+        });
+      });
 
       renderDeckSubView();
     } catch (err) {
@@ -572,11 +679,45 @@ export async function renderDeckView(container) {
           grid.className = "gen-cards-preview-grid";
           grid.setAttribute("data-testid", "deck-gen-cards-grid");
           for (const rc of renderCards) {
-            grid.appendChild(
-              renderCardPreviewElement(rc, {
-                designMode: store.cardDesignMode || "standard",
-              })
-            );
+            const unitId = rc.type === "イベント" ? rc.original_id : rc.group_id || rc.original_id;
+            const unitLabel = rc.type === "イベント" ? rc.name : rc.group_name || unitId;
+            const excludeBtnLabel =
+              rc.type === "イベント"
+                ? "✕ このデッキから除外"
+                : `✕ 世帯(${escapeHtml(unitId)})ごとデッキから除外`;
+            const el = renderCardPreviewElement(rc, {
+              designMode: "standard",
+              showNumber: true,
+              actionsHtml: `
+                <div class="gen-card-deck-actions">
+                  <button
+                    type="button"
+                    class="btn btn-xs btn-outline-danger preview-card-exclude-btn"
+                    data-unit-id="${escapeHtml(unitId)}"
+                    data-unit-name="${escapeHtml(unitLabel)}"
+                    data-testid="preview-exclude-${escapeHtml(rc.id)}"
+                    title="この訓練デッキから除外します（データベース上の元カードは削除されません）"
+                  >
+                    ${excludeBtnLabel}
+                  </button>
+                </div>
+              `,
+              onClick: (card) => {
+                const orig = card.original_id || card.id;
+                openDeckDetailModal(
+                  card.type === "イベント" ? "event" : "member",
+                  orig
+                );
+              },
+            });
+            const exBtn = el.querySelector(".preview-card-exclude-btn");
+            if (exBtn) {
+              exBtn.addEventListener("click", (e) => {
+                e.stopPropagation();
+                excludeUnitFromDeck(exBtn.dataset.unitId, exBtn.dataset.unitName);
+              });
+            }
+            grid.appendChild(el);
           }
           cardsPreviewSection.appendChild(grid);
         }
@@ -613,21 +754,6 @@ export async function renderDeckView(container) {
     });
   }
 
-  const designSelect = container.querySelector("#deck-card-design-select");
-  if (designSelect) {
-    designSelect.addEventListener("change", (e) => {
-      store.cardDesignMode = e.target.value;
-      renderDeckSubView();
-    });
-  }
-
-  const printSizeSelect = container.querySelector("#deck-print-size-select");
-  if (printSizeSelect) {
-    printSizeSelect.addEventListener("change", (e) => {
-      store.printSizeId = e.target.value;
-    });
-  }
-
   let activeExportSignal = null;
   const exportProgressWrap = container.querySelector("#deck-export-progress-wrap");
   const exportProgressText = container.querySelector("#deck-export-progress-text");
@@ -655,8 +781,8 @@ export async function renderDeckView(container) {
       try {
         await exportCardsAsPdf(
           renderCards,
-          store.printSizeId || "4.5x6.5",
-          store.cardDesignMode || "standard",
+          "business",
+          "standard",
           {
             download: true,
             filename: "hug-cards.pdf",
@@ -693,7 +819,7 @@ export async function renderDeckView(container) {
       try {
         await exportCardsAsZip(
           renderCards,
-          store.cardDesignMode || "standard",
+          "standard",
           {
             download: true,
             filename: "hug-cards.zip",

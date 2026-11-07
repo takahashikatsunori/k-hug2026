@@ -4,17 +4,19 @@
 import { escapeHtml } from "../util.js";
 
 /**
- * 単位一覧を描画し、↑↓ボタンまたはドラッグ＆ドロップで順番変更を通知する.
+ * 単位一覧を描画し、↑↓ボタン・ドラッグ＆ドロップで順番変更、またはデッキからの除外を通知する.
  * @param {HTMLElement} container
  * @param {Array<Record<string, any>>} units
  * @param {(newUnitIds: string[]) => Promise<void> | void} onReorder
  * @param {(unit: Record<string, any>) => void} [onSelectUnit]
+ * @param {(unit: Record<string, any>) => Promise<void> | void} [onExcludeUnit]
  */
 export function renderSortableUnitList(
   container,
   units,
   onReorder,
-  onSelectUnit
+  onSelectUnit,
+  onExcludeUnit
 ) {
   container.innerHTML = "";
   const listEl = document.createElement("ul");
@@ -62,6 +64,16 @@ export function renderSortableUnitList(
           ${idx === units.length - 1 ? "disabled" : ""}
           title="下へ移動"
         >↓</button>
+        ${
+          onExcludeUnit
+            ? `<button
+                type="button"
+                class="btn btn-xs btn-outline-danger unit-exclude-btn"
+                data-testid="unit-exclude-${escapeHtml(u.id)}"
+                title="このデッキから除外します（データベース上の元カードは削除されません）"
+              >✕ デッキから除外</button>`
+            : ""
+        }
       </div>
     `;
 
@@ -82,6 +94,14 @@ export function renderSortableUnitList(
       [next[idx], next[idx + 1]] = [next[idx + 1], next[idx]];
       onReorder(next);
     });
+
+    const excludeBtn = li.querySelector(".unit-exclude-btn");
+    if (excludeBtn && onExcludeUnit) {
+      excludeBtn.addEventListener("click", (e) => {
+        e.stopPropagation();
+        onExcludeUnit(u);
+      });
+    }
 
     li.addEventListener("click", () => {
       if (onSelectUnit) onSelectUnit(u);

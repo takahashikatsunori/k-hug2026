@@ -3,6 +3,7 @@
  */
 import { api } from "./api.js";
 import { store } from "./store.js";
+import { prebuildCardBaseImages } from "./cardCanvas.js";
 import { renderListView } from "./views/listView.js";
 import { renderEventEditor } from "./views/eventEditor.js";
 import { renderHouseholdEditor } from "./views/householdEditor.js";
@@ -37,6 +38,9 @@ async function refreshTotalCounts() {
     };
     if (imgStatus) {
       store.updateImageStatus(imgStatus);
+      if (Array.isArray(imgStatus.cards)) {
+        prebuildCardBaseImages(imgStatus.cards);
+      }
     }
     updateHeaderBadges();
   } catch {

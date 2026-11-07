@@ -220,14 +220,11 @@ export async function renderEventEditor(container, editingId, callbacks) {
         `
             : ""
         }
-        <h4 style="margin-top:1rem;">完成カードプレビュー</h4>
-        <div id="event-gen-card-preview" data-testid="event-gen-card-preview"></div>
       </div>
     </div>
   `;
 
   const previewContainer = container.querySelector("#event-live-preview");
-  const genPreviewContainer = container.querySelector("#event-gen-card-preview");
   const errorBox = container.querySelector("#event-validation-errors");
 
   const updatePreview = () => {
@@ -235,17 +232,6 @@ export async function renderEventEditor(container, editingId, callbacks) {
     if (editingId) rec.card_id = editingId;
     previewContainer.innerHTML = "";
     previewContainer.appendChild(renderEventCard(rec));
-    if (genPreviewContainer) {
-      genPreviewContainer.innerHTML = "";
-      const cardModel = toCardRenderModel(rec);
-      if (cardModel) {
-        genPreviewContainer.appendChild(
-          renderCardPreviewElement(cardModel, {
-            designMode: store.cardDesignMode || "standard",
-          })
-        );
-      }
-    }
   };
 
   if (editingId) {

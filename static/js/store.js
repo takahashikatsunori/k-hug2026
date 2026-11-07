@@ -38,6 +38,7 @@ export const store = {
     disaster_phase: [],
     max_events: "",
     max_households: "",
+    excluded_ids: [],
   },
   deckResolutions: {},
   /** @type {string[] | null} */
@@ -48,15 +49,15 @@ export const store = {
   /** @type {Record<string, any> | null} */
   loadedSavedDeckNotice: null,
 
-  // イラスト・カード出力設定の状態
+  // イラスト・カード出力設定の状態（標準デザイン・名刺サイズ固定）
   /** @type {Set<string>} */
   imageIds: new Set(),
   /** @type {Record<string, string>} */
   imageCacheBust: {},
-  /** @type {'standard' | 'largeText'} */
+  /** @type {'standard'} */
   cardDesignMode: "standard",
   /** @type {string} */
-  printSizeId: "4.5x6.5",
+  printSizeId: "business",
   /** @type {'units' | 'cards' | 'ledger'} */
   deckViewSubMode: "units",
 

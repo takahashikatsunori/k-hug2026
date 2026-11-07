@@ -100,6 +100,10 @@ DDL_STATEMENTS = (
         updated_at TEXT NOT NULL
     )
     """,
+    """
+    CREATE INDEX IF NOT EXISTS idx_card_images_meta
+    ON card_images(target_id, target_kind, mime_type, sha256, updated_at)
+    """,
 )
 
 
@@ -128,7 +132,9 @@ def _is_db_already_initialized(conn: sqlite3.Connection) -> bool:
             "('schema_version', 'id_counter_EV', 'id_counter_GRP', 'id_counter_M')"
         ).fetchall()
         tbl_count = conn.execute(
-            "SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name IN ('card_images', 'image_batches')"
+            "SELECT COUNT(*) FROM sqlite_master WHERE "
+            "(type='table' AND name IN ('card_images', 'image_batches')) OR "
+            "(type='index' AND name = 'idx_card_images_meta')"
         ).fetchone()[0]
     except sqlite3.OperationalError:
         return False
@@ -138,7 +144,7 @@ def _is_db_already_initialized(conn: sqlite3.Connection) -> bool:
         and "id_counter_EV" in kv
         and "id_counter_GRP" in kv
         and "id_counter_M" in kv
-        and tbl_count == 2
+        and tbl_count == 3
     )
 
 

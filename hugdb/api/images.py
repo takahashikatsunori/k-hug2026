@@ -142,16 +142,29 @@ async def api_import_images_zip(
 @router.get("/{target_id}")
 def api_get_image(
     target_id: str,
+    request: Request,
     conn: sqlite3.Connection = Depends(get_conn),
 ) -> Response:
     """指定カードID (`EV-xxx` / `M-xxxx`) のイラスト画像を返す."""
     info = get_card_image(conn, target_id)
+    etag = f"\"{info['sha256']}\""
+    has_ver = bool(request.query_params.get("v"))
+    cache_ctrl = "public, max-age=3600" if has_ver else "no-cache"
+    inm = request.headers.get("if-none-match")
+    if inm and inm.strip() == etag:
+        return Response(
+            status_code=status.HTTP_304_NOT_MODIFIED,
+            headers={
+                "ETag": etag,
+                "Cache-Control": cache_ctrl,
+            },
+        )
     return Response(
         content=info["image_data"],
         media_type=info["mime_type"],
         headers={
-            "ETag": f"\"{info['sha256']}\"",
-            "Cache-Control": "no-cache",
+            "ETag": etag,
+            "Cache-Control": cache_ctrl,
         },
     )
 

@@ -202,11 +202,30 @@ def build_deck(
     resolutions: dict[str, str] | None = None,
     manual_order: list[str] | None = None,
     phase_first: bool = False,
+    excluded_ids: list[str] | set[str] | None = None,
 ) -> DeckBuildResult:
-    """訓練条件・矛盾解決・手動順序に基づきデッキを構築する."""
+    """訓練条件・矛盾解決・手動順序・手動除外に基づきデッキを構築する."""
     tc = TrainingConditions.from_dict(conditions)
     warnings: list[str] = []
     excluded: list[dict[str, Any]] = []
+
+    manual_excluded_set: set[str] = set()
+    for src in (tc.excluded_ids, excluded_ids):
+        if src:
+            if isinstance(src, str):
+                if src.strip():
+                    manual_excluded_set.add(src.strip())
+            else:
+                for x in src:
+                    if x and str(x).strip():
+                        manual_excluded_set.add(str(x).strip())
+
+    # 構成員ID (M-xxxx) が指定された場合は所属世帯 (GRP-xxx) も対象として解決できるようにする
+    for m in members:
+        mid = str(m.get("member_id") or "")
+        gid = str(m.get("group_id") or "")
+        if mid and gid and mid in manual_excluded_set:
+            manual_excluded_set.add(gid)
 
     # 休日種別の解決
     resolved_holidays: list[str] = []
@@ -221,34 +240,60 @@ def build_deck(
         except ValueError:
             resolved_holidays = []
 
-    # 1. is_eligible による第1段階抽出
+    # 1. 手動除外および is_eligible による第1段階抽出
     eligible_events: list[dict[str, Any]] = []
     for ev in events:
+        cid = ev["card_id"]
+        if cid in manual_excluded_set:
+            excluded.append(
+                {
+                    "id": cid,
+                    "kind": "event",
+                    "name": ev.get("event_name") or cid,
+                    "reasons": ["手動除外（デッキから除外）"],
+                    "manual": True,
+                }
+            )
+            continue
         ok, reasons = is_eligible(ev, tc)
         if ok:
             eligible_events.append(copy.deepcopy(ev))
         else:
             excluded.append(
                 {
-                    "id": ev["card_id"],
+                    "id": cid,
                     "kind": "event",
-                    "name": ev.get("event_name") or ev["card_id"],
+                    "name": ev.get("event_name") or cid,
                     "reasons": reasons,
+                    "manual": False,
                 }
             )
 
     eligible_groups: list[dict[str, Any]] = []
     for grp in groups:
+        gid = grp["group_id"]
+        if gid in manual_excluded_set:
+            excluded.append(
+                {
+                    "id": gid,
+                    "kind": "household",
+                    "name": grp.get("group_name") or gid,
+                    "reasons": ["手動除外（デッキから除外）"],
+                    "manual": True,
+                }
+            )
+            continue
         ok, reasons = is_eligible(grp, tc)
         if ok:
             eligible_groups.append(copy.deepcopy(grp))
         else:
             excluded.append(
                 {
-                    "id": grp["group_id"],
+                    "id": gid,
                     "kind": "household",
-                    "name": grp.get("group_name") or grp["group_id"],
+                    "name": grp.get("group_name") or gid,
                     "reasons": reasons,
+                    "manual": False,
                 }
             )
 
@@ -267,6 +312,7 @@ def build_deck(
                         "kind": "event",
                         "name": ev.get("event_name") or ev["card_id"],
                         "reasons": [f"前提カード {pre} がデッキにない"],
+                        "manual": False,
                     }
                 )
                 changed_prereq = True
@@ -286,6 +332,7 @@ def build_deck(
                     "kind": "event",
                     "name": dev.get("event_name") or dev["card_id"],
                     "reasons": ["枚数上限による除外: 最大イベント数"],
+                    "manual": False,
                 }
             )
 
@@ -299,6 +346,7 @@ def build_deck(
                     "kind": "household",
                     "name": dgrp.get("group_name") or dgrp["group_id"],
                     "reasons": ["枚数上限による除外: 最大世帯数"],
+                    "manual": False,
                 }
             )
 

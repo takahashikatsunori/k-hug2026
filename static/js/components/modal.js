@@ -45,10 +45,21 @@ function formatFieldValue(val) {
  *   kind: "event" | "household" | "member",
  *   id: string,
  *   onEdit?: (kind: "event" | "household", id: string) => void,
- *   onDelete?: (kind: "event" | "household" | "member", id: string) => void
+ *   onDelete?: (kind: "event" | "household" | "member", id: string) => void,
+ *   onExcludeFromDeck?: (unitId: string, name?: string) => Promise<void> | void,
+ *   onRestoreToDeck?: (unitId: string, name?: string) => Promise<void> | void,
+ *   excludedIdsSet?: Set<string> | null
  * }} params
  */
-export async function openDetailModal({ kind, id, onEdit, onDelete }) {
+export async function openDetailModal({
+  kind,
+  id,
+  onEdit,
+  onDelete,
+  onExcludeFromDeck,
+  onRestoreToDeck,
+  excludedIdsSet = null,
+}) {
   closeDetailModal();
 
   const overlay = document.createElement("div");
@@ -120,6 +131,33 @@ export async function openDetailModal({ kind, id, onEdit, onDelete }) {
             .join(" ")
         : '<span class="text-muted">なし</span>';
 
+    const isDeckContext = Boolean(onExcludeFromDeck || onRestoreToDeck);
+    const isExcluded = Boolean(excludedIdsSet && excludedIdsSet.has(ev.card_id));
+    const footerHtml = isDeckContext
+      ? `
+        <div class="modal-footer modal-footer-with-note">
+          <span class="modal-footer-note">※この操作は現在の訓練デッキの構成のみを変更します（データベース上のカードは削除されません）</span>
+          <div class="modal-footer-actions">
+            ${
+              isExcluded
+                ? `<button type="button" class="btn btn-primary" data-action="deck-restore" data-testid="modal-deck-restore-btn">＋ このデッキに戻す</button>`
+                : `<button type="button" class="btn btn-outline-danger" data-action="deck-exclude" data-testid="modal-deck-exclude-btn">✕ このデッキから除外（DBには残す）</button>`
+            }
+            <button type="button" class="btn" data-action="close">閉じる (Esc)</button>
+          </div>
+        </div>
+      `
+      : `
+        <div class="modal-footer modal-footer-with-note">
+          <span class="modal-footer-note">※「データベースから削除」は登録データ自体を消去します（特定のデッキからのみ外す場合は「デッキ構築」タブの「デッキから除外」をご利用ください）</span>
+          <div class="modal-footer-actions">
+            ${onEdit ? `<button type="button" class="btn btn-secondary" data-action="edit" data-testid="modal-edit-btn">内容を編集</button>` : ""}
+            ${onDelete ? `<button type="button" class="btn btn-danger" data-action="delete" data-testid="modal-delete-btn">🗑 データベースから削除</button>` : ""}
+            <button type="button" class="btn" data-action="close">閉じる (Esc)</button>
+          </div>
+        </div>
+      `;
+
     dialog.innerHTML = `
       <div class="modal-header">
         <div>
@@ -138,18 +176,18 @@ export async function openDetailModal({ kind, id, onEdit, onDelete }) {
           ${rowsHtml}
         </div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-action="edit" data-testid="modal-edit-btn">編集</button>
-        <button type="button" class="btn btn-danger" data-action="delete" data-testid="modal-delete-btn">削除</button>
-        <button type="button" class="btn" data-action="close">閉じる (Esc)</button>
-      </div>
+      ${footerHtml}
     `;
 
     bindModalEvents(dialog, {
       kind: "event",
       id: ev.card_id,
+      name: ev.event_name,
       onEdit,
       onDelete,
+      onExcludeFromDeck,
+      onRestoreToDeck,
+      excludedIdsSet,
     });
   } else {
     let groupId = id;
@@ -214,6 +252,33 @@ export async function openDetailModal({ kind, id, onEdit, onDelete }) {
       })
       .join("");
 
+    const isDeckContext = Boolean(onExcludeFromDeck || onRestoreToDeck);
+    const isExcluded = Boolean(excludedIdsSet && excludedIdsSet.has(grp.group_id));
+    const footerHtml = isDeckContext
+      ? `
+        <div class="modal-footer modal-footer-with-note">
+          <span class="modal-footer-note">※この操作は現在の訓練デッキの構成のみを変更します（データベース上の世帯・構成員は削除されません）</span>
+          <div class="modal-footer-actions">
+            ${
+              isExcluded
+                ? `<button type="button" class="btn btn-primary" data-action="deck-restore" data-testid="modal-deck-restore-btn">＋ この世帯をデッキに戻す</button>`
+                : `<button type="button" class="btn btn-outline-danger" data-action="deck-exclude" data-testid="modal-deck-exclude-btn">✕ この世帯をデッキから除外（DBには残す）</button>`
+            }
+            <button type="button" class="btn" data-action="close">閉じる (Esc)</button>
+          </div>
+        </div>
+      `
+      : `
+        <div class="modal-footer modal-footer-with-note">
+          <span class="modal-footer-note">※「世帯をデータベースから削除」は登録データ自体を消去します（特定のデッキからのみ外す場合は「デッキ構築」タブの「デッキから除外」をご利用ください）</span>
+          <div class="modal-footer-actions">
+            ${onEdit ? `<button type="button" class="btn btn-secondary" data-action="edit" data-testid="modal-edit-btn">世帯を編集</button>` : ""}
+            ${onDelete ? `<button type="button" class="btn btn-danger" data-action="delete" data-testid="modal-delete-btn">🗑 世帯をデータベースから削除</button>` : ""}
+            <button type="button" class="btn" data-action="close">閉じる (Esc)</button>
+          </div>
+        </div>
+      `;
+
     dialog.innerHTML = `
       <div class="modal-header">
         <div>
@@ -229,23 +294,35 @@ export async function openDetailModal({ kind, id, onEdit, onDelete }) {
         <h4>世帯構成員 (${members.length}件)</h4>
         <div class="detail-members-container">${membersHtml}</div>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-action="edit" data-testid="modal-edit-btn">世帯を編集</button>
-        <button type="button" class="btn btn-danger" data-action="delete" data-testid="modal-delete-btn">世帯を削除</button>
-        <button type="button" class="btn" data-action="close">閉じる (Esc)</button>
-      </div>
+      ${footerHtml}
     `;
 
     bindModalEvents(dialog, {
       kind: "household",
       id: grp.group_id,
+      name: grp.group_name,
       onEdit,
       onDelete,
+      onExcludeFromDeck,
+      onRestoreToDeck,
+      excludedIdsSet,
     });
   }
 }
 
-function bindModalEvents(dialog, { kind, id, onEdit, onDelete }) {
+function bindModalEvents(
+  dialog,
+  {
+    kind,
+    id,
+    name,
+    onEdit,
+    onDelete,
+    onExcludeFromDeck,
+    onRestoreToDeck,
+    excludedIdsSet,
+  }
+) {
   dialog.querySelectorAll("[data-action='close'], .modal-close-btn").forEach((btn) => {
     btn.addEventListener("click", () => closeDetailModal());
   });
@@ -266,12 +343,36 @@ function bindModalEvents(dialog, { kind, id, onEdit, onDelete }) {
     });
   }
 
+  const deckExcludeBtn = dialog.querySelector("[data-action='deck-exclude']");
+  if (deckExcludeBtn && onExcludeFromDeck) {
+    deckExcludeBtn.addEventListener("click", async () => {
+      closeDetailModal();
+      await onExcludeFromDeck(id, name);
+    });
+  }
+
+  const deckRestoreBtn = dialog.querySelector("[data-action='deck-restore']");
+  if (deckRestoreBtn && onRestoreToDeck) {
+    deckRestoreBtn.addEventListener("click", async () => {
+      closeDetailModal();
+      await onRestoreToDeck(id, name);
+    });
+  }
+
   dialog.querySelectorAll(".related-card-link").forEach((link) => {
     link.addEventListener("click", () => {
       const targetKind = link.dataset.targetKind || "event";
       const targetId = link.dataset.targetId;
       if (targetId) {
-        openDetailModal({ kind: targetKind, id: targetId, onEdit, onDelete });
+        openDetailModal({
+          kind: targetKind,
+          id: targetId,
+          onEdit,
+          onDelete,
+          onExcludeFromDeck,
+          onRestoreToDeck,
+          excludedIdsSet,
+        });
       }
     });
   });

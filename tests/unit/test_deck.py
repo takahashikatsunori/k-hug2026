@@ -356,3 +356,33 @@ def test_de_21_roundtrip_export_json_reimport_and_build(s2_payload: dict):
     )
     assert deck2.stats["total_cards"] == 41
     assert [c.title for c in deck2.cards] == [c.title for c in deck1.cards]
+
+
+def test_de_22_manual_excluded_ids_excludes_units_and_cascades_prerequisites(s2_payload: dict):
+    """DE-22: 手動除外 (excluded_ids) を指定すると、DBから削除せずにデッキから除外され、前提カード除外も連動する."""
+    # EV-001（EV-002の前提）と M-0001（GRP-001の構成員 → 世帯GRP-001ごと除外）を指定
+    res = build_deck(
+        s2_payload["cards_event"],
+        s2_payload["evacuee_groups"],
+        s2_payload["group_members"],
+        {"disaster_type": "地震", "shelter": "小平第五小学校"},
+        excluded_ids=["EV-001", "M-0001"],
+    )
+    # EV-001 (1枚) + EV-002 (前提連鎖 1枚) + GRP-001 (2枚) = 4枚減って 37枚
+    assert res.stats["total_cards"] == 37
+    assert res.stats["events"] == 18
+    assert res.stats["households"] == 9
+    assert res.stats["excluded_by_reason"]["手動除外（デッキから除外）"] == 2
+
+    ev1_excl = next(x for x in res.excluded if x["id"] == "EV-001")
+    assert ev1_excl["manual"] is True
+    assert "手動除外（デッキから除外）" in ev1_excl["reasons"]
+
+    grp1_excl = next(x for x in res.excluded if x["id"] == "GRP-001")
+    assert grp1_excl["manual"] is True
+    assert "手動除外（デッキから除外）" in grp1_excl["reasons"]
+
+    ev2_excl = next(x for x in res.excluded if x["id"] == "EV-002")
+    assert ev2_excl["manual"] is False
+    assert "前提カード EV-001 がデッキにない" in ev2_excl["reasons"]
+

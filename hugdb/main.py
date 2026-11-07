@@ -163,6 +163,14 @@ def create_app(db_path: Path | str | None = None) -> FastAPI:
     static_dir.mkdir(parents=True, exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
+    @app.middleware("http")
+    async def disable_static_js_cache(request: Request, call_next: Any) -> Any:
+        response = await call_next(request)
+        path = request.url.path
+        if path == "/" or path.startswith("/static/js/") or path.startswith("/static/css/"):
+            response.headers["Cache-Control"] = "no-cache"
+        return response
+
     @app.get("/", include_in_schema=False)
     async def serve_index() -> FileResponse:
         index_file = static_dir / "index.html"

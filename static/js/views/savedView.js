@@ -147,6 +147,9 @@ export async function renderSavedView(container, callbacks) {
               disaster_phase: cond.disaster_phase || [],
               max_events: cond.max_events ?? "",
               max_households: cond.max_households ?? "",
+              excluded_ids: Array.isArray(cond.excluded_ids)
+                ? [...cond.excluded_ids]
+                : [],
             };
             store.deckPhaseFirst = false;
 

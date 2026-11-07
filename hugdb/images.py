@@ -40,6 +40,35 @@ def _sha256_hex(data: bytes) -> str:
     return hashlib.sha256(data).hexdigest()
 
 
+# (resolved_path, st_size, st_mtime_ns) -> sha256
+_DISK_HASH_CACHE: dict[tuple[str, int, int], str] = {}
+
+
+def _get_disk_sha256_fast(file_path: Path) -> str | None:
+    """ファイルの stat (size, mtime_ns) キャッシュを利用して高速に SHA-256 を取得する."""
+    try:
+        st = file_path.stat()
+    except OSError:
+        return None
+    if st.st_size <= 0:
+        return None
+    cache_key = (str(file_path), st.st_size, st.st_mtime_ns)
+    cached = _DISK_HASH_CACHE.get(cache_key)
+    if cached is not None:
+        return cached
+    try:
+        raw = file_path.read_bytes()
+    except OSError:
+        return None
+    if not raw:
+        return None
+    digest = _sha256_hex(raw)
+    if len(_DISK_HASH_CACHE) > 2000:
+        _DISK_HASH_CACHE.clear()
+    _DISK_HASH_CACHE[cache_key] = digest
+    return digest
+
+
 def get_images_dir_for_conn(conn: sqlite3.Connection) -> Path:
     """SQLite 接続が参照しているDBファイルの親フォルダ配下の images/ ディレクトリを返す."""
     try:
@@ -145,7 +174,7 @@ def sync_images(conn: sqlite3.Connection) -> dict[str, int]:
     restored_to_disk = 0
 
     db_rows = conn.execute(
-        "SELECT target_id, target_kind, mime_type, image_data, sha256, updated_at FROM card_images"
+        "SELECT target_id, target_kind, mime_type, sha256, updated_at FROM card_images"
     ).fetchall()
     db_map: dict[str, sqlite3.Row] = {r["target_id"]: r for r in db_rows}
 
@@ -163,20 +192,29 @@ def sync_images(conn: sqlite3.Connection) -> dict[str, int]:
         if stem not in disk_files or ext == ".png":
             disk_files[stem] = p
 
-    now = _now_iso()
-    with transaction(conn):
-        # 1. ディスク → DB 同期
-        for tid, file_path in disk_files.items():
-            try:
-                raw_bytes = file_path.read_bytes()
-            except OSError:
-                continue
-            if not raw_bytes:
-                continue
-            file_hash = _sha256_hex(raw_bytes)
-            mime = _IMAGE_EXT_TO_MIME.get(file_path.suffix.lower(), "image/png")
-            db_row = db_map.get(tid)
-            if db_row is None or db_row["sha256"] != file_hash:
+    to_import: list[tuple[str, Path, str, str]] = []
+    for tid, file_path in disk_files.items():
+        file_hash = _get_disk_sha256_fast(file_path)
+        if not file_hash:
+            continue
+        mime = _IMAGE_EXT_TO_MIME.get(file_path.suffix.lower(), "image/png")
+        db_row = db_map.get(tid)
+        if db_row is None or db_row["sha256"] != file_hash:
+            to_import.append((tid, file_path, mime, file_hash))
+
+    missing_on_disk: list[str] = [tid for tid in db_map if tid not in disk_files]
+
+    if to_import or missing_on_disk:
+        now = _now_iso()
+        with transaction(conn):
+            # 1. ディスク → DB 同期
+            for tid, file_path, mime, file_hash in to_import:
+                try:
+                    raw_bytes = file_path.read_bytes()
+                except OSError:
+                    continue
+                if not raw_bytes:
+                    continue
                 kind = infer_target_kind(conn, tid)
                 conn.execute(
                     """
@@ -193,18 +231,25 @@ def sync_images(conn: sqlite3.Connection) -> dict[str, int]:
                 )
                 imported_from_disk += 1
 
-        # 2. DB → ディスク 復元（ディスクに存在しないIDのみ書き出し）
-        for tid, db_row in db_map.items():
-            if tid not in disk_files:
-                _write_disk_file(
-                    img_dir,
-                    tid,
-                    bytes(db_row["image_data"]),
-                    str(db_row["mime_type"] or "image/png"),
-                )
-                restored_to_disk += 1
+            # 2. DB → ディスク 復元（ディスクに存在しないIDのみ書き出し）
+            for tid in missing_on_disk:
+                blob_row = conn.execute(
+                    "SELECT image_data, mime_type FROM card_images WHERE target_id = ?",
+                    (tid,),
+                ).fetchone()
+                if blob_row is not None and blob_row["image_data"] is not None:
+                    _write_disk_file(
+                        img_dir,
+                        tid,
+                        bytes(blob_row["image_data"]),
+                        str(blob_row["mime_type"] or "image/png"),
+                    )
+                    restored_to_disk += 1
 
-    total = conn.execute("SELECT COUNT(*) FROM card_images").fetchone()[0]
+        total = conn.execute("SELECT COUNT(*) FROM card_images").fetchone()[0]
+    else:
+        total = len(db_map)
+
     return {
         "imported_from_disk": imported_from_disk,
         "restored_to_disk": restored_to_disk,
@@ -280,42 +325,58 @@ def get_card_image(conn: sqlite3.Connection, target_id: str) -> dict[str, Any]:
             disk_file = candidate
             break
 
-    row = conn.execute(
-        "SELECT target_id, target_kind, mime_type, image_data, sha256, updated_at FROM card_images WHERE target_id = ?",
+    meta_row = conn.execute(
+        "SELECT target_id, target_kind, mime_type, sha256, updated_at FROM card_images WHERE target_id = ?",
         (tid,),
     ).fetchone()
 
     if disk_file is not None:
         disk_bytes = disk_file.read_bytes()
         if disk_bytes:
-            disk_hash = _sha256_hex(disk_bytes)
+            disk_hash = _get_disk_sha256_fast(disk_file) or _sha256_hex(disk_bytes)
             mime = _IMAGE_EXT_TO_MIME.get(disk_file.suffix.lower(), "image/png")
-            if row is None or row["sha256"] != disk_hash:
+            if meta_row is None or meta_row["sha256"] != disk_hash:
                 # ディスク側が新しい／直置きされた場合はDBへ反映
                 saved = save_card_image(conn, tid, disk_bytes, mime)
                 return {
                     **saved,
                     "image_data": disk_bytes,
                 }
+            return {
+                "target_id": meta_row["target_id"],
+                "target_kind": meta_row["target_kind"],
+                "mime_type": str(meta_row["mime_type"] or mime),
+                "image_data": disk_bytes,
+                "sha256": meta_row["sha256"],
+                "size_bytes": len(disk_bytes),
+                "updated_at": meta_row["updated_at"],
+            }
 
-    if row is None:
+    if meta_row is None:
         raise NotFoundError(f"カード '{tid}' のイラスト画像は登録されていません", record_id=tid)
 
-    data_bytes = bytes(row["image_data"])
-    mime_str = str(row["mime_type"] or "image/png")
+    blob_row = conn.execute(
+        "SELECT image_data FROM card_images WHERE target_id = ?",
+        (tid,),
+    ).fetchone()
+    if blob_row is None or blob_row["image_data"] is None:
+        raise NotFoundError(f"カード '{tid}' のイラスト画像は登録されていません", record_id=tid)
+
+    data_bytes = bytes(blob_row["image_data"])
+    mime_str = str(meta_row["mime_type"] or "image/png")
 
     # ディスクにファイルが欠損していれば自動復元
     if disk_file is None:
         _write_disk_file(img_dir, tid, data_bytes, mime_str)
 
     return {
-        "target_id": row["target_id"],
-        "target_kind": row["target_kind"],
+        "target_id": meta_row["target_id"],
+        "target_kind": meta_row["target_kind"],
         "mime_type": mime_str,
         "image_data": data_bytes,
-        "sha256": row["sha256"],
+        "sha256": meta_row["sha256"],
         "size_bytes": len(data_bytes),
-        "updated_at": row["updated_at"],
+        "updated_at": meta_row["updated_at"],
     }
 
 
@@ -340,7 +401,7 @@ def get_image_meta_map(conn: sqlite3.Connection, *, auto_sync: bool = True) -> d
     if auto_sync:
         sync_images(conn)
     rows = conn.execute(
-        "SELECT target_id, target_kind, mime_type, sha256, length(image_data) AS size_bytes, updated_at FROM card_images"
+        "SELECT target_id, target_kind, mime_type, sha256, updated_at FROM card_images"
     ).fetchall()
     return {
         r["target_id"]: {
@@ -348,7 +409,6 @@ def get_image_meta_map(conn: sqlite3.Connection, *, auto_sync: bool = True) -> d
             "target_kind": r["target_kind"],
             "mime_type": r["mime_type"],
             "sha256": r["sha256"],
-            "size_bytes": r["size_bytes"],
             "updated_at": r["updated_at"],
             "image_url": f"/api/images/{r['target_id']}?v={r['sha256'][:10]}",
         }

@@ -21,6 +21,7 @@ def _build_deck_from_payload(repo: Repository, payload: dict[str, Any]) -> Any:
     resolutions = payload.get("resolutions") or {}
     manual_order = payload.get("manual_order")
     phase_first = bool(payload.get("phase_first", False))
+    excluded_ids = payload.get("excluded_ids")
 
     try:
         return build_deck(
@@ -31,6 +32,7 @@ def _build_deck_from_payload(repo: Repository, payload: dict[str, Any]) -> Any:
             resolutions=resolutions,
             manual_order=manual_order,
             phase_first=phase_first,
+            excluded_ids=excluded_ids,
         )
     except PrerequisiteViolation as exc:
         raise ConflictError(

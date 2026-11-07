@@ -20,15 +20,34 @@ export class ApiError extends Error {
 
 async function request(path, options = {}) {
   const headers = { ...(options.headers || {}) };
+  let body = options.body;
   if (
-    options.body &&
-    !(options.body instanceof FormData) &&
-    typeof options.body === "object"
+    body &&
+    !(body instanceof FormData) &&
+    typeof body === "object"
   ) {
     headers["Content-Type"] = "application/json";
-    options.body = JSON.stringify(options.body);
+    body = JSON.stringify(body);
   }
-  const resp = await fetch(path, { ...options, headers });
+  const fetchOpts = { ...options, headers, body };
+  let resp;
+  let lastNetErr = null;
+  const retryDelays = [250, 400, 600, 900, 1200];
+  for (let attempt = 0; attempt <= retryDelays.length; attempt++) {
+    try {
+      resp = await fetch(path, fetchOpts);
+      lastNetErr = null;
+      break;
+    } catch (err) {
+      lastNetErr = err;
+      if (attempt < retryDelays.length) {
+        await new Promise((r) => setTimeout(r, retryDelays[attempt]));
+      }
+    }
+  }
+  if (lastNetErr || !resp) {
+    throw lastNetErr || new Error("Failed to fetch");
+  }
   if (resp.status === 204) {
     return null;
   }
