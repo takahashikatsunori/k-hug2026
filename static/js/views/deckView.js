@@ -45,6 +45,7 @@ function buildDeckRequestPayload() {
         ? Number(dc.max_households)
         : null,
     excluded_ids: Array.isArray(dc.excluded_ids) ? [...dc.excluded_ids] : [],
+    origin_overrides: dc.origin_overrides || {},
   };
   return {
     conditions,
@@ -1016,6 +1017,7 @@ export async function renderDeckView(container) {
           excluded_ids: Array.isArray(cond.excluded_ids)
             ? [...cond.excluded_ids]
             : [],
+          origin_overrides: cond.origin_overrides || cond.originOverrides || {},
         };
         store.deckPhaseFirst = false;
 
@@ -1073,7 +1075,21 @@ export async function renderDeckView(container) {
         const text = await file.text();
         const parsed = JSON.parse(text);
 
-        // 1. 条件の復元
+        // 1. 避難元町丁目オーバーライドの抽出
+        const originOverrides =
+          parsed._web_deck_meta?.origin_overrides ||
+          parsed._web_deck_meta?.conditions?.origin_overrides ||
+          parsed._web_deck_meta?.conditions?.originOverrides ||
+          {};
+        if (Object.keys(originOverrides).length === 0 && Array.isArray(parsed.evacuee_groups)) {
+          for (const g of parsed.evacuee_groups) {
+            if (g.group_id && g.evacuation_origin) {
+              originOverrides[String(g.group_id)] = g.evacuation_origin;
+            }
+          }
+        }
+
+        // 2. 条件の復元
         const metaConditions = parsed._web_deck_meta?.conditions;
         if (metaConditions) {
           store.deckConditions = {
@@ -1090,6 +1106,12 @@ export async function renderDeckView(container) {
             excluded_ids: Array.isArray(metaConditions.excluded_ids)
               ? [...metaConditions.excluded_ids]
               : [],
+            origin_overrides: originOverrides,
+          };
+        } else {
+          store.deckConditions = {
+            ...store.deckConditions,
+            origin_overrides: originOverrides,
           };
         }
 

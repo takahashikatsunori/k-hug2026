@@ -56,6 +56,7 @@ class TrainingConditions:
     max_events: int | None = None
     max_households: int | None = None
     excluded_ids: set[str] | list[str] | None = None
+    origin_overrides: dict[str, str] | None = None
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | TrainingConditions | None) -> TrainingConditions:
@@ -75,6 +76,7 @@ class TrainingConditions:
             max_events=data.get("max_events"),
             max_households=data.get("max_households"),
             excluded_ids=data.get("excluded_ids"),
+            origin_overrides=data.get("origin_overrides") or data.get("originOverrides"),
         )
 
 

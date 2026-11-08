@@ -241,8 +241,8 @@ def test_web_deck_export_and_import_ledger_roundtrip(page, e2e_server, tmp_path:
     assert restored_unit_keys == expected_unit_keys
 
 
-def test_web_deck_batch_origin_replace(page, e2e_server):
-    """避難元の町丁目を一括変更モーダルで内訳(人数・世帯数・1名のみ警告)が表示され、小平市内町丁目への置換が即時反映される."""
+def test_web_deck_batch_origin_replace(page, e2e_server, tmp_path: Path):
+    """避難元の町丁目を一括変更モーダルで内訳が表示され、置換後の町丁目がエクスポート/インポート後も完全保持される."""
     page.set_viewport_size({"width": 1280, "height": 800})
     page.goto(f"{e2e_server['base_url']}/deck.html")
     page.evaluate("localStorage.clear()")
@@ -282,3 +282,28 @@ def test_web_deck_batch_origin_replace(page, e2e_server):
     # デッキ内の世帯行の概要またはカードデータに「小川東町１丁目」が反映されていることを確認
     deck_text = page.locator("[data-testid='wd-deck-unit-list']").inner_text()
     assert "小川東町１丁目" in deck_text
+
+    # ④ 出力・保存タブへ移動してデッキJSONをダウンロード
+    page.locator("[data-testid='wd-step-export']").click()
+    page.wait_for_selector("[data-testid='wd-dl-json-btn']")
+    with page.expect_download() as dl_info:
+        page.locator("[data-testid='wd-dl-json-btn']").click()
+    download = dl_info.value
+    deck_json_path = tmp_path / "origin_replaced_deck.json"
+    download.save_as(str(deck_json_path))
+
+    # デッキを一度全解除
+    page.locator("[data-testid='wd-step-workspace']").click()
+    page.wait_for_selector("[data-testid='wd-clear-deck-btn']")
+    page.locator("[data-testid='wd-clear-deck-btn']").click()
+    assert page.locator("[data-testid='wd-hdr-total']").inner_text() == "0枚"
+
+    # ⑤ エクスポートしたデッキJSONをインポート
+    page.locator("[data-testid='wd-header-import-btn']").click()
+    page.wait_for_selector("[data-testid='wd-import-modal']")
+    page.locator("[data-testid='wd-modal-file-input']").set_input_files(str(deck_json_path))
+
+    # インポート後も「小川東町１丁目」が保持されていることを確認
+    page.wait_for_selector("[data-testid='wd-deck-unit-list'] > .wd-unit-row")
+    restored_deck_text = page.locator("[data-testid='wd-deck-unit-list']").inner_text()
+    assert "小川東町１丁目" in restored_deck_text

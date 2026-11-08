@@ -1268,6 +1268,18 @@ export function exportDeckToJsonBlob(deckCards, conditions = {}) {
     grp.pet_count = gMems.filter((m) => m.data_type === "ペット").length;
   }
 
+  const originOverrides = {};
+  for (const dc of deckCards || []) {
+    if (dc.group_id && dc.group && dc.group.evacuation_origin) {
+      originOverrides[dc.group_id] = dc.group.evacuation_origin;
+    }
+  }
+
+  const exportConditions = structuredClone(conditions || {});
+  if (Object.keys(originOverrides).length > 0) {
+    exportConditions.origin_overrides = originOverrides;
+  }
+
   const payload = {
     cards_event: exportEvents,
     evacuee_groups: exportGroups,
@@ -1275,12 +1287,17 @@ export function exportDeckToJsonBlob(deckCards, conditions = {}) {
     _web_deck_meta: {
       version: "6.2",
       exported_at: new Date().toISOString(),
-      conditions: structuredClone(conditions || {}),
+      conditions: exportConditions,
+      origin_overrides: originOverrides,
       card_sequence: (deckCards || []).map((dc) => ({
         card_number: dc.card_number,
         original_id: dc.original_id,
         kind: dc.kind,
         group_id: dc.group_id || null,
+        evacuation_origin:
+          (dc.group && dc.group.evacuation_origin) ||
+          (dc.data && dc.data.evacuation_origin) ||
+          null,
       })),
     },
   };
@@ -1528,8 +1545,9 @@ export function importDeckFromCsvText(csvText, db) {
           clonedData.statement = colDialogue;
         }
         if (colPoints) clonedData.training_point = colPoints;
-        if (clonedGroup && colOrigin && colOrigin !== "-") {
-          clonedGroup.evacuation_origin = colOrigin;
+        if (colOrigin && colOrigin !== "-") {
+          if (clonedGroup) clonedGroup.evacuation_origin = colOrigin;
+          clonedData.evacuation_origin = colOrigin;
         }
       }
 
@@ -1630,6 +1648,20 @@ export function importDeckFromJsonText(jsonText, db) {
   const allDbEntries = buildAllDatabaseCardEntries(db);
   const dbByOrigId = new Map(allDbEntries.map((e) => [e.original_id, e]));
 
+  // 避難元オーバーライドの抽出
+  const originOverrides =
+    parsed._web_deck_meta?.origin_overrides ||
+    parsed._web_deck_meta?.conditions?.origin_overrides ||
+    parsed._web_deck_meta?.conditions?.originOverrides ||
+    {};
+  if (Object.keys(originOverrides).length === 0 && Array.isArray(parsed.evacuee_groups)) {
+    for (const g of parsed.evacuee_groups) {
+      if (g.group_id && g.evacuation_origin) {
+        originOverrides[String(g.group_id)] = g.evacuation_origin;
+      }
+    }
+  }
+
   // 1. _web_deck_meta.card_sequence がある場合は完全復元
   if (
     parsed._web_deck_meta &&
@@ -1643,23 +1675,34 @@ export function importDeckFromJsonText(jsonText, db) {
       const dbEntry = dbByOrigId.get(String(item.original_id));
       if (dbEntry) {
         matchedCount++;
+        const grp = dbEntry.group ? structuredClone(dbEntry.group) : null;
+        const d = structuredClone(dbEntry.data);
+        const overrideOrigin =
+          item.evacuation_origin ||
+          (dbEntry.group_id && originOverrides[String(dbEntry.group_id)]);
+        if (overrideOrigin) {
+          if (grp) grp.evacuation_origin = overrideOrigin;
+          if (d) d.evacuation_origin = overrideOrigin;
+        }
         entries.push({
           original_id: dbEntry.original_id,
           kind: dbEntry.kind,
           unit_id: dbEntry.unit_id,
           group_id: dbEntry.group_id,
           group_name: dbEntry.group_name,
-          data: structuredClone(dbEntry.data),
-          group: dbEntry.group ? structuredClone(dbEntry.group) : null,
+          data: d,
+          group: grp,
         });
       }
     }
     if (entries.length > 0) {
+      const restoredConds = structuredClone(parsed._web_deck_meta.conditions || {});
+      restoredConds.origin_overrides = originOverrides;
       return {
         deckCards: renumberDeckCards(entries, db),
         matchedCount,
         customCount,
-        restoredConditions: parsed._web_deck_meta.conditions || null,
+        restoredConditions: restoredConds,
       };
     }
   }

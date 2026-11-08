@@ -431,7 +431,14 @@ def build_deck(
             new_gid = f"GRP-{grp_seq:03d}"
             group_id_map[u.id] = new_gid
             orig_grp = copy.deepcopy(grp_by_id[u.id])
+            if tc.origin_overrides and u.id in tc.origin_overrides:
+                override_origin = str(tc.origin_overrides[u.id])
+                orig_grp["evacuation_origin"] = override_origin
             filled_members = fill_household_names(orig_grp, members_by_group.get(u.id, []))
+            if tc.origin_overrides and u.id in tc.origin_overrides:
+                override_origin = str(tc.origin_overrides[u.id])
+                for m in filled_members:
+                    m["evacuation_origin"] = override_origin
 
             exp_grp = copy.deepcopy(orig_grp)
             exp_grp["group_id"] = new_gid

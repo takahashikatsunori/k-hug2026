@@ -217,19 +217,21 @@ def test_ui_saved_deck_load_delete_and_web_json_import(page, e2e_server, tmp_pat
     # 5. Webエクスポート形式のデッキJSONを作成してインポート
     web_json_content = {
         "cards_event": [{"card_id": "EV-001", "event_name": "地震発生"}],
-        "evacuee_groups": [{"group_id": "GRP-001", "group_name": "山田家"}],
-        "group_members": [{"member_id": "M-001", "group_id": "GRP-001", "data_type": "人物"}],
+        "evacuee_groups": [{"group_id": "GRP-001", "group_name": "山田家", "evacuation_origin": "小川東町１丁目"}],
+        "group_members": [{"member_id": "M-001", "group_id": "GRP-001", "data_type": "人物", "evacuation_origin": "小川東町１丁目"}],
         "_web_deck_meta": {
             "version": "6.2",
             "conditions": {
                 "disaster_type": "地震",
-                "shelter": "小平第一小学校",
+                "shelter": "小平第五小学校",
                 "max_events": "2",
-                "max_households": "2"
+                "max_households": "2",
+                "origin_overrides": {"GRP-001": "小川東町１丁目"}
             },
+            "origin_overrides": {"GRP-001": "小川東町１丁目"},
             "card_sequence": [
                 {"card_number": 1, "original_id": "EV-001", "kind": "event", "group_id": None},
-                {"card_number": 2, "original_id": "M-001", "kind": "person", "group_id": "GRP-001"}
+                {"card_number": 2, "original_id": "M-001", "kind": "person", "group_id": "GRP-001", "evacuation_origin": "小川東町１丁目"}
             ]
         }
     }
@@ -243,3 +245,20 @@ def test_ui_saved_deck_load_delete_and_web_json_import(page, e2e_server, tmp_pat
     # デッキが再構築され、保存名入力欄に「web_exported_deck」が提案される
     expect(save_input).to_have_value("web_exported_deck")
     expect(disaster_select).to_have_value("地震")
+
+    # 避難者台帳ビューで町丁目「小川東町１丁目」が反映されていることを確認
+    page.get_by_test_id("deck-submode-ledger").click()
+    ledger_text = page.locator("#deck-ledger-section").inner_text()
+    assert "小川東町１丁目" in ledger_text
+
+    # この状態でデッキを保存
+    page.get_by_test_id("save-deck-btn").click()
+    expect(saved_select).to_contain_text("web_exported_deck")
+
+    # 別の条件にしてから再呼び出ししても「小川東町１丁目」が残っていることを確認
+    disaster_select.select_option("豪雨")
+    saved_select.select_option(label=saved_select.locator("option").all_inner_texts()[-1])
+    load_btn.click()
+    page.get_by_test_id("deck-submode-ledger").click()
+    restored_ledger = page.locator("#deck-ledger-section").inner_text()
+    assert "小川東町１丁目" in restored_ledger
