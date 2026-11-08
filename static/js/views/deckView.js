@@ -1,7 +1,7 @@
 /**
  * デッキ構築ビュー (UI-16, UI-17, UI-18, UI-19, UI-20, UI-21, UI-22).
  */
-import { escapeHtml, triggerBlobDownload } from "../util.js";
+import { escapeHtml, triggerBlobDownload, formatDateTime } from "../util.js";
 import { api } from "../api.js";
 import { store } from "../store.js";
 import { renderMultiSelectChips } from "../components/chips.js";
@@ -147,6 +147,30 @@ export async function renderDeckView(container) {
 
       <section class="deck-main">
         <div id="deck-changed-banner-wrap"></div>
+
+        <div class="deck-saved-toolbar" data-testid="deck-saved-toolbar" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.6rem;background:#f8fafc;padding:0.65rem 0.95rem;border-radius:8px;border:1px solid #e2e8f0;margin-bottom:0.75rem;">
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+            <label style="font-size:0.86rem;font-weight:700;color:#334155;display:flex;align-items:center;gap:0.3rem;">
+              📂 保存済みデッキ:
+            </label>
+            <select id="deck-saved-list-select" class="form-select form-input-sm" style="min-width:240px;max-width:360px;" data-testid="deck-saved-list-select">
+              <option value="">-- 保存済みデッキを選択 --</option>
+            </select>
+            <button type="button" class="btn btn-sm btn-primary" id="load-saved-deck-btn" data-testid="load-saved-deck-btn" disabled>
+              呼び出し
+            </button>
+            <button type="button" class="btn btn-sm btn-danger" id="delete-saved-deck-btn" data-testid="delete-saved-deck-btn" disabled>
+              削除
+            </button>
+          </div>
+
+          <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+            <button type="button" class="btn btn-sm btn-outline-secondary" id="import-deck-json-btn" data-testid="import-deck-json-btn" title="Web版等でエクスポートしたデッキJSONを取り込みます">
+              📥 デッキJSON読込
+            </button>
+            <input type="file" id="deck-json-file-input" data-testid="deck-json-file-input" accept=".json,application/json" style="display:none;" />
+          </div>
+        </div>
 
         <div class="deck-toolbar">
           <div class="counts-bar" id="deck-stats" data-testid="deck-stats">
@@ -342,40 +366,70 @@ export async function renderDeckView(container) {
     );
   };
 
+  const renderInfraChips = () => {
+    renderMultiSelectChips(
+      container.querySelector("#deck-infra-chips"),
+      opts.infrastructure || [],
+      store.deckConditions.infrastructure || [],
+      (vals) => {
+        store.deckConditions.infrastructure = vals;
+        runBuildDeck();
+      },
+      "deck-infrastructure"
+    );
+  };
+
+  const renderWeatherChips = () => {
+    renderMultiSelectChips(
+      container.querySelector("#deck-weather-chips"),
+      opts.weather || [],
+      store.deckConditions.weather || [],
+      (vals) => {
+        store.deckConditions.weather = vals;
+        runBuildDeck();
+      },
+      "deck-weather"
+    );
+  };
+
+  const renderPhaseChips = () => {
+    renderMultiSelectChips(
+      container.querySelector("#deck-phase-chips"),
+      opts.disaster_phase || [],
+      store.deckConditions.disaster_phase || [],
+      (vals) => {
+        store.deckConditions.disaster_phase = vals;
+        runBuildDeck();
+      },
+      "deck-disaster_phase"
+    );
+  };
+
+  function syncSidebarInputsFromStore() {
+    const dcNow = store.deckConditions || {};
+    const dSelect = container.querySelector("#deck-disaster-select");
+    if (dSelect) dSelect.value = dcNow.disaster_type || "";
+    const sSelect = container.querySelector("#deck-shelter-select");
+    if (sSelect) sSelect.value = dcNow.shelter || "";
+    const dInput = container.querySelector("#deck-date-input");
+    if (dInput) dInput.value = dcNow.date || "";
+    const tSelect = container.querySelector("#deck-timeslot-select");
+    if (tSelect) tSelect.value = dcNow.time_slot || "";
+    const maxEv = container.querySelector("#deck-max-events");
+    if (maxEv) maxEv.value = dcNow.max_events ?? "";
+    const maxHh = container.querySelector("#deck-max-households");
+    if (maxHh) maxHh.value = dcNow.max_households ?? "";
+
+    renderHolidayChips();
+    renderInfraChips();
+    renderWeatherChips();
+    renderPhaseChips();
+  }
+
   renderHolidayChips();
-
-  renderMultiSelectChips(
-    container.querySelector("#deck-infra-chips"),
-    opts.infrastructure || [],
-    dc.infrastructure || [],
-    (vals) => {
-      store.deckConditions.infrastructure = vals;
-      runBuildDeck();
-    },
-    "deck-infrastructure"
-  );
-
-  renderMultiSelectChips(
-    container.querySelector("#deck-weather-chips"),
-    opts.weather || [],
-    dc.weather || [],
-    (vals) => {
-      store.deckConditions.weather = vals;
-      runBuildDeck();
-    },
-    "deck-weather"
-  );
-
-  renderMultiSelectChips(
-    container.querySelector("#deck-phase-chips"),
-    opts.disaster_phase || [],
-    dc.disaster_phase || [],
-    (vals) => {
-      store.deckConditions.disaster_phase = vals;
-      runBuildDeck();
-    },
-    "deck-disaster_phase"
-  );
+  renderInfraChips();
+  renderWeatherChips();
+  renderPhaseChips();
 
   container
     .querySelector("#deck-disaster-select")
@@ -891,6 +945,209 @@ export async function renderDeckView(container) {
       }
     });
 
+  // 保存済みデッキ操作（一覧取得・呼び出し・削除）
+  const savedSelect = container.querySelector("#deck-saved-list-select");
+  const loadSavedBtn = container.querySelector("#load-saved-deck-btn");
+  const delSavedBtn = container.querySelector("#delete-saved-deck-btn");
+  const importJsonBtn = container.querySelector("#import-deck-json-btn");
+  const jsonFileInput = container.querySelector("#deck-json-file-input");
+
+  async function refreshSavedDecksList(selectedId = null) {
+    if (!savedSelect) return;
+    try {
+      const list = await api.listSavedDecks();
+      savedSelect.innerHTML = '<option value="">-- 保存済みデッキを選択 --</option>';
+      if (!list || list.length === 0) {
+        const opt = document.createElement("option");
+        opt.value = "";
+        opt.disabled = true;
+        opt.textContent = "（保存されたデッキはありません）";
+        savedSelect.appendChild(opt);
+        if (loadSavedBtn) loadSavedBtn.disabled = true;
+        if (delSavedBtn) delSavedBtn.disabled = true;
+        return;
+      }
+
+      list.forEach((d) => {
+        const opt = document.createElement("option");
+        opt.value = String(d.id);
+        const updated = d.updated_at ? formatDateTime(d.updated_at) : "";
+        opt.textContent = `${d.name} (${updated})`;
+        if (selectedId && String(d.id) === String(selectedId)) {
+          opt.selected = true;
+        }
+        savedSelect.appendChild(opt);
+      });
+
+      const hasVal = Boolean(savedSelect.value);
+      if (loadSavedBtn) loadSavedBtn.disabled = !hasVal;
+      if (delSavedBtn) delSavedBtn.disabled = !hasVal;
+    } catch (err) {
+      console.error("保存済みデッキ一覧の取得に失敗しました", err);
+    }
+  }
+
+  if (savedSelect) {
+    savedSelect.addEventListener("change", () => {
+      const hasVal = Boolean(savedSelect.value);
+      if (loadSavedBtn) loadSavedBtn.disabled = !hasVal;
+      if (delSavedBtn) delSavedBtn.disabled = !hasVal;
+    });
+  }
+
+  if (loadSavedBtn) {
+    loadSavedBtn.addEventListener("click", async () => {
+      const id = Number(savedSelect.value);
+      if (!id) return;
+      try {
+        const detail = await api.getSavedDeck(id);
+        const cond = detail.conditions || {};
+        store.deckConditions = {
+          disaster_type: cond.disaster_type || "",
+          shelter: cond.shelter || "",
+          date: cond.date || "",
+          holiday_type: cond.holiday_type || [],
+          time_slot: cond.time_slot || "",
+          infrastructure: cond.infrastructure || [],
+          weather: cond.weather || [],
+          disaster_phase: cond.disaster_phase || [],
+          max_events: cond.max_events ?? "",
+          max_households: cond.max_households ?? "",
+          excluded_ids: Array.isArray(cond.excluded_ids)
+            ? [...cond.excluded_ids]
+            : [],
+        };
+        store.deckPhaseFirst = false;
+
+        if (detail.changed) {
+          store.deckResolutions = {};
+          store.deckManualOrder = null;
+          store.loadedSavedDeckNotice = detail;
+        } else {
+          store.deckResolutions = detail.resolutions || {};
+          store.deckManualOrder =
+            detail.manual_order && detail.manual_order.length > 0
+              ? detail.manual_order
+              : null;
+          store.loadedSavedDeckNotice = null;
+        }
+
+        const nameInput = container.querySelector("#save-deck-name-input");
+        if (nameInput) {
+          nameInput.value = detail.name || "";
+        }
+
+        syncSidebarInputsFromStore();
+        await runBuildDeck();
+        showToast(`保存済みデッキ「${detail.name}」を呼び出しました`, "success");
+      } catch (err) {
+        showToast(err.detail || "保存済みデッキの取得に失敗しました", "error");
+      }
+    });
+  }
+
+  if (delSavedBtn) {
+    delSavedBtn.addEventListener("click", async () => {
+      const id = Number(savedSelect.value);
+      if (!id) return;
+      const selText = savedSelect.options[savedSelect.selectedIndex]?.text || "このデッキ";
+      if (!confirm(`保存済みデッキ「${selText}」を削除してもよろしいですか？`)) return;
+
+      try {
+        await api.deleteSavedDeck(id);
+        showToast("保存済みデッキを削除しました", "info");
+        await refreshSavedDecksList();
+      } catch (err) {
+        showToast(err.detail || "保存済みデッキの削除に失敗しました", "error");
+      }
+    });
+  }
+
+  // デッキJSON読込（Webエクスポート対応）
+  if (importJsonBtn && jsonFileInput) {
+    importJsonBtn.addEventListener("click", () => jsonFileInput.click());
+    jsonFileInput.addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text);
+
+        // 1. 条件の復元
+        const metaConditions = parsed._web_deck_meta?.conditions;
+        if (metaConditions) {
+          store.deckConditions = {
+            disaster_type: metaConditions.disaster_type || "",
+            shelter: metaConditions.shelter || "",
+            date: metaConditions.date || "",
+            holiday_type: metaConditions.holiday_type || [],
+            time_slot: metaConditions.time_slot || "",
+            infrastructure: metaConditions.infrastructure || [],
+            weather: metaConditions.weather || [],
+            disaster_phase: metaConditions.disaster_phase || [],
+            max_events: metaConditions.max_events ?? "",
+            max_households: metaConditions.max_households ?? "",
+            excluded_ids: Array.isArray(metaConditions.excluded_ids)
+              ? [...metaConditions.excluded_ids]
+              : [],
+          };
+        }
+
+        // 2. 単位順序の復元
+        const cardSeq = parsed._web_deck_meta?.card_sequence;
+        if (Array.isArray(cardSeq) && cardSeq.length > 0) {
+          const unitOrder = [];
+          const seen = new Set();
+          for (const item of cardSeq) {
+            const uid = item.kind === "event" ? item.original_id : item.group_id;
+            if (uid && !seen.has(uid)) {
+              seen.add(uid);
+              unitOrder.push(uid);
+            }
+          }
+          if (unitOrder.length > 0) {
+            store.deckManualOrder = unitOrder;
+          }
+        } else {
+          // 標準 cards_event / evacuee_groups から復元
+          const rawEvents = Array.isArray(parsed.cards_event) ? parsed.cards_event : [];
+          const rawGroups = Array.isArray(parsed.evacuee_groups) ? parsed.evacuee_groups : [];
+          const unitOrder = [];
+          for (const ev of rawEvents) {
+            if (ev.card_id) unitOrder.push(String(ev.card_id));
+          }
+          for (const g of rawGroups) {
+            if (g.group_id) unitOrder.push(String(g.group_id));
+          }
+          if (unitOrder.length > 0) {
+            store.deckManualOrder = unitOrder;
+          }
+        }
+
+        // 3. デッキ再構築＆保存名提案
+        const baseName = file.name.replace(/\.[^/.]+$/, "");
+        const nameInput = container.querySelector("#save-deck-name-input");
+        if (nameInput) {
+          nameInput.value = baseName || "Web取込デッキ";
+        }
+
+        syncSidebarInputsFromStore();
+        await runBuildDeck();
+        showToast(
+          `「${file.name}」からデッキを取り込みました。このまま名前を付けて保存できます`,
+          "success"
+        );
+      } catch (err) {
+        showToast(
+          (err && err.message) || "デッキJSONの解析に失敗しました",
+          "error"
+        );
+      } finally {
+        jsonFileInput.value = "";
+      }
+    });
+  }
+
   // デッキ条件保存 (UI-20)
   container
     .querySelector("#save-deck-btn")
@@ -902,7 +1159,7 @@ export async function renderDeckView(container) {
         `デッキ_${store.deckConditions.disaster_type || "標準"}_${store.deckConditions.shelter || "避難所"}`;
       try {
         const payload = buildDeckRequestPayload();
-        await api.createSavedDeck({
+        const saved = await api.createSavedDeck({
           name,
           conditions: payload.conditions,
           resolutions: payload.resolutions,
@@ -910,10 +1167,12 @@ export async function renderDeckView(container) {
         });
         nameInput.value = "";
         showToast(`デッキ条件「${name}」を保存しました`, "success");
+        await refreshSavedDecksList(saved.id);
       } catch (err) {
         showToast(err.detail || "デッキ条件の保存に失敗しました", "error");
       }
     });
 
+  await refreshSavedDecksList();
   await runBuildDeck();
 }

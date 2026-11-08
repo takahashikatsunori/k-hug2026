@@ -803,7 +803,7 @@ body {
 }
 
 .training-stage {
-  max-width: 900px;
+  max-width: min(1600px, 95vw);
   width: 100%;
   margin: 0 auto;
   background: #ffffff;
@@ -886,6 +886,8 @@ body {
   overflow-y: hidden;
   padding: 0.25rem 0.5rem 0.75rem;
   max-width: 100%;
+  width: fit-content;
+  margin: 0 auto;
   box-sizing: border-box;
   scroll-snap-type: x mandatory;
   -webkit-overflow-scrolling: touch;
@@ -898,7 +900,7 @@ body {
   align-items: center;
   gap: 0.35rem;
   scroll-snap-align: center;
-  max-height: 50vh;
+  max-height: calc(50vh + 38px);
 }
 
 .training-hh-member-label {
@@ -911,7 +913,8 @@ body {
 }
 
 .training-hh-card-wrap {
-  height: 44vh;
+  height: 50vh;
+  min-height: 50vh;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -919,7 +922,7 @@ body {
 
 .training-hh-member-img {
   height: 100%;
-  max-height: 44vh;
+  max-height: 50vh;
   width: auto;
   max-width: none;
   object-fit: contain;

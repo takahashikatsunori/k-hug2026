@@ -178,3 +178,68 @@ def test_ui_23_exclude_and_restore_units_in_deck_without_deleting_from_db(page, 
     page.get_by_test_id("restore-all-excluded-btn").click()
     expect(page.get_by_test_id("deck-stat-total-cards")).to_have_text("41枚")
 
+
+
+def test_ui_saved_deck_load_delete_and_web_json_import(page, e2e_server, tmp_path: Path):
+    """デッキ画面上で保存済みデッキの呼び出し・削除およびWebエクスポートJSONの取り込みが動作する."""
+    _load_demo_and_open_deck(page, e2e_server["base_url"])
+
+    # 1. デッキに名前を付けて保存
+    save_input = page.get_by_test_id("save-deck-name-input")
+    save_input.fill("地域防災訓練デッキA")
+    page.get_by_test_id("save-deck-btn").click()
+
+    # セレクトボックスに選択肢が自動反映される
+    saved_select = page.get_by_test_id("deck-saved-list-select")
+    expect(saved_select).to_contain_text("地域防災訓練デッキA")
+    load_btn = page.get_by_test_id("load-saved-deck-btn")
+    del_btn = page.get_by_test_id("delete-saved-deck-btn")
+    expect(load_btn).to_be_enabled()
+    expect(del_btn).to_be_enabled()
+
+    # 2. 条件を変更して枚数を減らす (地震 -> 豪雨)
+    disaster_select = page.get_by_test_id("deck-disaster-select")
+    disaster_select.select_option("豪雨")
+    # 枚数が変わる
+    expect(page.get_by_test_id("deck-stat-total-cards")).not_to_have_text("41枚")
+
+    # 3. 保存済みデッキから「地域防災訓練デッキA」を呼び出す
+    saved_select.select_option(label=saved_select.locator("option").all_inner_texts()[-1])
+    load_btn.click()
+    expect(page.get_by_test_id("deck-stat-total-cards")).to_have_text("41枚")
+    expect(disaster_select).to_have_value("地震")
+
+    # 4. 保存済みデッキを削除する
+    page.once("dialog", lambda dialog: dialog.accept())
+    del_btn.click()
+    expect(saved_select).not_to_contain_text("地域防災訓練デッキA")
+
+    # 5. Webエクスポート形式のデッキJSONを作成してインポート
+    web_json_content = {
+        "cards_event": [{"card_id": "EV-001", "event_name": "地震発生"}],
+        "evacuee_groups": [{"group_id": "GRP-001", "group_name": "山田家"}],
+        "group_members": [{"member_id": "M-001", "group_id": "GRP-001", "data_type": "人物"}],
+        "_web_deck_meta": {
+            "version": "6.2",
+            "conditions": {
+                "disaster_type": "地震",
+                "shelter": "小平第一小学校",
+                "max_events": "2",
+                "max_households": "2"
+            },
+            "card_sequence": [
+                {"card_number": 1, "original_id": "EV-001", "kind": "event", "group_id": None},
+                {"card_number": 2, "original_id": "M-001", "kind": "person", "group_id": "GRP-001"}
+            ]
+        }
+    }
+    json_path = tmp_path / "web_exported_deck.json"
+    json_path.write_text(json.dumps(web_json_content, ensure_ascii=False), encoding="utf-8")
+
+    # input[type=file] にファイルをセット
+    file_input = page.get_by_test_id("deck-json-file-input")
+    file_input.set_input_files(str(json_path))
+
+    # デッキが再構築され、保存名入力欄に「web_exported_deck」が提案される
+    expect(save_input).to_have_value("web_exported_deck")
+    expect(disaster_select).to_have_value("地震")
