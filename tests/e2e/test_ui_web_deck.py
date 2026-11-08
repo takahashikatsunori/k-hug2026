@@ -130,8 +130,9 @@ def test_web_deck_smartphone_viewport_navigation_and_operations(page, e2e_server
     assert first_deck_row.get_attribute("data-unit-key") == target_unit_key
 
 
-def test_web_deck_training_view_fixed_card_position_and_points_toggle(page, e2e_server):
-    """③ 閲覧モードでカードをめくってもカード画像の見た目位置が上下に動かず、訓練ポイント切替が動作する."""
+def test_web_deck_training_view_fixed_card_position_and_household_grouping(page, e2e_server):
+    """③ 閲覧モードで世帯まとめ表示(横スクロール対応)とカード画像Y座標の固定、訓練ポイント切替が動作する."""
+    import re
     page.set_viewport_size({"width": 1280, "height": 800})
     page.goto(f"{e2e_server['base_url']}/deck.html")
     page.wait_for_selector("[data-testid='wd-workspace-toolbar']")
@@ -139,11 +140,6 @@ def test_web_deck_training_view_fixed_card_position_and_points_toggle(page, e2e_
     # ③ 閲覧モードを起動
     page.locator("[data-testid='wd-open-training-btn']").click()
     page.wait_for_selector("[data-testid='training-view']")
-
-    # 1枚目でのカードステージラッパーのY座標を記録
-    stage_wrap = page.locator(".training-rendered-card-wrap")
-    box_1 = stage_wrap.bounding_box()
-    assert box_1 is not None
 
     # 初期状態では訓練ポイントボックスは非表示
     tp_box = page.locator("[data-testid='training-point-content']")
@@ -153,12 +149,38 @@ def test_web_deck_training_view_fixed_card_position_and_points_toggle(page, e2e_
     page.locator("[data-testid='training-point-toggle-btn']").click()
     assert tp_box.is_visible()
 
-    # 「カード切替時も常に表示」をONにして複数枚めくり、イベント⇔世帯が変わってもカード画像のY位置が固定されていることを確認
+    # 世帯まとめ表示がデフォルトで有効
+    group_chk = page.locator("#training-group-toggle-chk")
+    assert group_chk.is_checked()
+
+    # 「カード切替時も常に表示」をONにして複数枚めくり、世帯スライドで横スクロールコンテナが存在することを確認
     page.locator("[data-testid='training-point-always-chk']").check()
-    for step in range(2, 6):
+    found_hh_scroll = False
+    for step in range(2, 8):
         page.locator("[data-testid='training-next-btn']").click()
-        assert page.locator("[data-testid='training-counter']").inner_text().startswith(f"{step} / ")
-        assert tp_box.is_visible()
+        counter_text = page.locator("[data-testid='training-counter']").inner_text()
+        assert re.search(r"^\d+(?:〜\d+)? / ", counter_text)
+        if page.locator(".training-household-scroll").count() > 0:
+            found_hh_scroll = True
+            # 世帯メンバーカードが複数横並びになっていることを確認
+            assert page.locator(".training-hh-member-col").count() >= 1
+            break
+    assert found_hh_scroll
+
+    # 「世帯まとめて表示」チェックを外すと1枚ずつの表示になり、カード画像の見た目Y位置が固定されていることを確認
+    group_chk.uncheck()
+    stage_wrap = page.locator(".training-rendered-card-wrap")
+    box_1 = stage_wrap.bounding_box()
+    assert box_1 is not None
+
+    for _ in range(3):
+        prev_text = page.locator("[data-testid='training-counter']").inner_text()
+        prev_num = int(prev_text.split(" / ")[0])
+        page.locator("[data-testid='training-next-btn']").click()
+        next_text = page.locator("[data-testid='training-counter']").inner_text()
+        next_num = int(next_text.split(" / ")[0])
+        assert next_num == prev_num + 1
+
         box_n = stage_wrap.bounding_box()
         assert box_n is not None
         assert abs(box_n["y"] - box_1["y"]) <= 1.5
@@ -217,3 +239,46 @@ def test_web_deck_export_and_import_ledger_roundtrip(page, e2e_server, tmp_path:
         "() => Array.from(document.querySelectorAll('[data-testid=\"wd-deck-unit-list\"] > .wd-unit-row')).map(el => el.dataset.unitKey)"
     )
     assert restored_unit_keys == expected_unit_keys
+
+
+def test_web_deck_batch_origin_replace(page, e2e_server):
+    """避難元の町丁目を一括変更モーダルで内訳(人数・世帯数・1名のみ警告)が表示され、小平市内町丁目への置換が即時反映される."""
+    page.set_viewport_size({"width": 1280, "height": 800})
+    page.goto(f"{e2e_server['base_url']}/deck.html")
+    page.evaluate("localStorage.clear()")
+    page.reload()
+    page.wait_for_selector("[data-testid='wd-workspace-toolbar']")
+
+    # 初期提案で世帯カードを含むデッキを作成
+    page.locator("[data-testid='wd-step-conditions']").click()
+    page.wait_for_selector("[data-testid='wd-conditions-panel']")
+    page.locator("[data-testid='wd-max-events']").fill("3")
+    page.locator("[data-testid='wd-max-households']").fill("3")
+    page.locator("[data-testid='wd-propose-bottom-btn']").click()
+    page.wait_for_selector("[data-testid='wd-workspace-toolbar']")
+
+    # 「📍 避難元の町丁目を一括変更」ボタンをクリック
+    page.locator("[data-testid='wd-batch-origin-btn']").click()
+    page.wait_for_selector("[data-testid='wd-batch-origin-modal']")
+
+    # 内訳テーブルに行が存在し、町丁目名と人数・世帯数が表示されている
+    origin_rows = page.locator(".wd-origin-row")
+    assert origin_rows.count() > 0
+
+    first_row = origin_rows.first
+    orig_from = first_row.get_attribute("data-orig-from")
+    assert orig_from is not None and len(orig_from) > 0
+
+    # 1つ目の町丁目を「小川東町１丁目」に変更する
+    select_box = first_row.locator(".wd-batch-town-select")
+    select_box.select_option("小川東町１丁目")
+
+    # 「💾 避難元の変更をデッキに適用する」をクリック
+    page.locator("[data-testid='wd-origin-apply-btn']").click()
+
+    # モーダルが閉じる
+    page.wait_for_selector("[data-testid='wd-batch-origin-modal']", state="detached")
+
+    # デッキ内の世帯行の概要またはカードデータに「小川東町１丁目」が反映されていることを確認
+    deck_text = page.locator("[data-testid='wd-deck-unit-list']").inner_text()
+    assert "小川東町１丁目" in deck_text

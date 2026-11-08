@@ -872,6 +872,96 @@ body {
   object-fit: contain;
 }
 
+/* 閲覧モード: 世帯まとめ横並び表示 & 横スクロール */
+.training-hh-container {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.training-household-scroll {
+  display: flex;
+  gap: 1.25rem;
+  overflow-x: auto;
+  overflow-y: hidden;
+  padding: 0.25rem 0.5rem 0.75rem;
+  max-width: 100%;
+  box-sizing: border-box;
+  scroll-snap-type: x mandatory;
+  -webkit-overflow-scrolling: touch;
+}
+
+.training-hh-member-col {
+  flex: 0 0 auto;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  scroll-snap-align: center;
+  max-height: 50vh;
+}
+
+.training-hh-member-label {
+  font-size: 0.82rem;
+  color: #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  white-space: nowrap;
+}
+
+.training-hh-card-wrap {
+  height: 44vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.training-hh-member-img {
+  height: 100%;
+  max-height: 44vh;
+  width: auto;
+  max-width: none;
+  object-fit: contain;
+  border-radius: 8px;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.training-hh-points-box {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  max-height: 18vh;
+  overflow-y: auto;
+  text-align: left;
+}
+
+.training-hh-point-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.4rem;
+  font-size: 0.85rem;
+  line-height: 1.45;
+  border-bottom: 1px dashed rgba(113, 63, 18, 0.2);
+  padding-bottom: 0.3rem;
+}
+
+.training-hh-point-row:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.training-hh-point-tag {
+  font-weight: 800;
+  color: #78350f;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.training-hh-point-body {
+  color: #451a03;
+}
+
 @media (max-width: 768px) {
   .training-overlay {
     padding: 0.6rem 0.6rem;

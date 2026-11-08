@@ -35,6 +35,26 @@ import {
 } from "./webDeckEngine.js";
 
 const STORAGE_KEY = "hug_web_deck_state_v1";
+const KODAIRA_TOWNS = [
+  "天神町１丁目", "天神町２丁目", "天神町３丁目", "天神町４丁目",
+  "花小金井１丁目", "花小金井２丁目", "花小金井３丁目", "花小金井４丁目", "花小金井５丁目", "花小金井６丁目", "花小金井７丁目", "花小金井８丁目",
+  "大沼町１丁目", "大沼町２丁目", "大沼町３丁目", "大沼町４丁目", "大沼町５丁目", "大沼町６丁目", "大沼町７丁目",
+  "回田町", "鈴木町１丁目", "鈴木町２丁目", "御幸町",
+  "花小金井南町１丁目", "花小金井南町２丁目", "花小金井南町３丁目",
+  "小川西町１丁目", "小川西町２丁目", "小川西町３丁目", "小川西町４丁目", "小川西町５丁目",
+  "上水本町１丁目", "上水本町２丁目", "上水本町３丁目", "上水本町４丁目", "上水本町５丁目", "上水本町６丁目",
+  "上水新町１丁目", "上水新町２丁目", "上水新町３丁目",
+  "津田町１丁目", "津田町２丁目", "津田町３丁目",
+  "美園町１丁目", "美園町２丁目", "美園町３丁目",
+  "喜平町１丁目", "喜平町２丁目", "喜平町３丁目",
+  "上水南町１丁目", "上水南町２丁目", "上水南町３丁目", "上水南町４丁目",
+  "学園西町１丁目", "学園西町２丁目", "学園西町３丁目",
+  "学園東町", "学園東町１丁目", "学園東町２丁目", "学園東町３丁目",
+  "たかの台", "小川町１丁目", "小川町２丁目", "中島町", "仲町",
+  "小川東町", "小川東町１丁目", "小川東町２丁目", "小川東町３丁目", "小川東町４丁目", "小川東町５丁目",
+  "栄町１丁目", "栄町２丁目", "栄町３丁目", "その他（市外）"
+];
+
 const MAX_UNDO_HISTORY = 25;
 
 const state = {
@@ -131,6 +151,12 @@ function performUndo() {
 
 function saveStateToLocalStorage() {
   try {
+    const originOverrides = {};
+    for (const c of state.deckCards) {
+      if (c.group_id && c.group && c.group.evacuation_origin) {
+        originOverrides[c.group_id] = c.group.evacuation_origin;
+      }
+    }
     const minimal = {
       conditions: state.conditions,
       phaseFirst: state.phaseFirst,
@@ -139,6 +165,7 @@ function saveStateToLocalStorage() {
       cardSize: state.cardSize,
       manuallyRemovedIds: [...state.manuallyRemovedIds],
       cardOrigIds: state.deckCards.map((c) => c.original_id),
+      originOverrides,
     };
     localStorage.setItem(STORAGE_KEY, JSON.stringify(minimal));
   } catch {
@@ -170,17 +197,25 @@ function restoreStateFromLocalStorage() {
     }
 
     const restoredEntries = [];
+    const originOverrides = saved.originOverrides || {};
     for (const oid of saved.cardOrigIds) {
       const dbEntry = state.dbCardByOrigId.get(String(oid));
       if (dbEntry) {
+        const grp = dbEntry.group ? structuredClone(dbEntry.group) : null;
+        const d = structuredClone(dbEntry.data);
+        if (dbEntry.group_id && originOverrides[dbEntry.group_id]) {
+          const newOrig = originOverrides[dbEntry.group_id];
+          if (grp) grp.evacuation_origin = newOrig;
+          if (d) d.evacuation_origin = newOrig;
+        }
         restoredEntries.push({
           original_id: dbEntry.original_id,
           kind: dbEntry.kind,
           unit_id: dbEntry.unit_id,
           group_id: dbEntry.group_id,
           group_name: dbEntry.group_name,
-          data: structuredClone(dbEntry.data),
-          group: dbEntry.group ? structuredClone(dbEntry.group) : null,
+          data: d,
+          group: grp,
         });
       }
     }
@@ -1354,6 +1389,7 @@ function renderWorkspaceSection(container, activeSubSection = "workspace") {
           <button type="button" class="wd-filter-pill ${state.cardSize === "md" ? "active" : ""}" data-card-size="md" data-testid="wd-size-md">中</button>
           <button type="button" class="wd-filter-pill ${state.cardSize === "lg" ? "active" : ""}" data-card-size="lg" data-testid="wd-size-lg">大</button>
         </div>
+        <button type="button" class="btn btn-xs btn-secondary" id="wd-batch-origin-btn" data-testid="wd-batch-origin-btn" title="避難所の場所に合わせて、避難者の避難元町丁目をまとめて置換します">📍 避難元の町丁目を一括変更</button>
         <button type="button" class="btn btn-xs btn-secondary" id="wd-autosort-btn" data-testid="wd-autosort-btn" title="時期・進行度・前提カード順に自動で並べ直します">📊 自動整列</button>
         <button type="button" class="btn btn-xs" id="wd-undo-btn" data-testid="wd-undo-btn" ${state.undoStack.length === 0 ? "disabled" : ""} title="直前の操作を元に戻します">↩ 元に戻す (${state.undoStack.length})</button>
       </div>
@@ -1392,6 +1428,10 @@ function renderWorkspaceSection(container, activeSubSection = "workspace") {
       state.insertTarget = e.target.value;
       renderMainContent();
     });
+  }
+  const batchOriginBtn = container.querySelector("#wd-batch-origin-btn");
+  if (batchOriginBtn) {
+    batchOriginBtn.addEventListener("click", () => openBatchOriginModal());
   }
   container.querySelector("#wd-autosort-btn").addEventListener("click", () => {
     autoSortCurrentDeck({ phaseFirst: state.phaseFirst });
@@ -2933,3 +2973,302 @@ function launchTrainingMode() {
 }
 
 document.addEventListener("DOMContentLoaded", initWebDeckApp);
+
+// ============================================================================
+// 避難元地区（町丁目）一括置換モーダル
+//   - デッキ内の町丁目ごとの人数・世帯数内訳を表示（1名のみの地区をハイライト）
+//   - 小平市内の全町丁目（75件）を選択肢としてまとめて置換
+//   - 世帯単位での個別微調整にも対応
+// ============================================================================
+
+function getAvailableTownOptions() {
+  const schemaOpts =
+    state.db &&
+    state.db.schema &&
+    state.db.schema.options &&
+    state.db.schema.options.evacuation_origin;
+  return Array.isArray(schemaOpts) && schemaOpts.length > 0 ? schemaOpts : KODAIRA_TOWNS;
+}
+
+function openBatchOriginModal() {
+  closeModalIfPresent();
+
+  // デッキ内の世帯カードから町丁目ごとの内訳を集計
+  const originStats = new Map(); // origin -> { origin, persons, pets, groups: Map(groupId -> { groupName, count }) }
+  const groupsList = []; // 全世帯のリスト (個別調整用)
+  const seenGroupIds = new Set();
+
+  for (const c of state.deckCards) {
+    if (c.kind === "event" || !c.group_id) continue;
+    const gid = c.group_id;
+    const grp = c.group || {};
+    const origin = String(grp.evacuation_origin || (c.data && c.data.evacuation_origin) || "未設定");
+
+    if (!originStats.has(origin)) {
+      originStats.set(origin, {
+        origin,
+        persons: 0,
+        pets: 0,
+        groups: new Map(),
+      });
+    }
+    const stat = originStats.get(origin);
+    if (c.kind === "pet") stat.pets++;
+    else stat.persons++;
+
+    if (!stat.groups.has(gid)) {
+      stat.groups.set(gid, {
+        groupId: gid,
+        groupName: String(c.group_name || grp.group_name || gid),
+        origin,
+        cardsCount: 0,
+      });
+    }
+    stat.groups.get(gid).cardsCount++;
+
+    if (!seenGroupIds.has(gid)) {
+      seenGroupIds.add(gid);
+      groupsList.push({
+        groupId: gid,
+        groupName: String(c.group_name || grp.group_name || gid),
+        origin,
+        persons: 0,
+        pets: 0,
+      });
+    }
+    const gItem = groupsList.find((g) => g.groupId === gid);
+    if (gItem) {
+      if (c.kind === "pet") gItem.pets++;
+      else gItem.persons++;
+    }
+  }
+
+  const sortedOrigins = [...originStats.values()].sort(
+    (a, b) => b.persons + b.pets - (a.persons + a.pets)
+  );
+
+  const availableTowns = getAvailableTownOptions();
+  const makeTownSelectOptions = (currentVal) =>
+    availableTowns
+      .map(
+        (t) =>
+          `<option value="${escapeHtml(t)}" ${t === currentVal ? "selected" : ""}>${escapeHtml(t)}</option>`
+      )
+      .join("");
+
+  const backdrop = document.createElement("div");
+  backdrop.id = "wd-modal-backdrop";
+  backdrop.className = "wd-modal-backdrop";
+  backdrop.setAttribute("data-testid", "wd-batch-origin-modal");
+
+  const tableRowsHtml =
+    sortedOrigins.length === 0
+      ? `<tr><td colspan="3" style="text-align:center;color:#64748b;padding:1.5rem;">デッキに避難者世帯カードがありません</td></tr>`
+      : sortedOrigins
+          .map((s, idx) => {
+            const totalPeople = s.persons + s.pets;
+            const isSingle = totalPeople === 1;
+            const hhCount = s.groups.size;
+            return `
+              <tr class="wd-origin-row ${isSingle ? "is-single-person" : ""}" data-orig-from="${escapeHtml(s.origin)}">
+                <td style="font-weight:700;">
+                  <span class="wd-origin-name">${escapeHtml(s.origin)}</span>
+                </td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:0.4rem;flex-wrap:wrap;">
+                    <span class="badge" style="background:#0f172a;color:#fff;font-weight:800;">
+                      👤${s.persons}名${s.pets ? ` 🐾${s.pets}匹` : ""}
+                    </span>
+                    <span class="badge" style="background:#e2e8f0;color:#334155;font-weight:700;">
+                      ${hhCount}世帯
+                    </span>
+                    ${
+                      isSingle
+                        ? `<span class="badge badge-warn" title="この町丁目からは1名のみです。他の町丁目に統合して人数バランスを調整できます">⚠️ 1名のみ</span>`
+                        : ""
+                    }
+                  </div>
+                </td>
+                <td>
+                  <div style="display:flex;align-items:center;gap:0.4rem;">
+                    <span style="font-size:0.8rem;color:#64748b;">→</span>
+                    <select class="form-select form-input-sm wd-batch-town-select" data-from-origin="${escapeHtml(s.origin)}" style="font-weight:700;color:#1e40af;">
+                      ${makeTownSelectOptions(s.origin)}
+                    </select>
+                  </div>
+                </td>
+              </tr>
+            `;
+          })
+          .join("");
+
+  const individualRowsHtml = groupsList
+    .map((g) => {
+      return `
+        <div class="wd-origin-indiv-row" data-group-id="${escapeHtml(g.groupId)}">
+          <div style="display:flex;align-items:center;gap:0.4rem;min-width:0;flex:1;">
+            <span class="wd-card-orig-badge">${escapeHtml(g.groupId)}</span>
+            <strong style="font-size:0.84rem;">${escapeHtml(g.groupName)}</strong>
+            <span style="font-size:0.75rem;color:#64748b;">(👤${g.persons}名${g.pets ? ` 🐾${g.pets}匹` : ""})</span>
+          </div>
+          <div style="display:flex;align-items:center;gap:0.4rem;">
+            <span style="font-size:0.75rem;color:#64748b;">元: ${escapeHtml(g.origin)} →</span>
+            <select class="form-select form-input-sm wd-indiv-town-select" data-group-id="${escapeHtml(g.groupId)}" style="width:160px;">
+              ${makeTownSelectOptions(g.origin)}
+            </select>
+          </div>
+        </div>
+      `;
+    })
+    .join("");
+
+  backdrop.innerHTML = `
+    <div class="wd-modal-dialog" style="max-width:760px;max-height:92vh;">
+      <div class="wd-modal-header">
+        <div style="display:flex;align-items:center;gap:0.5rem;flex-wrap:wrap;">
+          <strong style="font-size:1.1rem;">📍 避難元の地区（町丁目）を一括変更</strong>
+          <span style="font-size:0.75rem;color:#64748b;">デッキ内の避難者を避難所の近隣町丁目に差し替え</span>
+        </div>
+        <button type="button" class="btn btn-xs" id="wd-origin-close-btn">✕ 閉じる</button>
+      </div>
+
+      <div style="padding:1rem 1.25rem;overflow-y:auto;display:flex;flex-direction:column;gap:1rem;">
+        <div style="background:#eff6ff;border:1px solid #bfdbfe;border-radius:8px;padding:0.75rem 1rem;font-size:0.82rem;color:#1e3a8a;line-height:1.5;">
+          💡 <strong>避難元の町丁目置換について:</strong><br/>
+          カード作成時の町丁目から、今回の想定避難所の近所にある町丁目にまとめて差し替えます。<br/>
+          元のカードで同じ町丁目の人たちは同じ地区として扱われます。1人だけしか来ていない地区があれば、別の町丁目に合わせてバランスをとることもできます。
+        </div>
+
+        <div>
+          <h4 style="margin:0 0 0.5rem;font-size:0.92rem;color:#0f172a;">
+            📊 現在のデッキの避難元内訳と一括置換先 (${sortedOrigins.length}地区)
+          </h4>
+          <table class="master-ledger-table" style="font-size:0.83rem;">
+            <thead>
+              <tr>
+                <th style="width:30%;">現在の町丁目</th>
+                <th style="width:30%;">人数・世帯数</th>
+                <th style="width:40%;">変更後の町丁目（小平市内全域）</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${tableRowsHtml}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- 世帯ごとの個別調整アコーディオン -->
+        <details style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:8px;padding:0.6rem 0.85rem;">
+          <summary style="font-size:0.84rem;font-weight:700;color:#334155;cursor:pointer;user-select:none;">
+            ⚙️ 世帯ごとに個別に町丁目を指定したい場合はこちらを展開 (${groupsList.length}世帯)
+          </summary>
+          <div style="margin-top:0.75rem;display:flex;flex-direction:column;gap:0.45rem;max-height:220px;overflow-y:auto;padding-right:0.3rem;">
+            ${individualRowsHtml}
+          </div>
+        </details>
+      </div>
+
+      <div class="wd-modal-footer">
+        <button type="button" class="btn btn-sm btn-secondary" id="wd-origin-reset-btn" title="DBの元の避難元に戻します">
+          🔄 DB初期値に戻す
+        </button>
+        <button type="button" class="btn btn-sm btn-primary" id="wd-origin-apply-btn" data-testid="wd-origin-apply-btn">
+          💾 避難元の変更をデッキに適用する
+        </button>
+        <button type="button" class="btn btn-sm" id="wd-origin-cancel-btn">閉じる</button>
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(backdrop);
+
+  backdrop.addEventListener("click", (e) => {
+    if (e.target === backdrop) closeModalIfPresent();
+  });
+  backdrop.querySelector("#wd-origin-close-btn").addEventListener("click", closeModalIfPresent);
+  backdrop.querySelector("#wd-origin-cancel-btn").addEventListener("click", closeModalIfPresent);
+
+  // 町丁目ごとの select が変わったら、連動して個別世帯 select の値も更新
+  backdrop.querySelectorAll(".wd-batch-town-select").forEach((sel) => {
+    sel.addEventListener("change", (e) => {
+      const fromOrig = sel.dataset.fromOrigin;
+      const targetVal = e.target.value;
+      backdrop.querySelectorAll(".wd-indiv-town-select").forEach((indivSel) => {
+        const gid = indivSel.dataset.groupId;
+        const g = groupsList.find((x) => x.groupId === gid);
+        if (g && g.origin === fromOrig) {
+          indivSel.value = targetVal;
+        }
+      });
+    });
+  });
+
+  // DB初期値に戻すボタン
+  backdrop.querySelector("#wd-origin-reset-btn").addEventListener("click", () => {
+    pushUndoSnapshot();
+    for (const c of state.deckCards) {
+      if (c.kind === "event") continue;
+      const dbEntry = state.dbCardByOrigId.get(c.original_id);
+      if (dbEntry && dbEntry.group && dbEntry.group.evacuation_origin) {
+        const orig = dbEntry.group.evacuation_origin;
+        if (c.group) c.group.evacuation_origin = orig;
+        if (c.data) c.data.evacuation_origin = orig;
+      }
+    }
+    closeModalIfPresent();
+    saveStateToLocalStorage();
+    renderAll();
+    showToast("デッキ内の避難元をデータベースの初期値に戻しました", "info");
+  });
+
+  // 適用ボタン
+  backdrop.querySelector("#wd-origin-apply-btn").addEventListener("click", () => {
+    // 1. 町丁目マッピング取得
+    const mapping = {};
+    backdrop.querySelectorAll(".wd-batch-town-select").forEach((sel) => {
+      const fromOrig = sel.dataset.fromOrigin;
+      const toOrig = sel.value;
+      if (fromOrig && toOrig) {
+        mapping[fromOrig] = toOrig;
+      }
+    });
+
+    // 2. 個別世帯オーバーライド取得
+    const indivOverrides = {};
+    backdrop.querySelectorAll(".wd-indiv-town-select").forEach((sel) => {
+      const gid = sel.dataset.groupId;
+      const toOrig = sel.value;
+      if (gid && toOrig) {
+        indivOverrides[gid] = toOrig;
+      }
+    });
+
+    pushUndoSnapshot();
+    let changeCount = 0;
+
+    for (const c of state.deckCards) {
+      if (c.kind === "event") continue;
+      const gid = c.group_id;
+      const currentOrig = (c.group && c.group.evacuation_origin) || (c.data && c.data.evacuation_origin) || "";
+
+      let nextOrig = currentOrig;
+      if (gid && indivOverrides[gid]) {
+        nextOrig = indivOverrides[gid];
+      } else if (currentOrig && mapping[currentOrig]) {
+        nextOrig = mapping[currentOrig];
+      }
+
+      if (nextOrig && nextOrig !== currentOrig) {
+        if (c.group) c.group.evacuation_origin = nextOrig;
+        if (c.data) c.data.evacuation_origin = nextOrig;
+        changeCount++;
+      }
+    }
+
+    closeModalIfPresent();
+    saveStateToLocalStorage();
+    renderAll();
+
+    showToast(`避難元の地区を一括変更しました（${changeCount}枚のカードに適用・↩ 元に戻す可）`, "success");
+  });
+}

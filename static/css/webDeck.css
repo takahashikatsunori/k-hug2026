@@ -1720,3 +1720,75 @@ body.wd-dragging * {
     border-top: 1px solid #f1f5f9;
   }
 }
+
+
+/* 避難元の町丁目一括変更モーダル */
+.wd-origin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.88rem;
+}
+
+.wd-origin-table th,
+.wd-origin-table td {
+  padding: 0.55rem 0.7rem;
+  border-bottom: 1px solid #e2e8f0;
+  vertical-align: middle;
+}
+
+.wd-origin-table th {
+  background: #f8fafc;
+  font-weight: 700;
+  color: #475569;
+  font-size: 0.8rem;
+  text-align: left;
+}
+
+.wd-origin-row:hover {
+  background: #f8fafc;
+}
+
+.wd-origin-row.is-single-person {
+  background: #fffbeb;
+}
+
+.wd-origin-row.is-single-person:hover {
+  background: #fef3c7;
+}
+
+.wd-origin-select {
+  width: 100%;
+  max-width: 220px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  background-color: #ffffff;
+  color: #1e293b;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wd-origin-select:focus {
+  outline: none;
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.15);
+}
+
+.wd-origin-indiv-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.45rem 0.6rem;
+  border-bottom: 1px solid #f1f5f9;
+  font-size: 0.82rem;
+}
+
+.wd-origin-indiv-row:last-child {
+  border-bottom: none;
+}
+
+.wd-origin-indiv-row:hover {
+  background: #f8fafc;
+}
