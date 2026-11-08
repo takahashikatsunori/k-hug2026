@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>HUGカード デッキ構築・ダウンロード Webツール</title>
+  <link rel="stylesheet" href="./static/css/app.css" />
+  <link rel="stylesheet" href="./static/css/webDeck.css" />
+</head>
+<body class="wd-body">
+  <!-- トップヘッダー（1行スリムバー＆①②③④直感ナビゲーション） -->
+  <header class="wd-header" data-testid="wd-header">
+    <div class="wd-header-left">
+      <div class="wd-brand-title">
+        <span class="wd-brand-icon">🃏</span>
+        <span class="wd-brand-text">HUGカード</span>
+      </div>
+
+      <!-- ①②③④ 一貫ステップタブ -->
+      <nav class="wd-step-tabs" aria-label="デッキ構築ステップ">
+        <button
+          type="button"
+          class="wd-step-tab"
+          data-section="conditions"
+          data-testid="wd-step-conditions"
+          title="① 条件設定と初期提案 / 保存済みデッキ"
+        >
+          <span>① 条件・提案</span>
+        </button>
+        <button
+          type="button"
+          class="wd-step-tab active"
+          data-section="workspace"
+          data-testid="wd-step-workspace"
+          title="② カードの抜き差しと並べ替え（世帯単位）"
+        >
+          <span>② カード編集</span>
+          <span class="wd-tab-badge" id="wd-tab-deck-badge">0枚</span>
+        </button>
+        <button
+          type="button"
+          class="wd-step-tab wd-tab-action"
+          id="wd-open-training-btn"
+          data-testid="wd-open-training-btn"
+          title="③ できたデッキでの全画面カード閲覧・訓練モード"
+        >
+          <span class="wd-tab-play-icon">▶</span>
+          <span>③ 閲覧モード</span>
+        </button>
+        <button
+          type="button"
+          class="wd-step-tab"
+          data-section="export"
+          data-testid="wd-step-export"
+          title="④ カード台帳(CSV/印刷)とカード画像(PDF/ZIP)の出力"
+        >
+          <span>④ 台帳・出力</span>
+        </button>
+      </nav>
+    </div>
+
+    <!-- インライン・コンパクト枚数表示バー -->
+    <div class="wd-header-center">
+      <div class="wd-header-stats" data-testid="wd-header-stats" title="デッキ構成とDB未採用枚数">
+        <span class="wd-stat-cell wd-stat-main">
+          <span>デッキ</span><strong id="wd-hdr-total" data-testid="wd-hdr-total">0枚</strong>
+        </span>
+        <span class="wd-stat-sep">/</span>
+        <span class="wd-stat-cell">
+          <span>⚡</span><strong id="wd-hdr-events" data-testid="wd-hdr-events">0</strong>
+        </span>
+        <span class="wd-stat-cell">
+          <span>🏠</span><strong id="wd-hdr-households" data-testid="wd-hdr-households">0組</strong>
+          <span class="wd-stat-sub">(👤<strong id="wd-hdr-persons" data-testid="wd-hdr-persons">0名</strong> 🐾<strong id="wd-hdr-pets" data-testid="wd-hdr-pets">0匹</strong>)</span>
+        </span>
+        <span class="wd-stat-sep">|</span>
+        <span class="wd-stat-cell wd-stat-db">
+          <span>未採用</span><strong id="wd-hdr-db-remaining" data-testid="wd-hdr-db-remaining">0枚</strong>
+        </span>
+      </div>
+    </div>
+
+    <!-- 右端アクション: 台帳読込ボタンのみをすっきり配置 -->
+    <div class="wd-header-right">
+      <button
+        type="button"
+        class="wd-header-import-btn"
+        id="wd-header-import-btn"
+        data-testid="wd-header-import-btn"
+        title="⑤ 以前エクスポートしたカード台帳(CSV/JSON)を読み込んで続きから編集"
+      >
+        📥 台帳読込
+      </button>
+    </div>
+  </header>
+
+  <!-- メインコンテンツ領域 -->
+  <main id="wd-main" class="wd-main" data-testid="wd-main">
+    <div style="padding: 3rem 1rem; text-align: center; color: #64748b;">
+      カードデータベースを読み込んでいます...
+    </div>
+  </main>
+
+  <!-- スマホ専用 ボトムナビゲーションバー -->
+  <nav class="wd-mobile-bottom-nav" aria-label="スマホ用ナビゲーション" data-testid="wd-mobile-bottom-nav">
+    <button
+      type="button"
+      class="wd-mob-nav-btn"
+      data-mob-section="conditions"
+      data-testid="wd-mob-nav-conditions"
+    >
+      <span class="wd-mob-nav-icon">⚙️</span>
+      <span>①条件/読込</span>
+    </button>
+    <button
+      type="button"
+      class="wd-mob-nav-btn active"
+      data-mob-section="deck"
+      data-testid="wd-mob-nav-deck"
+    >
+      <span class="wd-mob-nav-badge" id="wd-mob-deck-badge">0</span>
+      <span class="wd-mob-nav-icon">🃏</span>
+      <span>②デッキ編集</span>
+    </button>
+    <button
+      type="button"
+      class="wd-mob-nav-btn"
+      data-mob-section="db"
+      data-testid="wd-mob-nav-db"
+    >
+      <span class="wd-mob-nav-badge" id="wd-mob-db-badge">0</span>
+      <span class="wd-mob-nav-icon">📚</span>
+      <span>②DBから追加</span>
+    </button>
+    <button
+      type="button"
+      class="wd-mob-nav-btn"
+      data-mob-section="training"
+      data-testid="wd-mob-nav-training"
+    >
+      <span class="wd-mob-nav-icon">▶</span>
+      <span>③閲覧モード</span>
+    </button>
+    <button
+      type="button"
+      class="wd-mob-nav-btn"
+      data-mob-section="export"
+      data-testid="wd-mob-nav-export"
+    >
+      <span class="wd-mob-nav-icon">📥</span>
+      <span>④台帳/出力</span>
+    </button>
+  </nav>
+
+  <!-- トースト通知コンテナ -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <script type="module" src="./static/js/webDeckApp.js"></script>
+</body>
+</html>

@@ -203,7 +203,10 @@ export function ensureDataUrl(raw) {
     trimmed.startsWith("https://") ||
     trimmed.startsWith("blob:") ||
     trimmed.startsWith("/api/") ||
-    trimmed.startsWith("/static/")
+    trimmed.startsWith("/static/") ||
+    trimmed.startsWith("/data/") ||
+    trimmed.startsWith("./") ||
+    trimmed.startsWith("../")
   ) {
     return trimmed;
   }
@@ -1251,6 +1254,13 @@ export const generateCardImageCanvas = async (
  * @param {{ cardNumber?: number | string | null, imageIds?: Set<string> | string[] | null }} [options]
  * @returns {Record<string, any>}
  */
+function resolveCardImageUrl(origId, ver = "") {
+  if (typeof store.resolveImageUrl === "function") {
+    return store.resolveImageUrl(origId, ver);
+  }
+  return `/api/images/${encodeURIComponent(origId)}${ver ? `?v=${ver}` : ""}`;
+}
+
 export function toCardRenderModel(item, group = null, options = {}) {
   if (!item) return null;
 
@@ -1281,7 +1291,7 @@ export function toCardRenderModel(item, group = null, options = {}) {
       item.imageUrl && String(item.imageUrl).startsWith("data:")
         ? item.imageUrl
         : hasImage
-          ? `/api/images/${encodeURIComponent(origId)}${ver ? `?v=${ver}` : ""}`
+          ? resolveCardImageUrl(origId, ver)
           : null;
     return {
       ...item,
@@ -1331,7 +1341,7 @@ export function toCardRenderModel(item, group = null, options = {}) {
       points: String(item.training_point || ""),
       hasImage,
       imageUrl: hasImage
-        ? `/api/images/${encodeURIComponent(origId)}${ver ? `?v=${ver}` : ""}`
+        ? resolveCardImageUrl(origId, ver)
         : null,
     };
   }
@@ -1399,7 +1409,7 @@ export function toCardRenderModel(item, group = null, options = {}) {
     points,
     hasImage,
     imageUrl: hasImage
-      ? `/api/images/${encodeURIComponent(origId)}${ver ? `?v=${ver}` : ""}`
+      ? resolveCardImageUrl(origId, ver)
       : null,
   };
 }
@@ -1472,11 +1482,13 @@ async function ensureVendorLibraries() {
           s.onerror = reject;
           document.head.appendChild(s);
         });
+      const jspdfUrl = new URL("../vendor/jspdf.umd.min.js", import.meta.url).href;
+      const jszipUrl = new URL("../vendor/jszip.min.js", import.meta.url).href;
       if (!window.jspdf) {
-        await loadScript("/static/vendor/jspdf.umd.min.js");
+        await loadScript(jspdfUrl);
       }
       if (!window.JSZip) {
-        await loadScript("/static/vendor/jszip.min.js");
+        await loadScript(jszipUrl);
       }
     })();
   }

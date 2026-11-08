@@ -32,6 +32,7 @@ export function openTrainingView(cards) {
 
   let currentIndex = 0;
   let showTrainingPoint = false;
+  let alwaysShowTrainingPoint = false;
 
   const overlay = document.createElement("div");
   overlay.id = "training-view-overlay";
@@ -39,6 +40,44 @@ export function openTrainingView(cards) {
   overlay.setAttribute("data-testid", "training-view");
 
   document.body.appendChild(overlay);
+
+  // スマホ用タッチスワイプ (左右スワイプでカード送り)
+  let touchStartX = null;
+  let touchStartY = null;
+  overlay.addEventListener(
+    "touchstart",
+    (e) => {
+      if (e.touches && e.touches.length === 1) {
+        touchStartX = e.touches[0].clientX;
+        touchStartY = e.touches[0].clientY;
+      }
+    },
+    { passive: true }
+  );
+  overlay.addEventListener(
+    "touchend",
+    (e) => {
+      if (touchStartX === null || !e.changedTouches || e.changedTouches.length === 0) {
+        return;
+      }
+      const dx = e.changedTouches[0].clientX - touchStartX;
+      const dy = e.changedTouches[0].clientY - (touchStartY || 0);
+      touchStartX = null;
+      touchStartY = null;
+      if (Math.abs(dx) > 55 && Math.abs(dx) > Math.abs(dy) * 1.4) {
+        if (dx < 0 && currentIndex < cards.length - 1) {
+          currentIndex += 1;
+          showTrainingPoint = alwaysShowTrainingPoint;
+          renderSlide();
+        } else if (dx > 0 && currentIndex > 0) {
+          currentIndex -= 1;
+          showTrainingPoint = alwaysShowTrainingPoint;
+          renderSlide();
+        }
+      }
+    },
+    { passive: true }
+  );
 
   const renderSlide = () => {
     const card = cards[currentIndex];
@@ -57,15 +96,29 @@ export function openTrainingView(cards) {
       )
       .join("");
 
+    // カードをめくってもカード画像の位置が上下に動かないよう、
+    // 見出し帯はイベント/世帯を問わず常に同じ高さ（2行固定・はみ出しは省略）で表示する
+    const timingText = Array.isArray(rec.relative_timing)
+      ? rec.relative_timing.join("・")
+      : "";
+    const householdTitle = !isEvent && grp
+      ? `${card.group_id || grp.group_id || ""}: ${card.group_name || grp.group_name || ""}（人物 ${grp.member_count ?? 0}名 / ペット ${grp.pet_count ?? 0}匹 ・ 避難元: ${grp.evacuation_origin || "-"}）`
+      : "";
     const householdHeaderHtml = !isEvent && grp
       ? `
-        <div class="training-household-banner" data-testid="training-household-header">
-          <span class="type-pill pill-household">世帯見出し</span>
+        <div class="training-info-bar training-household-banner" data-testid="training-household-header" title="${escapeHtml(householdTitle)}">
+          <span class="type-pill pill-household">世帯</span>
           <strong>${escapeHtml(card.group_id || grp.group_id || "")}: ${escapeHtml(card.group_name || grp.group_name || "")}</strong>
           <span>（人物 ${escapeHtml(grp.member_count ?? 0)}名 / ペット ${escapeHtml(grp.pet_count ?? 0)}匹 ・ 避難元: ${escapeHtml(grp.evacuation_origin || "-")}）</span>
         </div>
       `
-      : "";
+      : `
+        <div class="training-info-bar training-event-banner">
+          <span class="type-pill">イベント</span>
+          <strong>${escapeHtml(rec.event_name || card.title || "")}</strong>
+          ${timingText ? `<span>（発生時期: ${escapeHtml(timingText)}）</span>` : ""}
+        </div>
+      `;
 
     const origId = String(card.original_id || "");
     const cardModel = toCardRenderModel(card, grp, {
@@ -119,14 +172,25 @@ export function openTrainingView(cards) {
         ${bodyHtml}
 
         <div class="training-point-section">
-          <button
-            type="button"
-            class="btn btn-secondary"
-            id="training-point-toggle-btn"
-            data-testid="training-point-toggle-btn"
-          >
-            ${showTrainingPoint ? "訓練ポイントを隠す" : "訓練ポイントを表示"}
-          </button>
+          <div style="display:flex;align-items:center;justify-content:center;gap:0.75rem;flex-wrap:wrap;">
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="training-point-toggle-btn"
+              data-testid="training-point-toggle-btn"
+            >
+              ${showTrainingPoint ? "訓練ポイントを隠す" : "訓練ポイントを表示"}
+            </button>
+            <label style="display:inline-flex;align-items:center;gap:0.35rem;font-size:0.82rem;color:#cbd5e1;cursor:pointer;user-select:none;">
+              <input
+                type="checkbox"
+                id="training-point-always-chk"
+                data-testid="training-point-always-chk"
+                ${alwaysShowTrainingPoint ? "checked" : ""}
+              />
+              カード切替時も常に表示
+            </label>
+          </div>
           ${
             showTrainingPoint
               ? `<div class="training-point-box" data-testid="training-point-content">${escapeHtml(trainingPoint)}</div>`
@@ -172,7 +236,7 @@ export function openTrainingView(cards) {
       .addEventListener("click", () => {
         if (currentIndex > 0) {
           currentIndex -= 1;
-          showTrainingPoint = false;
+          showTrainingPoint = alwaysShowTrainingPoint;
           renderSlide();
         }
       });
@@ -182,7 +246,7 @@ export function openTrainingView(cards) {
       .addEventListener("click", () => {
         if (currentIndex < total - 1) {
           currentIndex += 1;
-          showTrainingPoint = false;
+          showTrainingPoint = alwaysShowTrainingPoint;
           renderSlide();
         }
       });
@@ -193,7 +257,7 @@ export function openTrainingView(cards) {
         const idx = Number(e.target.value);
         if (!Number.isNaN(idx) && idx >= 0 && idx < total) {
           currentIndex = idx;
-          showTrainingPoint = false;
+          showTrainingPoint = alwaysShowTrainingPoint;
           renderSlide();
         }
       });
@@ -204,19 +268,30 @@ export function openTrainingView(cards) {
         showTrainingPoint = !showTrainingPoint;
         renderSlide();
       });
+
+    const alwaysChk = overlay.querySelector("#training-point-always-chk");
+    if (alwaysChk) {
+      alwaysChk.addEventListener("change", (e) => {
+        alwaysShowTrainingPoint = Boolean(e.target.checked);
+        if (alwaysShowTrainingPoint && !showTrainingPoint) {
+          showTrainingPoint = true;
+          renderSlide();
+        }
+      });
+    }
   };
 
   activeTrainingKeyHandler = (e) => {
     if (e.key === "ArrowRight") {
       if (currentIndex < cards.length - 1) {
         currentIndex += 1;
-        showTrainingPoint = false;
+        showTrainingPoint = alwaysShowTrainingPoint;
         renderSlide();
       }
     } else if (e.key === "ArrowLeft") {
       if (currentIndex > 0) {
         currentIndex -= 1;
-        showTrainingPoint = false;
+        showTrainingPoint = alwaysShowTrainingPoint;
         renderSlide();
       }
     } else if (e.key === "Escape") {

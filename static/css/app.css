@@ -774,7 +774,9 @@ body {
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  padding: 1.25rem 2rem;
+  gap: 0.75rem;
+  padding: 1rem 1.5rem;
+  overflow-y: auto;
 }
 
 .training-topbar,
@@ -807,8 +809,11 @@ body {
   background: #ffffff;
   color: #0f172a;
   border-radius: 12px;
-  padding: 2rem;
+  padding: 1.1rem 1.5rem;
   box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .training-household-banner {
@@ -822,6 +827,77 @@ body {
   align-items: center;
   gap: 0.65rem;
   flex-wrap: wrap;
+}
+
+/* 閲覧モード: 見出し帯は常に固定高さ（カード画像の位置がめくっても動かない） */
+.training-info-bar {
+  box-sizing: border-box;
+  height: 3.6rem;
+  min-height: 3.6rem;
+  max-height: 3.6rem;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+  padding: 0.4rem 0.85rem;
+  border-radius: 8px;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-height: 1.35rem;
+  font-size: 0.92rem;
+}
+
+.training-info-bar > * {
+  margin-right: 0.4rem;
+}
+
+.training-event-banner {
+  background: #eff6ff;
+  border: 2px solid #93c5fd;
+  color: #1e3a8a;
+}
+
+.training-stage .training-card-box {
+  margin: 0;
+}
+
+.training-stage .training-rendered-card-wrap {
+  height: 50vh;
+  min-height: 50vh;
+  align-items: center;
+}
+
+.training-stage .training-rendered-card-img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: contain;
+}
+
+@media (max-width: 768px) {
+  .training-overlay {
+    padding: 0.6rem 0.6rem;
+  }
+  .training-stage {
+    padding: 0.7rem 0.7rem;
+  }
+  .training-stage .training-rendered-card-wrap {
+    height: 46vh;
+    min-height: 46vh;
+  }
+  .training-info-bar {
+    font-size: 0.8rem;
+    line-height: 1.2rem;
+    height: 3.2rem;
+    min-height: 3.2rem;
+    max-height: 3.2rem;
+  }
+  .training-topbar,
+  .training-bottombar {
+    flex-wrap: wrap;
+    gap: 0.5rem;
+  }
+  .training-hint {
+    display: none;
+  }
 }
 
 .training-card-title {
@@ -1671,7 +1747,7 @@ body {
 }
 
 .training-rendered-card-img {
-  max-height: 62vh;
+  max-height: 48vh;
   max-width: 100%;
   width: auto;
   height: auto;

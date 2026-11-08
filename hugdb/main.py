@@ -17,6 +17,7 @@ from hugdb.db import connect
 from hugdb.io_json import PayloadTooLargeError
 from hugdb.ordering import PrerequisiteViolation
 from hugdb.repository import ConflictError, NotFoundError, ValidationError
+from hugdb.static_sync import sync_static_db_json
 
 
 def create_app(db_path: Path | str | None = None) -> FastAPI:
@@ -27,8 +28,13 @@ def create_app(db_path: Path | str | None = None) -> FastAPI:
     )
     app.state.db_path = Path(db_path) if db_path is not None else None
 
-    # 初回起動時にDBスキーマを確実に初期化
+    # 初回起動時にDBスキーマを確実に初期化（デフォルトDB使用時はWeb用JSONも同期）
     conn = connect(app.state.db_path)
+    if app.state.db_path is None:
+        try:
+            sync_static_db_json(conn)
+        except Exception:
+            pass
     conn.close()
 
     # ------------------------------------------------------------------
@@ -163,18 +169,58 @@ def create_app(db_path: Path | str | None = None) -> FastAPI:
     static_dir.mkdir(parents=True, exist_ok=True)
     app.mount("/static", StaticFiles(directory=str(static_dir)), name="static")
 
+    data_dir = config.DATA_DIR
+    data_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/data", StaticFiles(directory=str(data_dir)), name="data")
+
+    _READONLY_POST_PATHS = {
+        "/api/deck/build",
+        "/api/deck/reorder",
+        "/api/deck/export",
+        "/api/search",
+        "/api/io/export",
+        "/api/images/prompts",
+    }
+
     @app.middleware("http")
     async def disable_static_js_cache(request: Request, call_next: Any) -> Any:
         response = await call_next(request)
         path = request.url.path
-        if path == "/" or path.startswith("/static/js/") or path.startswith("/static/css/"):
+        if (
+            path in ("/", "/deck.html", "/web", "/data/cards_db.json")
+            or path.startswith("/static/js/")
+            or path.startswith("/static/css/")
+        ):
             response.headers["Cache-Control"] = "no-cache"
+
+        # デフォルトDBに対する更新系API完了時に Web用 cards_db.json を自動同期
+        if (
+            app.state.db_path is None
+            and request.method in ("POST", "PUT", "PATCH", "DELETE")
+            and path.startswith("/api/")
+            and path not in _READONLY_POST_PATHS
+            and 200 <= response.status_code < 300
+        ):
+            try:
+                sync_conn = connect(None)
+                try:
+                    sync_static_db_json(sync_conn)
+                finally:
+                    sync_conn.close()
+            except Exception:
+                pass
         return response
 
     @app.get("/", include_in_schema=False)
     async def serve_index() -> FileResponse:
         index_file = static_dir / "index.html"
         return FileResponse(str(index_file), media_type="text/html; charset=utf-8")
+
+    @app.get("/deck.html", include_in_schema=False)
+    @app.get("/web", include_in_schema=False)
+    async def serve_web_deck_builder() -> FileResponse:
+        web_index_file = config.BASE_DIR / "index.html"
+        return FileResponse(str(web_index_file), media_type="text/html; charset=utf-8")
 
     return app
 
