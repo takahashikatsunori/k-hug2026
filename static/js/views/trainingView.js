@@ -204,17 +204,17 @@ export function openTrainingView(cards, options = {}) {
           const nameStr = cd.name || c.title || c.original_id;
           return `
             <div class="training-hh-member-col" data-card-no="${c.card_number}">
-              <div class="training-hh-member-label">
-                <span class="badge" style="background:#0f172a;color:#fff;font-weight:800;font-size:0.75rem;">No.${c.card_number}</span>
-                <strong>${isPet ? "🐾" : "👤"} ${escapeHtml(nameStr)}</strong>
-                ${cd.relationship ? `<small>（${escapeHtml(cd.relationship)}）</small>` : ""}
-              </div>
               <div class="training-hh-card-wrap">
                 <img
                   alt="${escapeHtml(nameStr)}"
                   class="training-rendered-card-img training-hh-member-img"
                   data-orig-id="${escapeHtml(c.original_id)}"
                 />
+              </div>
+              <div class="training-hh-member-label">
+                <span class="badge" style="background:#0f172a;color:#fff;font-weight:800;font-size:0.75rem;">No.${c.card_number}</span>
+                <strong>${isPet ? "🐾" : "👤"} ${escapeHtml(nameStr)}</strong>
+                ${cd.relationship ? `<small>（${escapeHtml(cd.relationship)}）</small>` : ""}
               </div>
             </div>
           `;
