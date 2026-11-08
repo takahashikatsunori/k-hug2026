@@ -271,6 +271,8 @@ body.training-body.is-setup {
   background: #f8fafc;
   border: 1px solid #e2e8f0;
   color: #1e293b;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tr-badge-main {
@@ -392,6 +394,7 @@ body.training-body.is-setup {
   flex-direction: column;
   width: 100vw;
   height: 100vh;
+  height: 100dvh;
   position: fixed;
   inset: 0;
   background: var(--tr-bg-gradient);
@@ -418,17 +421,50 @@ body.training-body.is-setup {
   display: flex;
   align-items: center;
   gap: 1.25rem;
+  min-width: 0;
+}
+
+.tr-arena-brand-tag {
+  font-weight: 800;
+  color: #1e293b;
+  border-right: 1px solid #cbd5e1;
+  padding-right: 1rem;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tr-arena-brand-logo {
+  width: 28px;
+  height: 28px;
+  object-fit: contain;
+  border-radius: 6px;
+  border: 1px solid #fde68a;
+  flex-shrink: 0;
+}
+
+.tr-arena-brand-label {
+  white-space: nowrap;
 }
 
 .tr-progress-counter {
   font-size: 1.1rem;
   font-weight: 800;
   color: #0f172a;
+  white-space: nowrap;
 }
 
 .tr-progress-counter .accent {
   color: #2563eb;
   font-size: 1.3rem;
+}
+
+.tr-progress-total {
+  font-size: 0.85rem;
+  color: #64748b;
+  white-space: nowrap;
 }
 
 .tr-progress-bar-wrap {
@@ -437,6 +473,7 @@ body.training-body.is-setup {
   background: #e2e8f0;
   border-radius: 4px;
   overflow: hidden;
+  flex-shrink: 0;
 }
 
 .tr-progress-bar-fill {
@@ -453,12 +490,15 @@ body.training-body.is-setup {
   font-size: 1.1rem;
   font-weight: 800;
   color: #334155;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .tr-arena-top-right {
   display: flex;
   align-items: center;
   gap: 0.65rem;
+  flex-shrink: 0;
 }
 
 .tr-auto-timer-pill {
@@ -505,6 +545,19 @@ body.training-body.is-setup {
   z-index: 15;
 }
 
+.tr-stage-banner-wrap {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+}
+
+.tr-stage-banner-waiting {
+  background: #ffffff;
+  border: 1px solid var(--tr-border);
+  color: #475569;
+  justify-content: center;
+}
+
 .tr-stage-banner {
   display: inline-flex;
   align-items: center;
@@ -529,14 +582,39 @@ body.training-body.is-setup {
   color: var(--tr-household-color);
 }
 
+.tr-stage-banner-main {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 0;
+}
+
 .tr-stage-banner-title {
   font-size: 1.05rem;
   font-weight: 800;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .tr-stage-banner-meta {
   font-size: 0.9rem;
   font-weight: 700;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.tr-member-step-badge {
+  display: inline-flex;
+  align-items: center;
+  background: #15803d;
+  color: #ffffff;
+  font-size: 0.75rem;
+  font-weight: 800;
+  padding: 0.15rem 0.55rem;
+  border-radius: 9999px;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 /* ==========================================================================
@@ -1043,4 +1121,283 @@ body.training-body.is-setup {
 @keyframes fadeIn {
   from { opacity: 0; transform: translateY(-4px); }
   to { opacity: 1; transform: translateY(0); }
+}
+
+.tr-next-main-btn {
+  min-width: 280px;
+  font-size: 1.25rem;
+  font-weight: 800;
+}
+
+.tr-keyboard-hint {
+  font-size: 0.78rem;
+  color: #64748b;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ==========================================================================
+   6. スマートフォン（縦長画面）1枚表示モード 最適化 (max-width: 768px)
+   ========================================================================== */
+@media (max-width: 768px) {
+  .tr-hide-mobile,
+  .tr-progress-bar-wrap,
+  .tr-keyboard-hint,
+  .tr-carousel-nav-btn {
+    display: none !important;
+  }
+
+  /* セットアップ画面のモバイル調整 */
+  .tr-setup-container {
+    padding: 0.75rem 0.65rem 3rem;
+    gap: 0.85rem;
+  }
+
+  .tr-setup-hero {
+    padding: 1rem 0.85rem 0.85rem;
+  }
+
+  .tr-setup-logo-img {
+    width: 76px;
+    height: 76px;
+  }
+
+  .tr-setup-title {
+    font-size: 1.35rem;
+  }
+
+  .tr-setup-subtitle {
+    font-size: 0.85rem;
+  }
+
+  .tr-deck-loader-grid {
+    grid-template-columns: 1fr;
+    gap: 0.75rem;
+  }
+
+  .tr-loader-card {
+    padding: 1rem;
+  }
+
+  .tr-loaded-deck-panel {
+    padding: 1rem;
+    gap: 1rem;
+  }
+
+  .tr-deck-name-badge {
+    font-size: 1.15rem;
+  }
+
+  .tr-config-grid {
+    grid-template-columns: 1fr;
+    padding: 0.85rem;
+    gap: 0.85rem;
+  }
+
+  /* 訓練ステージ 1. トップバー（1行にすっきり収める） */
+  .tr-arena-topbar {
+    height: 44px;
+    flex: 0 0 44px;
+    padding: 0 0.5rem;
+    gap: 0.35rem;
+  }
+
+  .tr-arena-top-left {
+    gap: 0.45rem;
+    min-width: 0;
+  }
+
+  .tr-arena-brand-tag {
+    padding-right: 0.45rem;
+    gap: 0.25rem;
+    font-size: 0.8rem;
+  }
+
+  .tr-arena-brand-logo {
+    width: 24px;
+    height: 24px;
+  }
+
+  .tr-progress-counter {
+    font-size: 0.88rem;
+  }
+
+  .tr-progress-counter .accent {
+    font-size: 1rem;
+  }
+
+  .tr-progress-total {
+    font-size: 0.75rem;
+  }
+
+  .tr-arena-timer {
+    font-size: 0.85rem;
+    gap: 0.2rem;
+  }
+
+  .tr-arena-top-right {
+    gap: 0.3rem;
+  }
+
+  .tr-arena-topbar .tr-btn-sm {
+    padding: 0.28rem 0.5rem;
+    font-size: 0.75rem;
+    gap: 0.2rem;
+  }
+
+  /* 訓練ステージ 2. 見出しバナー（縦潰れ・カード重なりを防止する2段コンパクト表示） */
+  .tr-stage-banner-row {
+    height: auto;
+    flex: 0 0 auto;
+    padding: 0.25rem 0.5rem;
+  }
+
+  .tr-stage-banner {
+    flex-direction: column;
+    align-items: flex-start;
+    justify-content: center;
+    gap: 0.15rem;
+    padding: 0.3rem 0.65rem;
+    border-radius: 0.65rem;
+    width: 100%;
+  }
+
+  .tr-stage-banner-waiting {
+    align-items: center;
+  }
+
+  .tr-stage-banner-main {
+    width: 100%;
+    gap: 0.4rem;
+  }
+
+  .tr-stage-banner .tr-badge {
+    padding: 0.15rem 0.45rem;
+    font-size: 0.72rem;
+  }
+
+  .tr-stage-banner-title {
+    font-size: 0.85rem;
+    flex: 1 1 auto;
+  }
+
+  .tr-member-step-badge {
+    font-size: 0.7rem;
+    padding: 0.1rem 0.45rem;
+  }
+
+  .tr-stage-banner-meta {
+    font-size: 0.74rem;
+    width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-left: 0.15rem;
+  }
+
+  /* 訓練ステージ 3. カルーセル（1枚中央スナップ表示） */
+  .tr-carousel-arena {
+    padding: 0.15rem 0;
+    min-height: 0;
+  }
+
+  .tr-carousel-track-wrap {
+    padding: 0.25rem 50vw;
+    gap: 0.85rem;
+    scroll-snap-type: x mandatory;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .tr-carousel-card {
+    scroll-snap-align: center;
+    scroll-snap-stop: always;
+    height: min(
+      calc(100vh - 180px),
+      calc(100dvh - 175px),
+      calc(86vw * 993 / 600)
+    );
+    max-height: 96%;
+  }
+
+  .tr-carousel-card.is-spotlight {
+    transform: scale(1);
+    border-width: 3px;
+    box-shadow: 0 0 18px var(--tr-spotlight-glow), 0 6px 16px rgba(0, 0, 0, 0.14);
+  }
+
+  .tr-carousel-card.is-spotlight::before {
+    top: 6px;
+    font-size: 0.65rem;
+    padding: 0.1rem 0.45rem;
+    z-index: 20;
+  }
+
+  .tr-carousel-card.is-single-focused {
+    transform: scale(1);
+    outline-width: 2px;
+    outline-offset: 2px;
+  }
+
+  .tr-carousel-card.is-single-focused::after {
+    top: 6px;
+    right: 6px;
+    font-size: 0.65rem;
+    padding: 0.1rem 0.45rem;
+    z-index: 21;
+  }
+
+  /* 訓練ステージ 4. 下部操作バー（画面内に常時収める） */
+  .tr-arena-bottombar {
+    height: auto;
+    min-height: 54px;
+    flex: 0 0 auto;
+    padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+    gap: 0.35rem;
+  }
+
+  .tr-arena-bottom-center {
+    flex: 1 1 auto;
+    gap: 0.35rem;
+    min-width: 0;
+    justify-content: center;
+  }
+
+  .tr-arena-bottombar .tr-btn {
+    padding: 0.45rem 0.55rem;
+    font-size: 0.8rem;
+    gap: 0.2rem;
+    white-space: nowrap;
+  }
+
+  .tr-next-main-btn {
+    flex: 1 1 auto;
+    min-width: 0;
+    font-size: 0.92rem !important;
+    padding: 0.55rem 0.75rem !important;
+  }
+
+  /* 指導者用 訓練ポイントポップアップ */
+  .tr-point-popup {
+    bottom: 64px;
+    width: 94vw;
+    padding: 0.85rem;
+  }
+
+  /* ギャラリー＆ライトボックスのスマホ調整 */
+  .tr-gallery-header {
+    height: auto;
+    padding: 0.5rem 0.75rem;
+    flex-wrap: wrap;
+    gap: 0.4rem;
+  }
+
+  .tr-gallery-title {
+    font-size: 0.95rem;
+  }
+
+  .tr-gallery-grid {
+    padding: 0.75rem;
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    gap: 0.75rem;
+  }
 }

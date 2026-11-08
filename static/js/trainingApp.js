@@ -728,13 +728,13 @@ function setupCarouselArenaDOM() {
       <!-- 1. トップバー -->
       <header class="tr-arena-topbar" data-testid="tr-status-bar">
         <div class="tr-arena-top-left">
-          <div class="tr-arena-brand-tag" style="display:inline-flex;align-items:center;gap:0.4rem;padding-right:0.6rem;border-right:1px solid #cbd5e1;margin-right:0.25rem;">
-            <img ${LOGO_IMG_ATTRS} alt="HUGロゴ" style="width:24px;height:24px;object-fit:contain;border-radius:4px;" />
-            <span style="font-weight:800;font-size:0.85rem;color:var(--tr-text-main);">HUG訓練</span>
+          <div class="tr-arena-brand-tag">
+            <img ${LOGO_IMG_ATTRS} alt="HUGロゴ" class="tr-arena-brand-logo" />
+            <span class="tr-arena-brand-label">HUG訓練</span>
           </div>
           <div class="tr-progress-counter" data-testid="tr-progress-counter">
             <span class="accent" id="tr-hdr-current-no">-</span>
-            <span style="color:var(--tr-text-muted);font-size:0.9rem;">/ 全${appState.rawDeckCards.length}枚</span>
+            <span class="tr-progress-total">/ 全${appState.rawDeckCards.length}枚</span>
           </div>
 
           <div class="tr-progress-bar-wrap" title="訓練進行度">
@@ -745,7 +745,7 @@ function setupCarouselArenaDOM() {
           <progress id="tr-progress-bar" data-testid="tr-progress-bar" value="0" max="${appState.rawDeckCards.length}" style="display:none;"></progress>
 
           <div class="tr-arena-timer" title="経過時間">
-            <span>⏱️</span>
+            <span class="tr-hide-mobile">⏱️</span>
             <span id="tr-elapsed-text">00:00:00</span>
           </div>
         </div>
@@ -755,12 +755,12 @@ function setupCarouselArenaDOM() {
             appState.mode === "auto"
               ? `
               <div class="tr-auto-timer-pill" id="tr-auto-timer-pill">
-                <span style="font-size:0.8rem;color:var(--tr-text-muted);">⏰ タイマー:</span>
+                <span class="tr-hide-mobile" style="font-size:0.8rem;color:var(--tr-text-muted);">⏰ タイマー:</span>
                 <span class="tr-auto-timer-sec" id="tr-auto-sec-val">${appState.autoTimerRemaining}秒</span>
-                <button type="button" class="tr-btn tr-btn-sm" id="tr-timer-pause-btn" style="padding:0.2rem 0.55rem;">
+                <button type="button" class="tr-btn tr-btn-sm" id="tr-timer-pause-btn" style="padding:0.2rem 0.45rem;">
                   ⏸️
                 </button>
-                <button type="button" class="tr-btn tr-btn-sm" id="tr-timer-plus-btn" style="padding:0.2rem 0.55rem;" title="+30秒延長">
+                <button type="button" class="tr-btn tr-btn-sm" id="tr-timer-plus-btn" style="padding:0.2rem 0.45rem;" title="+30秒延長">
                   +30秒
                 </button>
               </div>
@@ -775,7 +775,7 @@ function setupCarouselArenaDOM() {
             data-testid="tr-open-history-btn"
             title="全画面サムネイル一覧で表示済みカードを一覧・確認"
           >
-            📋 表示済み一覧 (<span id="tr-opened-count-badge">0</span>)
+            📋 <span class="tr-hide-mobile">表示済み</span>一覧 (<span id="tr-opened-count-badge">0</span>)
           </button>
 
           <button
@@ -785,12 +785,12 @@ function setupCarouselArenaDOM() {
             title="最新の進行位置にカルーセルを戻す"
             style="display:none;"
           >
-            🎯 最新へ
+            🎯 最新<span class="tr-hide-mobile">へ</span>
           </button>
 
           <button
             type="button"
-            class="tr-btn tr-btn-sm"
+            class="tr-btn tr-btn-sm tr-hide-mobile"
             id="tr-toggle-fullscreen-btn"
             title="全画面シアター表示 (F11)"
           >
@@ -810,10 +810,10 @@ function setupCarouselArenaDOM() {
 
       <!-- 2. 見出しバナーバー -->
       <div class="tr-stage-banner-row">
-        <div id="tr-stage-banner-wrap" style="width:100%;display:flex;justify-content:center;">
+        <div id="tr-stage-banner-wrap" class="tr-stage-banner-wrap">
           <!-- 待機中の表示 -->
-          <div class="tr-stage-banner" style="background:#f1ede4;border:1px solid #cbd5e1;color:#475569;display:flex;align-items:center;gap:0.75rem;" id="tr-card-back" data-testid="tr-card-back">
-            <img ${LOGO_IMG_ATTRS} alt="HUGロゴ" style="width:26px;height:26px;object-fit:contain;border-radius:4px;" />
+          <div class="tr-stage-banner tr-stage-banner-waiting" id="tr-card-back" data-testid="tr-card-back">
+            <img ${LOGO_IMG_ATTRS} alt="HUGロゴ" style="width:24px;height:24px;object-fit:contain;border-radius:4px;flex-shrink:0;" />
             <span style="font-weight:700;">全カード裏返しの状態です。「最初のカードをめくる」で訓練を開始してください</span>
           </div>
         </div>
@@ -848,7 +848,7 @@ function setupCarouselArenaDOM() {
       <footer class="tr-arena-bottombar" data-testid="tr-controls-bar">
         <button
           type="button"
-          class="tr-btn tr-btn-lg"
+          class="tr-btn tr-btn-lg tr-prev-main-btn"
           id="tr-prev-card-btn"
           data-testid="tr-prev-card-btn"
           disabled
@@ -859,39 +859,38 @@ function setupCarouselArenaDOM() {
         <div class="tr-arena-bottom-center">
           <button
             type="button"
-            class="tr-btn tr-btn-lg tr-btn-primary"
+            class="tr-btn tr-btn-lg tr-btn-primary tr-next-main-btn"
             id="tr-next-card-btn"
             data-testid="tr-next-card-btn"
-            style="min-width:280px;font-size:1.25rem;font-weight:800;"
           >
             🃏 最初のカードをめくる！
           </button>
 
           <button
             type="button"
-            class="tr-btn"
+            class="tr-btn tr-point-toggle-btn"
             id="tr-toggle-point-btn"
             data-testid="tr-toggle-point-btn"
             title="訓練ポイントの表示切替 (Tキー)"
           >
-            💡 訓練ポイント
+            💡<span class="tr-hide-mobile"> 訓練</span>ポイント
           </button>
 
-          <div style="font-size:0.75rem;color:var(--tr-text-muted);margin-left:0.5rem;display:inline-flex;align-items:center;gap:0.35rem;" data-testid="tr-keyboard-hint">
+          <div class="tr-keyboard-hint" data-testid="tr-keyboard-hint">
             <span>[Space/Enter] 世帯送り</span>
             <span>・</span>
             <span>[← / →] 1枚移動</span>
           </div>
         </div>
 
-        <div style="display:flex;align-items:center;gap:0.5rem;">
+        <div class="tr-arena-bottom-right">
           <button
             type="button"
             class="tr-btn tr-btn-sm"
             id="tr-sound-btn"
             title="効果音のON/OFF"
           >
-            ${appState.soundEnabled ? "🔊 音ON" : "🔇 音OFF"}
+            ${appState.soundEnabled ? "🔊<span class='tr-hide-mobile'> 音ON</span>" : "🔇<span class='tr-hide-mobile'> 音OFF</span>"}
           </button>
         </div>
       </footer>
@@ -934,11 +933,19 @@ function setupCarouselArenaDOM() {
 }
 
 // ============================================================================
+// モバイルビューポート判定（幅768px以下は1枚表示モード）
+// ============================================================================
+export function isMobileViewport() {
+  return Boolean(window.matchMedia && window.matchMedia("(max-width: 768px)").matches);
+}
+
+// ============================================================================
 // カルーセルのスポットライト＆スクロール更新
 // ============================================================================
 function updateCarouselSpotlight(scrollIntoView = true) {
   const isStarted = appState.currentSlideIdx >= 0;
   const currentSlide = isStarted ? appState.slides[appState.currentSlideIdx] : null;
+  const isMobile = isMobileViewport();
 
   const prevBtn = document.getElementById("tr-prev-card-btn");
   const nextBtn = document.getElementById("tr-next-card-btn");
@@ -983,32 +990,30 @@ function updateCarouselSpotlight(scrollIntoView = true) {
     progressText.textContent = `カード ${noStr} / 全${totalCards}枚 (${appState.currentSlideIdx + 1}/${appState.slides.length})`;
   }
 
-  // ボタンテキスト
-  if (prevBtn) prevBtn.disabled = appState.currentSlideIdx === 0;
-  if (nextBtn) {
-    if (appState.currentSlideIdx < appState.slides.length - 1) {
-      nextBtn.innerHTML = "次のカードをめくる →";
-    } else {
-      nextBtn.innerHTML = "🎉 訓練完了！";
-    }
-  }
-
   // 見出しバナー更新
   const isHH = currentSlide.isHousehold;
   const firstCard = currentSlide.cards[0];
   const rec = firstCard.data || {};
   const grp = currentSlide.group || firstCard.group || null;
+  const totalInSlide = currentSlide.cards.length;
+  const activeNo = appState.activeCardNo || currentSlide.startNo;
+  const activeIdxInSlide = Math.max(0, currentSlide.cards.findIndex((c) => c.card_number === activeNo));
 
   if (bannerWrap) {
     if (isHH && grp) {
       const origin = grp.evacuation_origin || rec.evacuation_origin || "市外";
       const memberCount = grp.member_count ?? currentSlide.cards.filter((c) => c.kind !== "pet").length;
       const petCount = grp.pet_count ?? currentSlide.cards.filter((c) => c.kind === "pet").length;
+      const stepBadgeHtml =
+        totalInSlide > 1
+          ? `<span class="tr-member-step-badge" id="tr-member-step-badge">${activeIdxInSlide + 1}/${totalInSlide}枚目</span>`
+          : "";
       bannerWrap.innerHTML = `
         <div class="tr-stage-banner is-household" data-testid="tr-household-header">
-          <div style="display:flex;align-items:center;gap:0.6rem;">
+          <div class="tr-stage-banner-main">
             <span class="tr-badge tr-badge-household">🏠 避難世帯</span>
             <span class="tr-stage-banner-title">${escapeHtml(grp.group_id || firstCard.group_id || "")}: ${escapeHtml(grp.group_name || firstCard.group_name || "世帯")}</span>
+            ${stepBadgeHtml}
           </div>
           <div class="tr-stage-banner-meta">
             避難元: <strong>${escapeHtml(origin)}</strong> ｜ 👤 <strong>${memberCount}名</strong> 🐾 <strong>${petCount}匹</strong>
@@ -1021,19 +1026,20 @@ function updateCarouselSpotlight(scrollIntoView = true) {
       const timing = Array.isArray(rec.relative_timing) ? rec.relative_timing.join("・") : "";
       bannerWrap.innerHTML = `
         <div class="tr-stage-banner ${isEvent ? "is-event" : "is-household"}" data-testid="tr-event-header">
-          <div style="display:flex;align-items:center;gap:0.6rem;">
+          <div class="tr-stage-banner-main">
             <span class="tr-badge ${isEvent ? "tr-badge-event" : "tr-badge-household"}">
               ${isEvent ? "⚡ イベント" : firstCard.kind === "pet" ? "🐾 ペット" : "👤 避難者"}
             </span>
             <span class="tr-stage-banner-title">No.${firstCard.card_number}: ${escapeHtml(title || "")}</span>
           </div>
-          <div class="tr-stage-banner-meta">
-            ${timing ? `発生時期: <strong>${escapeHtml(timing)}</strong>` : ""}
-          </div>
+          ${timing ? `<div class="tr-stage-banner-meta">発生時期: <strong>${escapeHtml(timing)}</strong></div>` : ""}
         </div>
       `;
     }
   }
+
+  // ボタン状態更新
+  updateControlButtonsState();
 
   // 各カードスロットのクラス・画像更新
   const spotlightCardNos = new Set(currentSlide.cards.map((c) => c.card_number));
@@ -1075,8 +1081,8 @@ function updateCarouselSpotlight(scrollIntoView = true) {
   // スクロールを対象カードに合わせる
   if (scrollIntoView) {
     let targetCardNo = currentSlide.startNo;
-    if (currentSlide.cards && currentSlide.cards.length >= 4) {
-      // 4名以上のグループにスポットライトが当たったときは先頭の人が中央で止まると後ろの人が切れるため、
+    if (!isMobile && currentSlide.cards && currentSlide.cards.length >= 4) {
+      // PC横並び表示時のみ：4名以上のグループにスポットライトが当たったときは先頭の人が中央で止まると後ろの人が切れるため、
       // 自動で1マスか2マススクロール（4名は1マス進めたカード、5名以上は2マス進めたカードを中央配置）
       const offsetIndex = currentSlide.cards.length === 4 ? 1 : 2;
       const midCard = currentSlide.cards[Math.min(offsetIndex, currentSlide.cards.length - 1)];
@@ -1092,6 +1098,57 @@ function updateCarouselSpotlight(scrollIntoView = true) {
 }
 
 // ============================================================================
+// 下部操作ボタンおよび世帯内枚数バッジの同期
+// ============================================================================
+function updateControlButtonsState() {
+  const isStarted = appState.currentSlideIdx >= 0;
+  const currentSlide = isStarted ? appState.slides[appState.currentSlideIdx] : null;
+  if (!isStarted || !currentSlide) return;
+
+  const isMobile = isMobileViewport();
+  const prevBtn = document.getElementById("tr-prev-card-btn");
+  const nextBtn = document.getElementById("tr-next-card-btn");
+  const stepBadge = document.getElementById("tr-member-step-badge");
+  const hdrCurrentNo = document.getElementById("tr-hdr-current-no");
+
+  const activeNo = appState.activeCardNo || currentSlide.startNo;
+  const totalInSlide = currentSlide.cards.length;
+  const idxInSlide = currentSlide.cards.findIndex((c) => c.card_number === activeNo);
+
+  if (stepBadge && totalInSlide > 1) {
+    const displayIdx = idxInSlide >= 0 ? idxInSlide + 1 : 1;
+    stepBadge.textContent = `${displayIdx}/${totalInSlide}枚目`;
+  }
+
+  // トップバーの番号表示
+  if (hdrCurrentNo) {
+    const isSingle = currentSlide.startNo === currentSlide.endNo;
+    hdrCurrentNo.textContent = isSingle
+      ? `No.${currentSlide.startNo}`
+      : `No.${currentSlide.startNo}〜${currentSlide.endNo}`;
+  }
+
+  if (prevBtn) {
+    if (isMobile) {
+      prevBtn.disabled = appState.currentSlideIdx === 0 && activeNo <= 1;
+    } else {
+      prevBtn.disabled = appState.currentSlideIdx === 0;
+    }
+  }
+
+  if (nextBtn) {
+    if (isMobile && totalInSlide > 1 && activeNo >= currentSlide.startNo && activeNo < currentSlide.endNo) {
+      const nextStepIdx = idxInSlide >= 0 ? idxInSlide + 2 : 2;
+      nextBtn.innerHTML = `次のメンバー (${nextStepIdx}/${totalInSlide}) →`;
+    } else if (appState.currentSlideIdx < appState.slides.length - 1) {
+      nextBtn.innerHTML = "次のカードをめくる →";
+    } else {
+      nextBtn.innerHTML = "🎉 訓練完了！";
+    }
+  }
+}
+
+// ============================================================================
 // カードスロットへのスムーズスクロール
 // ============================================================================
 export function scrollCardSlotIntoView(cardNo) {
@@ -1102,7 +1159,7 @@ export function scrollCardSlotIntoView(cardNo) {
 }
 
 // ============================================================================
-// カード個別フォーカス処理（←/→キー操作時）
+// カード個別フォーカス処理（←/→キー・スマホ1枚送り操作時）
 // ============================================================================
 export function highlightSingleCard(cardNo) {
   appState.activeCardNo = cardNo;
@@ -1114,6 +1171,7 @@ export function highlightSingleCard(cardNo) {
     slot.classList.add("is-single-focused");
   }
   scrollCardSlotIntoView(cardNo);
+  updateControlButtonsState();
 
   if (appState.currentSlideIdx >= 0) {
     updatePointsPopupContent(appState.slides[appState.currentSlideIdx], cardNo);
@@ -1177,10 +1235,30 @@ function updatePointsPopupContent(currentSlide, focusedCardNo = null) {
 // ============================================================================
 function bindCarouselArenaEvents() {
   const nextBtn = document.getElementById("tr-next-card-btn");
-  if (nextBtn) nextBtn.addEventListener("click", advanceNextCard);
+  if (nextBtn) {
+    nextBtn.addEventListener("click", () => {
+      if (isMobileViewport() && appState.currentSlideIdx >= 0) {
+        const currentSlide = appState.slides[appState.currentSlideIdx];
+        const activeNo = appState.activeCardNo || currentSlide?.startNo || 0;
+        if (currentSlide && activeNo >= currentSlide.startNo && activeNo < currentSlide.endNo) {
+          advanceSingleCard();
+          return;
+        }
+      }
+      advanceNextCard();
+    });
+  }
 
   const prevBtn = document.getElementById("tr-prev-card-btn");
-  if (prevBtn) prevBtn.addEventListener("click", stepBackPreviousCard);
+  if (prevBtn) {
+    prevBtn.addEventListener("click", () => {
+      if (isMobileViewport() && appState.currentSlideIdx >= 0) {
+        stepBackSingleCard();
+        return;
+      }
+      stepBackPreviousCard();
+    });
+  }
 
   // カルーセル左右スクロール矢印
   const navPrev = document.getElementById("tr-carousel-prev-btn");
@@ -1189,12 +1267,20 @@ function bindCarouselArenaEvents() {
 
   if (navPrev && track) {
     navPrev.addEventListener("click", () => {
-      track.scrollBy({ left: -320, behavior: "smooth" });
+      if (isMobileViewport() && appState.currentSlideIdx >= 0) {
+        stepBackSingleCard();
+      } else {
+        track.scrollBy({ left: -320, behavior: "smooth" });
+      }
     });
   }
   if (navNext && track) {
     navNext.addEventListener("click", () => {
-      track.scrollBy({ left: 320, behavior: "smooth" });
+      if (isMobileViewport() && appState.currentSlideIdx >= 0) {
+        advanceSingleCard();
+      } else {
+        track.scrollBy({ left: 320, behavior: "smooth" });
+      }
     });
   }
 
@@ -1216,6 +1302,42 @@ function bindCarouselArenaEvents() {
         }
       }
     });
+
+    // スマホ横スワイプ時に中央に来たカードを検出してステータス同期
+    let scrollSyncTimer = null;
+    track.addEventListener(
+      "scroll",
+      () => {
+        if (!isMobileViewport() || appState.currentSlideIdx < 0) return;
+        if (scrollSyncTimer) clearTimeout(scrollSyncTimer);
+        scrollSyncTimer = setTimeout(() => {
+          const trackRect = track.getBoundingClientRect();
+          const centerX = trackRect.left + trackRect.width / 2;
+          const currentSlide = appState.slides[appState.currentSlideIdx];
+          if (!currentSlide) return;
+
+          let closestNo = null;
+          let minDist = Infinity;
+          currentSlide.cards.forEach((c) => {
+            const slot = document.getElementById(`tr-card-slot-${c.card_number}`);
+            if (!slot) return;
+            const rect = slot.getBoundingClientRect();
+            const slotCenter = rect.left + rect.width / 2;
+            const dist = Math.abs(slotCenter - centerX);
+            if (dist < minDist) {
+              minDist = dist;
+              closestNo = c.card_number;
+            }
+          });
+          if (closestNo !== null && closestNo !== appState.activeCardNo) {
+            appState.activeCardNo = closestNo;
+            updateControlButtonsState();
+            updatePointsPopupContent(currentSlide, closestNo);
+          }
+        }, 120);
+      },
+      { passive: true }
+    );
 
     // ドラッグスクロール
     let isDown = false;

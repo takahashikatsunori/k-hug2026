@@ -193,3 +193,84 @@ def test_training_page_four_member_household_scroll_adjustment(page, e2e_server)
         expect(page.locator("#tr-card-slot-4")).to_have_class(re.compile(r"is-single-focused"))
     finally:
         Path(temp_path).unlink(missing_ok=True)
+
+
+def test_training_page_mobile_single_card_view(page, e2e_server):
+    """スマートフォン縦長画面(390x664)で1枚表示レイアウト・はみ出しゼロ・1枚送り操作が機能することを検証."""
+    import tempfile
+
+    page.set_viewport_size({"width": 390, "height": 664})
+
+    with open("data/cards_db.json", encoding="utf-8") as f:
+        cards_db = json.load(f)
+
+    ev = cards_db["cards_event"][0]
+    grp = [g for g in cards_db["evacuee_groups"] if g["group_id"] == "GRP-655"][0]
+    members = [m for m in cards_db["group_members"] if m["group_id"] == "GRP-655"]
+
+    four_person_deck = {
+        "cards_event": [ev],
+        "evacuee_groups": [grp],
+        "group_members": members,
+    }
+
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
+        json.dump(four_person_deck, f, ensure_ascii=False)
+        temp_path = f.name
+
+    try:
+        page.goto(f"{e2e_server['base_url']}/training.html")
+        page.locator("#tr-file-input").set_input_files(temp_path)
+        expect(page.get_by_test_id("tr-start-training-btn")).to_be_visible()
+
+        # 訓練開始
+        page.get_by_test_id("tr-start-training-btn").click()
+        expect(page.get_by_test_id("tr-stage-view")).to_be_visible()
+
+        # 下部操作バーがモバイル画面内に収まっていること
+        bottom_bar = page.locator(".tr-arena-bottombar")
+        expect(bottom_bar).to_be_visible()
+        bottom_box = bottom_bar.bounding_box()
+        assert bottom_box is not None
+        assert bottom_box["y"] + bottom_box["height"] <= 664.5
+
+        # 1枚目(イベント No.1)をめくる
+        next_btn = page.get_by_test_id("tr-next-card-btn")
+        next_btn.click()
+        expect(page.locator("#tr-card-slot-1")).to_have_class(re.compile(r"is-spotlight"))
+
+        # 次のスライド(4人世帯 No.2〜5)をめくる
+        next_btn.click()
+        expect(page.get_by_test_id("tr-household-header")).to_contain_text("GRP-655")
+        expect(page.locator("#tr-member-step-badge")).to_have_text("1/4枚目")
+        expect(next_btn).to_contain_text("次のメンバー (2/4)")
+
+        # 見出しバナーとカードが重ならず、画面内に収まっていることを検証
+        banner_box = page.get_by_test_id("tr-household-header").bounding_box()
+        card2_box = page.locator("#tr-card-slot-2").bounding_box()
+        assert banner_box is not None and card2_box is not None
+        assert banner_box["y"] + banner_box["height"] <= card2_box["y"] + 2
+        assert card2_box["y"] + card2_box["height"] <= bottom_box["y"] + 2
+
+        # スマホでは4名世帯でも先頭カード(No.2)が画面中央に表示されていることを検証
+        page.wait_for_timeout(350)
+        card2_box_after = page.locator("#tr-card-slot-2").bounding_box()
+        assert card2_box_after is not None
+        card2_center_x = card2_box_after["x"] + card2_box_after["width"] / 2
+        assert 140 <= card2_center_x <= 250
+
+        # ボタンタップで世帯内の次のメンバー(2/4 -> 3/4 -> 4/4)へ1枚ずつ進むことを検証
+        next_btn.click()
+        expect(page.locator("#tr-member-step-badge")).to_have_text("2/4枚目")
+        expect(next_btn).to_contain_text("次のメンバー (3/4)")
+
+        next_btn.click()
+        expect(page.locator("#tr-member-step-badge")).to_have_text("3/4枚目")
+        expect(next_btn).to_contain_text("次のメンバー (4/4)")
+
+        next_btn.click()
+        expect(page.locator("#tr-member-step-badge")).to_have_text("4/4枚目")
+        expect(next_btn).to_contain_text("訓練完了")
+    finally:
+        Path(temp_path).unlink(missing_ok=True)
+
