@@ -173,6 +173,10 @@ def create_app(db_path: Path | str | None = None) -> FastAPI:
     data_dir.mkdir(parents=True, exist_ok=True)
     app.mount("/data", StaticFiles(directory=str(data_dir)), name="data")
 
+    logo_dir = config.BASE_DIR / "logo"
+    logo_dir.mkdir(parents=True, exist_ok=True)
+    app.mount("/logo", StaticFiles(directory=str(logo_dir)), name="logo")
+
     _READONLY_POST_PATHS = {
         "/api/deck/build",
         "/api/deck/reorder",
@@ -187,7 +191,7 @@ def create_app(db_path: Path | str | None = None) -> FastAPI:
         response = await call_next(request)
         path = request.url.path
         if (
-            path in ("/", "/deck.html", "/web", "/data/cards_db.json")
+            path in ("/", "/deck.html", "/web", "/training.html", "/training", "/data/cards_db.json")
             or path.startswith("/static/js/")
             or path.startswith("/static/css/")
         ):
@@ -221,6 +225,12 @@ def create_app(db_path: Path | str | None = None) -> FastAPI:
     async def serve_web_deck_builder() -> FileResponse:
         web_index_file = config.BASE_DIR / "index.html"
         return FileResponse(str(web_index_file), media_type="text/html; charset=utf-8")
+
+    @app.get("/training.html", include_in_schema=False)
+    @app.get("/training", include_in_schema=False)
+    async def serve_training_page() -> FileResponse:
+        training_file = config.BASE_DIR / "training.html"
+        return FileResponse(str(training_file), media_type="text/html; charset=utf-8")
 
     return app
 

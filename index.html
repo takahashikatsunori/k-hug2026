@@ -4,15 +4,16 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <title>HUGカード デッキ構築・ダウンロード Webツール</title>
-  <link rel="stylesheet" href="./static/css/app.css" />
-  <link rel="stylesheet" href="./static/css/webDeck.css" />
+  <link rel="icon" href="./static/logo/official_logo.jpeg" />
+  <link rel="stylesheet" href="./static/css/app.css?v=20261108" />
+  <link rel="stylesheet" href="./static/css/webDeck.css?v=20261108" />
 </head>
 <body class="wd-body">
   <!-- トップヘッダー（1行スリムバー＆①②③④直感ナビゲーション） -->
   <header class="wd-header" data-testid="wd-header">
     <div class="wd-header-left">
       <div class="wd-brand-title">
-        <span class="wd-brand-icon">🃏</span>
+        <img src="./static/logo/正式ロゴ.jpeg" onerror="if(!this.dataset.fb1){this.dataset.fb1='1';this.src='./static/logo/official_logo.jpeg';}else if(!this.dataset.fb2){this.dataset.fb2='1';this.src='./logo/正式ロゴ.jpeg';}" alt="HUG正式ロゴ" class="wd-brand-logo-img" />
         <span class="wd-brand-text">HUGカード</span>
       </div>
 
@@ -80,8 +81,19 @@
       </div>
     </div>
 
-    <!-- 右端アクション: 台帳読込ボタンのみをすっきり配置 -->
+    <!-- 右端アクション: 現場訓練実行＆台帳読込ボタン -->
     <div class="wd-header-right">
+      <a
+        href="./training.html?source=local"
+        class="wd-header-import-btn"
+        id="wd-header-training-page-btn"
+        data-testid="wd-header-training-page-btn"
+        title="現場プロジェクター・大画面対応の訓練実行ページを開きます"
+        style="text-decoration:none;background:linear-gradient(135deg, #059669, #10b981);color:#fff;border-color:#047857;display:inline-flex;align-items:center;gap:0.35rem;"
+      >
+        <span>🎯</span>
+        <span>訓練実行</span>
+      </a>
       <button
         type="button"
         class="wd-header-import-btn"

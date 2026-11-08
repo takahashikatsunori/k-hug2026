@@ -10,7 +10,8 @@
 <body>
   <header class="app-header">
     <div class="header-top">
-      <div class="brand">
+      <div class="brand" style="display:flex;align-items:center;gap:0.5rem;">
+        <img src="/static/logo/正式ロゴ.jpeg" onerror="if(!this.dataset.fb1){this.dataset.fb1='1';this.src='/static/logo/official_logo.jpeg';}else if(!this.dataset.fb2){this.dataset.fb2='1';this.src='/logo/正式ロゴ.jpeg';}" alt="HUG正式ロゴ" style="width:28px;height:28px;object-fit:contain;border-radius:6px;background:#fff;" />
         <h1 class="app-title">HUGカードデータベース管理ツール</h1>
         <span class="version-tag">V6.2</span>
       </div>
@@ -21,6 +22,17 @@
           <span class="hdr-badge">人物: <strong id="hdr-cnt-persons" data-testid="hdr-count-persons">0</strong></span>
           <span class="hdr-badge">ペット: <strong id="hdr-cnt-pets" data-testid="hdr-count-pets">0</strong></span>
         </div>
+        <a
+          href="/training.html"
+          target="_blank"
+          rel="noopener"
+          class="btn btn-sm btn-success"
+          id="header-open-training-btn"
+          data-testid="header-open-training-btn"
+          style="text-decoration:none;background:#059669;color:#fff;border-color:#047857;"
+        >
+          🎯 訓練実行ページ
+        </a>
         <a
           href="/deck.html"
           target="_blank"
