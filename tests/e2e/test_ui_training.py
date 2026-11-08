@@ -234,6 +234,21 @@ def test_training_page_mobile_single_card_view(page, e2e_server):
         assert bottom_box is not None
         assert bottom_box["y"] + bottom_box["height"] <= 664.5
 
+        # トップバーのスクリーンリーダー用テキストが画面上に露出していないこと
+        sr_box = page.locator("#tr-progress-text").bounding_box()
+        assert sr_box is not None and sr_box["width"] <= 2 and sr_box["height"] <= 2
+
+        # 開始前状態で下部ボタン同士が重ならず、メインボタンが十分な幅を持っていること
+        prev_box = page.locator("#tr-prev-card-btn").bounding_box()
+        next_box = page.locator("#tr-next-card-btn").bounding_box()
+        point_box = page.locator("#tr-toggle-point-btn").bounding_box()
+        sound_box = page.locator("#tr-sound-btn").bounding_box()
+        assert prev_box and next_box and point_box and sound_box
+        assert prev_box["x"] + prev_box["width"] <= next_box["x"] + 1
+        assert next_box["x"] + next_box["width"] <= point_box["x"] + 1
+        assert point_box["x"] + point_box["width"] <= sound_box["x"] + 1
+        assert next_box["width"] >= 140
+
         # 1枚目(イベント No.1)をめくる
         next_btn = page.get_by_test_id("tr-next-card-btn")
         next_btn.click()
@@ -271,6 +286,20 @@ def test_training_page_mobile_single_card_view(page, e2e_server):
         next_btn.click()
         expect(page.locator("#tr-member-step-badge")).to_have_text("4/4枚目")
         expect(next_btn).to_contain_text("訓練完了")
+
+        # 表示済みカード一覧からカードを拡大した際、ライトボックスの画像とボタンが画面外に見切れないことを検証
+        page.get_by_test_id("tr-open-history-btn").click()
+        expect(page.locator("#tr-gallery-modal")).to_be_visible()
+        page.get_by_test_id("tr-history-item-2").click()
+        expect(page.locator("#tr-lightbox-overlay")).to_be_visible()
+
+        lb_img_box = page.locator("#tr-lightbox-img").bounding_box()
+        lb_sel_box = page.locator("#tr-lightbox-select-btn").bounding_box()
+        lb_cls_box = page.locator("#tr-lightbox-close-btn").bounding_box()
+        assert lb_img_box and lb_sel_box and lb_cls_box
+        assert lb_sel_box["x"] >= 0
+        assert lb_cls_box["x"] + lb_cls_box["width"] <= 390
+        assert lb_cls_box["y"] + lb_cls_box["height"] <= 664.5
     finally:
         Path(temp_path).unlink(missing_ok=True)
 

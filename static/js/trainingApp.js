@@ -853,7 +853,7 @@ function setupCarouselArenaDOM() {
           data-testid="tr-prev-card-btn"
           disabled
         >
-          ← 前のカードへ
+          ← <span class="tr-hide-mobile">前のカードへ</span><span class="tr-show-mobile">前へ</span>
         </button>
 
         <div class="tr-arena-bottom-center">
@@ -873,7 +873,7 @@ function setupCarouselArenaDOM() {
             data-testid="tr-toggle-point-btn"
             title="訓練ポイントの表示切替 (Tキー)"
           >
-            💡<span class="tr-hide-mobile"> 訓練</span>ポイント
+            💡<span class="tr-hide-mobile"> 訓練ポイント</span><span class="tr-show-mobile"> ポイント</span>
           </button>
 
           <div class="tr-keyboard-hint" data-testid="tr-keyboard-hint">
@@ -899,9 +899,9 @@ function setupCarouselArenaDOM() {
       <div class="tr-gallery-modal" id="tr-gallery-modal" style="display:none;">
         <div class="tr-gallery-header">
           <div class="tr-gallery-title">📋 表示済みカード一覧（クリックで拡大確認）</div>
-          <div style="display:flex;align-items:center;gap:0.75rem;">
+          <div class="tr-gallery-header-actions">
             <button type="button" class="tr-btn tr-btn-sm tr-btn-primary" id="tr-gallery-jump-latest-btn">
-              🎯 最新のカードへ戻る
+              🎯 最新<span class="tr-hide-mobile">のカード</span>へ戻る
             </button>
             <button type="button" class="tr-btn tr-btn-sm" id="tr-close-gallery-btn">
               ✕ 閉じる
@@ -915,7 +915,7 @@ function setupCarouselArenaDOM() {
       <div class="tr-lightbox-overlay" id="tr-lightbox-overlay" style="display:none;">
         <div class="tr-lightbox-card">
           <img class="tr-lightbox-img" id="tr-lightbox-img" alt="拡大プレビュー" />
-          <div style="display:flex;gap:1rem;">
+          <div class="tr-lightbox-actions">
             <button type="button" class="tr-btn tr-btn-primary tr-btn-lg" id="tr-lightbox-select-btn">
               🎯 このカードの位置に戻る
             </button>

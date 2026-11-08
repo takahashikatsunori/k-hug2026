@@ -1075,6 +1075,7 @@ body.training-body.is-setup {
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
+  box-sizing: border-box;
 }
 
 .tr-lightbox-card {
@@ -1092,6 +1093,41 @@ body.training-body.is-setup {
   object-fit: contain;
   border-radius: 0.85rem;
   box-shadow: 0 12px 40px rgba(0, 0, 0, 0.5);
+}
+
+.tr-lightbox-actions {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 1rem;
+}
+
+.tr-gallery-header-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+/* スクリーンリーダー専用（画面上は非表示にしてレイアウト干渉を防ぐ） */
+.sr-only {
+  position: absolute !important;
+  width: 1px !important;
+  height: 1px !important;
+  padding: 0 !important;
+  margin: -1px !important;
+  overflow: hidden !important;
+  clip: rect(0, 0, 0, 0) !important;
+  white-space: nowrap !important;
+  border: 0 !important;
+}
+
+.tr-show-mobile {
+  display: none;
+}
+
+/* 裏面カードはフレーム内にNoバッジがあるため下部重複バッジを隠す */
+.tr-carousel-card.is-back .tr-carousel-card-badge {
+  display: none;
 }
 
 /* 訓練完了モーダル */
@@ -1143,8 +1179,14 @@ body.training-body.is-setup {
   .tr-hide-mobile,
   .tr-progress-bar-wrap,
   .tr-keyboard-hint,
-  .tr-carousel-nav-btn {
+  .tr-carousel-nav-btn,
+  .tr-arena-timer,
+  .tr-arena-brand-label {
     display: none !important;
+  }
+
+  .tr-show-mobile {
+    display: inline !important;
   }
 
   /* セットアップ画面のモバイル調整 */
@@ -1205,44 +1247,45 @@ body.training-body.is-setup {
   .tr-arena-top-left {
     gap: 0.45rem;
     min-width: 0;
+    flex: 1 1 auto;
+    overflow: hidden;
   }
 
   .tr-arena-brand-tag {
-    padding-right: 0.45rem;
+    padding-right: 0.4rem;
     gap: 0.25rem;
     font-size: 0.8rem;
   }
 
   .tr-arena-brand-logo {
-    width: 24px;
-    height: 24px;
+    width: 26px;
+    height: 26px;
   }
 
   .tr-progress-counter {
-    font-size: 0.88rem;
+    font-size: 0.9rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .tr-progress-counter .accent {
-    font-size: 1rem;
+    font-size: 1.02rem;
   }
 
   .tr-progress-total {
-    font-size: 0.75rem;
-  }
-
-  .tr-arena-timer {
-    font-size: 0.85rem;
-    gap: 0.2rem;
+    font-size: 0.76rem;
   }
 
   .tr-arena-top-right {
     gap: 0.3rem;
+    flex-shrink: 0;
   }
 
   .tr-arena-topbar .tr-btn-sm {
     padding: 0.28rem 0.5rem;
     font-size: 0.75rem;
     gap: 0.2rem;
+    white-space: nowrap;
   }
 
   /* 訓練ステージ 2. 見出しバナー（縦潰れ・カード重なりを防止する2段コンパクト表示） */
@@ -1260,30 +1303,48 @@ body.training-body.is-setup {
     padding: 0.3rem 0.65rem;
     border-radius: 0.65rem;
     width: 100%;
+    box-sizing: border-box;
   }
 
+  /* 待機中バナーは横並びでロゴ＋案内テキストをすっきり表示 */
   .tr-stage-banner-waiting {
-    align-items: center;
+    flex-direction: row !important;
+    align-items: center !important;
+    justify-content: flex-start !important;
+    gap: 0.5rem !important;
+    font-size: 0.78rem;
+    line-height: 1.35;
+    padding: 0.35rem 0.65rem;
   }
 
   .tr-stage-banner-main {
     width: 100%;
-    gap: 0.4rem;
+    gap: 0.35rem;
+    display: flex;
+    align-items: center;
+    min-width: 0;
   }
 
   .tr-stage-banner .tr-badge {
     padding: 0.15rem 0.45rem;
     font-size: 0.72rem;
+    flex-shrink: 0;
   }
 
   .tr-stage-banner-title {
-    font-size: 0.85rem;
-    flex: 1 1 auto;
+    font-size: 0.84rem;
+    flex: 1 1 0;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
   }
 
   .tr-member-step-badge {
     font-size: 0.7rem;
     padding: 0.1rem 0.45rem;
+    margin-left: auto;
+    flex-shrink: 0;
   }
 
   .tr-stage-banner-meta {
@@ -1292,7 +1353,7 @@ body.training-body.is-setup {
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
-    padding-left: 0.15rem;
+    padding-left: 0.1rem;
   }
 
   /* 訓練ステージ 3. カルーセル（1枚中央スナップ表示） */
@@ -1346,34 +1407,54 @@ body.training-body.is-setup {
     z-index: 21;
   }
 
-  /* 訓練ステージ 4. 下部操作バー（画面内に常時収める） */
+  /* 訓練ステージ 4. 下部操作バー（ボタン同士の重なり・文字溢れを防止） */
   .tr-arena-bottombar {
     height: auto;
     min-height: 54px;
     flex: 0 0 auto;
-    padding: 0.35rem 0.5rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
-    gap: 0.35rem;
+    padding: 0.35rem 0.45rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
+    gap: 0.3rem;
+  }
+
+  .tr-prev-main-btn {
+    flex: 0 0 auto;
+    padding: 0.48rem 0.5rem !important;
+    font-size: 0.78rem !important;
+    white-space: nowrap;
   }
 
   .tr-arena-bottom-center {
-    flex: 1 1 auto;
-    gap: 0.35rem;
+    flex: 1 1 0;
+    gap: 0.3rem;
     min-width: 0;
     justify-content: center;
   }
 
-  .tr-arena-bottombar .tr-btn {
-    padding: 0.45rem 0.55rem;
-    font-size: 0.8rem;
-    gap: 0.2rem;
+  .tr-next-main-btn {
+    flex: 1 1 0;
+    min-width: 0 !important;
+    width: 100%;
+    font-size: 0.86rem !important;
+    padding: 0.5rem 0.5rem !important;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .tr-point-toggle-btn {
+    flex: 0 0 auto;
+    padding: 0.48rem 0.5rem !important;
+    font-size: 0.76rem !important;
     white-space: nowrap;
   }
 
-  .tr-next-main-btn {
-    flex: 1 1 auto;
-    min-width: 0;
-    font-size: 0.92rem !important;
-    padding: 0.55rem 0.75rem !important;
+  .tr-arena-bottom-right {
+    flex: 0 0 auto;
+  }
+
+  .tr-arena-bottom-right .tr-btn {
+    padding: 0.48rem 0.5rem !important;
+    font-size: 0.82rem !important;
   }
 
   /* 指導者用 訓練ポイントポップアップ */
@@ -1383,21 +1464,61 @@ body.training-body.is-setup {
     padding: 0.85rem;
   }
 
-  /* ギャラリー＆ライトボックスのスマホ調整 */
+  /* ギャラリー＆ライトボックスのスマホ調整（見切れ防止） */
   .tr-gallery-header {
     height: auto;
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem 0.65rem;
     flex-wrap: wrap;
     gap: 0.4rem;
   }
 
   .tr-gallery-title {
-    font-size: 0.95rem;
+    font-size: 0.88rem;
+  }
+
+  .tr-gallery-header-actions {
+    gap: 0.4rem;
   }
 
   .tr-gallery-grid {
     padding: 0.75rem;
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(125px, 1fr));
     gap: 0.75rem;
+  }
+
+  .tr-lightbox-overlay {
+    padding: 0.6rem;
+    height: 100vh;
+    height: 100dvh;
+  }
+
+  .tr-lightbox-card {
+    width: 100%;
+    max-width: 94vw;
+    max-height: calc(100dvh - 1.2rem);
+    gap: 0.55rem;
+  }
+
+  .tr-lightbox-img {
+    max-height: calc(100dvh - 90px);
+    max-width: 92vw;
+    width: auto;
+    height: auto;
+  }
+
+  .tr-lightbox-actions {
+    width: 100%;
+    max-width: 92vw;
+    gap: 0.45rem;
+  }
+
+  .tr-lightbox-actions .tr-btn-lg {
+    flex: 1 1 auto;
+    min-width: 0;
+    padding: 0.55rem 0.6rem;
+    font-size: 0.84rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
