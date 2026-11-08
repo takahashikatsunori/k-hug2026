@@ -881,7 +881,12 @@ export function buildInitialDeck(db, conditions = {}, options = {}) {
     });
   }
 
-  // カード配列へ展開
+  // カード配列へ展開（避難元町丁目オーバーライドがあれば適用）
+  const originOverrides =
+    conditions.origin_overrides ||
+    conditions.originOverrides ||
+    options.originOverrides ||
+    {};
   const rawCardEntries = [];
   for (const u of orderedUnits) {
     if (u.kind === "event") {
@@ -894,15 +899,22 @@ export function buildInitialDeck(db, conditions = {}, options = {}) {
       });
     } else {
       const mList = membersByGroup.get(u.id) || [];
+      const overrideOrigin = originOverrides[u.id] ? String(originOverrides[u.id]) : null;
       for (const m of mList) {
+        const dCopy = structuredClone(m);
+        const gCopy = structuredClone(u.record);
+        if (overrideOrigin) {
+          gCopy.evacuation_origin = overrideOrigin;
+          dCopy.evacuation_origin = overrideOrigin;
+        }
         rawCardEntries.push({
           original_id: m.member_id,
           kind: m.data_type === "ペット" ? "pet" : "person",
           unit_id: u.id,
           group_id: u.id,
           group_name: u.record.group_name || u.id,
-          data: structuredClone(m),
-          group: structuredClone(u.record),
+          data: dCopy,
+          group: gCopy,
         });
       }
     }

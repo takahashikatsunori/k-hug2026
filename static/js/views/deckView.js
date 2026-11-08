@@ -19,6 +19,7 @@ import {
   exportCardsAsPdf,
   exportCardsAsZip,
 } from "../cardCanvas.js";
+import { importDeckFromJsonText } from "../webDeckEngine.js";
 
 /**
  * デッキ構築リクエスト用ペイロードを組み立てる.
@@ -1065,7 +1066,7 @@ export async function renderDeckView(container) {
     });
   }
 
-  // デッキJSON読込（Webエクスポート対応）
+  // デッキJSON読込（Webエクスポート・標準JSON両対応：JSONで指定されたカードのみを厳密に復元）
   if (importJsonBtn && jsonFileInput) {
     importJsonBtn.addEventListener("click", () => jsonFileInput.click());
     jsonFileInput.addEventListener("change", async (e) => {
@@ -1075,12 +1076,29 @@ export async function renderDeckView(container) {
         const text = await file.text();
         const parsed = JSON.parse(text);
 
-        // 1. 避難元町丁目オーバーライドの抽出
-        const originOverrides =
-          parsed._web_deck_meta?.origin_overrides ||
-          parsed._web_deck_meta?.conditions?.origin_overrides ||
-          parsed._web_deck_meta?.conditions?.originOverrides ||
-          {};
+        // 現在のDB全イベント・全世帯を取得してJSON内のカードと照合
+        const [allEvents, allHouseholds] = await Promise.all([
+          api.listEvents(),
+          api.listHouseholds(),
+        ]);
+        const allGroups = [];
+        const allMembers = [];
+        for (const hh of allHouseholds || []) {
+          const grp = hh.group ? hh.group : { ...hh };
+          delete grp.members;
+          if (grp.group_id) allGroups.push(grp);
+          if (Array.isArray(hh.members)) {
+            allMembers.push(...hh.members);
+          }
+        }
+
+        const unitOrder = [];
+        const seenUnits = new Set();
+        const originOverrides = {
+          ...(parsed._web_deck_meta?.origin_overrides || {}),
+          ...(parsed._web_deck_meta?.conditions?.origin_overrides || {}),
+          ...(parsed._web_deck_meta?.conditions?.originOverrides || {}),
+        };
         if (Object.keys(originOverrides).length === 0 && Array.isArray(parsed.evacuee_groups)) {
           for (const g of parsed.evacuee_groups) {
             if (g.group_id && g.evacuation_origin) {
@@ -1089,64 +1107,68 @@ export async function renderDeckView(container) {
           }
         }
 
-        // 2. 条件の復元
-        const metaConditions = parsed._web_deck_meta?.conditions;
-        if (metaConditions) {
-          store.deckConditions = {
-            disaster_type: metaConditions.disaster_type || "",
-            shelter: metaConditions.shelter || "",
-            date: metaConditions.date || "",
-            holiday_type: metaConditions.holiday_type || [],
-            time_slot: metaConditions.time_slot || "",
-            infrastructure: metaConditions.infrastructure || [],
-            weather: metaConditions.weather || [],
-            disaster_phase: metaConditions.disaster_phase || [],
-            max_events: metaConditions.max_events ?? "",
-            max_households: metaConditions.max_households ?? "",
-            excluded_ids: Array.isArray(metaConditions.excluded_ids)
-              ? [...metaConditions.excluded_ids]
-              : [],
-            origin_overrides: originOverrides,
-          };
-        } else {
-          store.deckConditions = {
-            ...store.deckConditions,
-            origin_overrides: originOverrides,
-          };
-        }
-
-        // 2. 単位順序の復元
         const cardSeq = parsed._web_deck_meta?.card_sequence;
         if (Array.isArray(cardSeq) && cardSeq.length > 0) {
-          const unitOrder = [];
-          const seen = new Set();
           for (const item of cardSeq) {
-            const uid = item.kind === "event" ? item.original_id : item.group_id;
-            if (uid && !seen.has(uid)) {
-              seen.add(uid);
-              unitOrder.push(uid);
+            const uid = item.kind === "event" ? item.original_id : item.group_id || item.original_id;
+            if (uid && !seenUnits.has(String(uid))) {
+              seenUnits.add(String(uid));
+              unitOrder.push(String(uid));
+            }
+            if (item.group_id && item.evacuation_origin) {
+              originOverrides[String(item.group_id)] = item.evacuation_origin;
             }
           }
-          if (unitOrder.length > 0) {
-            store.deckManualOrder = unitOrder;
-          }
         } else {
-          // 標準 cards_event / evacuee_groups から復元
-          const rawEvents = Array.isArray(parsed.cards_event) ? parsed.cards_event : [];
-          const rawGroups = Array.isArray(parsed.evacuee_groups) ? parsed.evacuee_groups : [];
-          const unitOrder = [];
-          for (const ev of rawEvents) {
-            if (ev.card_id) unitOrder.push(String(ev.card_id));
-          }
-          for (const g of rawGroups) {
-            if (g.group_id) unitOrder.push(String(g.group_id));
-          }
-          if (unitOrder.length > 0) {
-            store.deckManualOrder = unitOrder;
+          const dbObj = {
+            cards_event: allEvents || [],
+            evacuee_groups: allGroups,
+            group_members: allMembers,
+          };
+          const imported = importDeckFromJsonText(text, dbObj);
+          Object.assign(originOverrides, imported.restoredConditions?.origin_overrides || {});
+          for (const dc of imported.deckCards || []) {
+            const uid = dc.kind === "event" ? dc.original_id : dc.group_id;
+            if (uid && !seenUnits.has(String(uid))) {
+              seenUnits.add(String(uid));
+              unitOrder.push(String(uid));
+            }
+            if (dc.group_id && dc.group && dc.group.evacuation_origin) {
+              originOverrides[String(dc.group_id)] = dc.group.evacuation_origin;
+            }
           }
         }
 
-        // 3. デッキ再構築＆保存名提案
+        // DB上の全単位IDのうち、読み込んだJSONに含まれていない単位はすべて除外リスト(excluded_ids)に入れる
+        // （後からDBに追加されたカード等が勝手に混入するのを防ぎ、JSONの指定カードのみで構成する）
+        const allDbUnitIds = [
+          ...(allEvents || []).map((ev) => String(ev.card_id)),
+          ...allGroups.map((g) => String(g.group_id)),
+        ].filter(Boolean);
+        const strictExcludedIds = allDbUnitIds.filter((id) => !seenUnits.has(id));
+
+        const metaConditions = parsed._web_deck_meta?.conditions || null;
+        store.deckConditions = {
+          disaster_type: (metaConditions && metaConditions.disaster_type) || "",
+          shelter: (metaConditions && metaConditions.shelter) || "",
+          date: (metaConditions && metaConditions.date) || "",
+          holiday_type: (metaConditions && metaConditions.holiday_type) || [],
+          time_slot: (metaConditions && metaConditions.time_slot) || "",
+          infrastructure: (metaConditions && metaConditions.infrastructure) || [],
+          weather: (metaConditions && metaConditions.weather) || [],
+          disaster_phase: (metaConditions && metaConditions.disaster_phase) || [],
+          // 上限数による意図しない切り捨てを防ぎ、JSON内のカード指定を優先
+          max_events: "",
+          max_households: "",
+          excluded_ids: strictExcludedIds,
+          origin_overrides: originOverrides,
+        };
+
+        store.deckManualOrder = unitOrder.length > 0 ? unitOrder : null;
+        store.deckResolutions = {};
+        store.deckPhaseFirst = false;
+        store.loadedSavedDeckNotice = null;
+
         const baseName = file.name.replace(/\.[^/.]+$/, "");
         const nameInput = container.querySelector("#save-deck-name-input");
         if (nameInput) {
@@ -1155,8 +1177,35 @@ export async function renderDeckView(container) {
 
         syncSidebarInputsFromStore();
         await runBuildDeck();
+
+        // 万が一、条件フィルタによりJSON内の手動追加カードが弾かれた場合は、条件フィルタを緩めてJSON指定カードを100%復元する
+        if (
+          unitOrder.length > 0 &&
+          store.currentDeck &&
+          Array.isArray(store.currentDeck.unit_ids) &&
+          store.currentDeck.unit_ids.length < unitOrder.length
+        ) {
+          store.deckConditions = {
+            disaster_type: "",
+            shelter: "",
+            date: "",
+            holiday_type: [],
+            time_slot: "",
+            infrastructure: [],
+            weather: [],
+            disaster_phase: [],
+            max_events: "",
+            max_households: "",
+            excluded_ids: strictExcludedIds,
+            origin_overrides: originOverrides,
+          };
+          syncSidebarInputsFromStore();
+          await runBuildDeck();
+        }
+
+        const loadedTotal = (store.currentDeck && store.currentDeck.stats && store.currentDeck.stats.total_cards) || 0;
         showToast(
-          `「${file.name}」からデッキを取り込みました。このまま名前を付けて保存できます`,
+          `「${file.name}」から指定された ${loadedTotal}枚（${unitOrder.length}単位）のデッキを取り込みました`,
           "success"
         );
       } catch (err) {
@@ -1181,11 +1230,16 @@ export async function renderDeckView(container) {
         `デッキ_${store.deckConditions.disaster_type || "標準"}_${store.deckConditions.shelter || "避難所"}`;
       try {
         const payload = buildDeckRequestPayload();
+        const currentUnitIds =
+          (store.currentDeck && Array.isArray(store.currentDeck.unit_ids) && store.currentDeck.unit_ids) || [];
         const saved = await api.createSavedDeck({
           name,
           conditions: payload.conditions,
           resolutions: payload.resolutions,
-          manual_order: payload.manual_order || [],
+          manual_order:
+            payload.manual_order && payload.manual_order.length > 0
+              ? payload.manual_order
+              : currentUnitIds,
         });
         nameInput.value = "";
         showToast(`デッキ条件「${name}」を保存しました`, "success");

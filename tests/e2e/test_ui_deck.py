@@ -245,6 +245,9 @@ def test_ui_saved_deck_load_delete_and_web_json_import(page, e2e_server, tmp_pat
     # デッキが再構築され、保存名入力欄に「web_exported_deck」が提案される
     expect(save_input).to_have_value("web_exported_deck")
     expect(disaster_select).to_have_value("地震")
+    # JSONで指定された EV-001 (1枚) + GRP-001 (2名) = 計3枚（2単位）のみが読み込まれ、他のグループが勝手に追加されないこと
+    expect(page.get_by_test_id("deck-stat-total-cards")).to_have_text("3枚")
+    expect(page.get_by_test_id("deck-stat-total-units")).to_have_text("2")
 
     # 避難者台帳ビューで町丁目「小川東町１丁目」が反映されていることを確認
     page.get_by_test_id("deck-submode-ledger").click()

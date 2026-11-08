@@ -342,6 +342,7 @@ function loadSavedDeckPreset(savedDeck) {
         ? String(cond.max_households)
         : "",
     excluded_ids: Array.isArray(cond.excluded_ids) ? [...cond.excluded_ids] : [],
+    origin_overrides: cond.origin_overrides || cond.originOverrides || {},
   };
 
   state.manuallyRemovedIds = new Set(state.conditions.excluded_ids);
@@ -2447,7 +2448,18 @@ function renderExportAndLedgerSection(container) {
       showToast("出力するカードがありません", "warning");
       return;
     }
-    const blob = exportDeckToJsonBlob(state.deckCards, state.conditions);
+    const inDeckUnitIds = new Set(
+      state.deckCards.map((c) => (c.kind === "event" ? c.original_id : c.group_id)).filter(Boolean)
+    );
+    const allDbUnitIds = [
+      ...(state.db?.cards_event || []).map((e) => e.card_id),
+      ...(state.db?.evacuee_groups || []).map((g) => g.group_id),
+    ].filter(Boolean);
+    const exportConds = {
+      ...state.conditions,
+      excluded_ids: allDbUnitIds.filter((id) => !inDeckUnitIds.has(id)),
+    };
+    const blob = exportDeckToJsonBlob(state.deckCards, exportConds);
     triggerBlobDownload(blob, "hug_deck.json");
     showToast("デッキ JSON (hug_deck.json) をダウンロードしました", "success");
   });
