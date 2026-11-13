@@ -1,0 +1,1997 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <title>HUG訓練用 AI解説・コメント プロンプト生成ツール</title>
+  <link rel="icon" href="./static/logo/official_logo.jpeg" />
+  <style>
+    :root {
+      --primary: #2563eb;
+      --primary-hover: #1d4ed8;
+      --primary-soft: #eff6ff;
+      --primary-border: #bfdbfe;
+      --accent: #059669;
+      --accent-hover: #047857;
+      --accent-soft: #ecfdf5;
+      --bg: #f8fafc;
+      --surface: #ffffff;
+      --surface-sub: #f1f5f9;
+      --border: #e2e8f0;
+      --border-dark: #cbd5e1;
+      --text: #0f172a;
+      --text-muted: #64748b;
+      --text-light: #94a3b8;
+      --gemini-grad: linear-gradient(135deg, #4285f4, #9b51e0, #ea4335);
+      --card-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Hiragino Kaku Gothic ProN", "Noto Sans JP", Meiryo, sans-serif;
+      line-height: 1.6;
+      padding-bottom: 4rem;
+    }
+
+    /* ヘッダー */
+    .top-header {
+      background: #0f172a;
+      color: #ffffff;
+      padding: 0.75rem 1.5rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid #1e293b;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+      box-shadow: 0 2px 10px rgba(0, 0, 0, 0.15);
+    }
+    .header-left {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .brand-badge {
+      background: var(--gemini-grad);
+      color: #fff;
+      font-weight: 800;
+      font-size: 0.75rem;
+      padding: 0.2rem 0.6rem;
+      border-radius: 999px;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .header-title {
+      font-size: 1.1rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .header-right {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .header-link {
+      color: #cbd5e1;
+      text-decoration: none;
+      font-size: 0.85rem;
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--radius-sm);
+      border: 1px solid #334155;
+      transition: all 0.2s;
+    }
+    .header-link:hover {
+      background: #1e293b;
+      color: #fff;
+    }
+
+    /* メインコンテナ */
+    .container {
+      max-width: 1200px;
+      margin: 1.5rem auto;
+      padding: 0 1rem;
+    }
+
+    /* イントロバナー */
+    .hero-banner {
+      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+      color: #f8fafc;
+      padding: 1.75rem 2rem;
+      border-radius: var(--radius-lg);
+      margin-bottom: 1.5rem;
+      position: relative;
+      overflow: hidden;
+      box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.2);
+    }
+    .hero-banner::after {
+      content: "";
+      position: absolute;
+      top: -50%;
+      right: -10%;
+      width: 400px;
+      height: 400px;
+      background: radial-gradient(circle, rgba(59, 130, 246, 0.15) 0%, rgba(147, 51, 234, 0.05) 50%, transparent 70%);
+      pointer-events: none;
+    }
+    .hero-title {
+      font-size: 1.6rem;
+      font-weight: 800;
+      margin-bottom: 0.5rem;
+      line-height: 1.3;
+    }
+    .hero-lead {
+      color: #cbd5e1;
+      font-size: 0.95rem;
+      max-width: 860px;
+    }
+    .hero-highlights {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-top: 1rem;
+    }
+    .hero-tag {
+      background: rgba(255, 255, 255, 0.1);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: var(--radius-sm);
+      padding: 0.25rem 0.65rem;
+      font-size: 0.8rem;
+      color: #e2e8f0;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    /* ステップレイアウト */
+    .workflow-steps {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+    }
+
+    .step-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 1.5rem;
+      box-shadow: var(--card-shadow);
+      position: relative;
+    }
+    .step-card-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 1px solid var(--border);
+      padding-bottom: 0.85rem;
+      margin-bottom: 1.25rem;
+      flex-wrap: wrap;
+      gap: 0.5rem;
+    }
+    .step-badge-title {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+    }
+    .step-num {
+      background: var(--primary);
+      color: #fff;
+      font-weight: 800;
+      width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.85rem;
+    }
+    .step-title {
+      font-size: 1.15rem;
+      font-weight: 700;
+      color: var(--text);
+    }
+    .step-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      margin-top: 0.2rem;
+    }
+
+    /* ファイルアップロード / ドロップゾーン */
+    .dropzone-container {
+      display: grid;
+      grid-template-columns: 2fr 1fr;
+      gap: 1rem;
+    }
+    @media (max-width: 768px) {
+      .dropzone-container {
+        grid-template-columns: 1fr;
+      }
+    }
+    .dropzone {
+      border: 2px dashed var(--border-dark);
+      background: var(--surface-sub);
+      border-radius: var(--radius-md);
+      padding: 2rem 1.5rem;
+      text-align: center;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      position: relative;
+    }
+    .dropzone:hover, .dropzone.dragover {
+      border-color: var(--primary);
+      background: var(--primary-soft);
+    }
+    .dropzone-icon {
+      font-size: 2.2rem;
+      margin-bottom: 0.5rem;
+    }
+    .dropzone-main-text {
+      font-size: 1rem;
+      font-weight: 700;
+      color: var(--text);
+      margin-bottom: 0.35rem;
+    }
+    .dropzone-sub-text {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+    }
+    .file-input {
+      display: none;
+    }
+
+    .preset-panel {
+      border: 1px solid var(--border);
+      background: #fafafa;
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      gap: 0.75rem;
+    }
+    .preset-title {
+      font-weight: 700;
+      font-size: 0.9rem;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .preset-desc {
+      font-size: 0.8rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* デッキ統計情報バー */
+    .deck-stats-bar {
+      display: none;
+      margin-top: 1.25rem;
+      background: var(--accent-soft);
+      border: 1px solid #a7f3d0;
+      border-radius: var(--radius-md);
+      padding: 1rem 1.25rem;
+    }
+    .deck-stats-bar.active {
+      display: block;
+    }
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+      gap: 0.75rem;
+      margin-top: 0.5rem;
+    }
+    .stat-box {
+      background: #fff;
+      border-radius: var(--radius-sm);
+      padding: 0.5rem 0.75rem;
+      border: 1px solid #d1fae5;
+      text-align: center;
+    }
+    .stat-label {
+      font-size: 0.72rem;
+      color: var(--text-muted);
+      display: block;
+    }
+    .stat-value {
+      font-size: 1.2rem;
+      font-weight: 800;
+      color: var(--accent-hover);
+    }
+
+    /* オプション設定フォーム */
+    .options-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 1.25rem;
+    }
+    .option-group {
+      display: flex;
+      flex-direction: column;
+      gap: 0.4rem;
+    }
+    .option-label {
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .option-hint {
+      font-size: 0.75rem;
+      color: var(--text-muted);
+    }
+    .select-input, .text-input, .textarea-input {
+      width: 100%;
+      border: 1px solid var(--border-dark);
+      border-radius: var(--radius-sm);
+      padding: 0.55rem 0.75rem;
+      font-size: 0.9rem;
+      background: #fff;
+      color: var(--text);
+      outline: none;
+      transition: border-color 0.2s;
+    }
+    .select-input:focus, .text-input:focus, .textarea-input:focus {
+      border-color: var(--primary);
+      box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.1);
+    }
+
+    /* 2ペイン表示 (プロンプト & 添付データ) */
+    .output-panes-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 1.25rem;
+    }
+    @media (max-width: 992px) {
+      .output-panes-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+    .output-pane {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      background: #fafafa;
+      overflow: hidden;
+    }
+    .pane-header {
+      background: #f1f5f9;
+      border-bottom: 1px solid var(--border);
+      padding: 0.75rem 1rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 0.5rem;
+      flex-wrap: wrap;
+    }
+    .pane-title {
+      font-size: 0.9rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .pane-actions {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+    .pane-content {
+      padding: 0.75rem 1rem;
+      height: 420px;
+      overflow-y: auto;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      font-size: 0.8rem;
+      line-height: 1.5;
+      background: #ffffff;
+      white-space: pre-wrap;
+      word-break: break-all;
+      color: #1e293b;
+    }
+
+    /* ボタン類 */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0.4rem;
+      padding: 0.5rem 1rem;
+      border-radius: var(--radius-sm);
+      font-size: 0.85rem;
+      font-weight: 700;
+      border: 1px solid transparent;
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .btn-primary {
+      background: var(--primary);
+      color: #fff;
+    }
+    .btn-primary:hover {
+      background: var(--primary-hover);
+    }
+    .btn-accent {
+      background: var(--accent);
+      color: #fff;
+    }
+    .btn-accent:hover {
+      background: var(--accent-hover);
+    }
+    .btn-gemini {
+      background: var(--gemini-grad);
+      color: #fff;
+      font-weight: 700;
+      box-shadow: 0 2px 8px rgba(66, 133, 244, 0.3);
+    }
+    .btn-gemini:hover {
+      opacity: 0.92;
+      box-shadow: 0 4px 12px rgba(66, 133, 244, 0.4);
+    }
+    .btn-outline {
+      background: #fff;
+      border-color: var(--border-dark);
+      color: var(--text);
+    }
+    .btn-outline:hover {
+      background: var(--surface-sub);
+    }
+    .btn-sm {
+      padding: 0.35rem 0.65rem;
+      font-size: 0.78rem;
+    }
+
+    /* ガイドステップ */
+    .guide-box {
+      background: linear-gradient(to right, #eff6ff, #f5f3ff);
+      border: 1px solid #dbeafe;
+      border-radius: var(--radius-md);
+      padding: 1.25rem;
+      margin-bottom: 1.25rem;
+    }
+    .guide-title {
+      font-weight: 800;
+      font-size: 0.95rem;
+      color: #1e40af;
+      margin-bottom: 0.75rem;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .guide-steps {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+    }
+    .guide-step-item {
+      background: #fff;
+      border-radius: var(--radius-sm);
+      padding: 0.85rem;
+      border: 1px solid #e0e7ff;
+    }
+    .guide-step-header {
+      font-weight: 700;
+      font-size: 0.85rem;
+      color: #3730a3;
+      margin-bottom: 0.3rem;
+      display: flex;
+      align-items: center;
+      gap: 0.35rem;
+    }
+    .guide-step-body {
+      font-size: 0.78rem;
+      color: var(--text-muted);
+      line-height: 1.5;
+    }
+
+    /* コメント貼り付け・プレビューゾーン */
+    .import-results-zone {
+      margin-top: 1rem;
+      border-top: 1px dashed var(--border);
+      padding-top: 1.25rem;
+    }
+    .results-table-wrapper {
+      max-height: 380px;
+      overflow-y: auto;
+      margin-top: 0.75rem;
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .results-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.85rem;
+      text-align: left;
+    }
+    .results-table th {
+      background: #f8fafc;
+      padding: 0.6rem 0.8rem;
+      border-bottom: 1px solid var(--border);
+      position: sticky;
+      top: 0;
+      font-weight: 700;
+      color: var(--text-muted);
+      z-index: 1;
+    }
+    .results-table td {
+      padding: 0.6rem 0.8rem;
+      border-bottom: 1px solid var(--border);
+      vertical-align: top;
+    }
+    .results-table tr:hover {
+      background: #f8fafc;
+    }
+    .type-badge {
+      display: inline-block;
+      padding: 0.15rem 0.45rem;
+      border-radius: 4px;
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+    .badge-event {
+      background: #fee2e2;
+      color: #991b1b;
+    }
+    .badge-group {
+      background: #e0e7ff;
+      color: #3730a3;
+    }
+
+    /* トースト通知 */
+    #toast {
+      position: fixed;
+      bottom: 1.5rem;
+      right: 1.5rem;
+      background: #0f172a;
+      color: #ffffff;
+      padding: 0.75rem 1.25rem;
+      border-radius: var(--radius-md);
+      box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.2);
+      font-size: 0.88rem;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      opacity: 0;
+      transform: translateY(20px);
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      pointer-events: none;
+      z-index: 1000;
+    }
+    #toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  </style>
+</head>
+<body>
+  <!-- ヘッダー -->
+  <header class="top-header">
+    <div class="header-left">
+      <span class="brand-badge">Gemini × HUG</span>
+      <h1 class="header-title">
+        <span>🎙️ HUG訓練用 AI解説プロンプト＆データ作成ツール</span>
+      </h1>
+    </div>
+    <div class="header-right">
+      <a href="./index.html" class="header-link">← HUGデッキ構築ツールへ</a>
+      <a href="./training.html" class="header-link">🎯 訓練実行モードへ</a>
+    </div>
+  </header>
+
+  <div class="container">
+    <!-- ヒーローバナー -->
+    <section class="hero-banner">
+      <h2 class="hero-title">カードめくり訓練に、優しく状況を伝える解説コメントを</h2>
+      <p class="hero-lead">
+        避難所運営ゲーム（HUG）のカードを順にめくっていく訓練で、世帯やイベントに応じた「気付きを促すフレーズ」を生成AI（Gemini）に作成させるための専用ツールです。<br/>
+        デッキのJSONを読み込むだけで、<strong>Geminiに渡す「最適化プロンプト」</strong>と<strong>「整理された添付データ」</strong>をワンクリックで準備できます。
+      </p>
+      <div class="hero-highlights">
+        <span class="hero-tag">✨ ファシリテーターの優しい語り口</span>
+        <span class="hero-tag">👥 世帯構成・配慮事項・イベント内容を自動要約</span>
+        <span class="hero-tag">📎 添付ファイル（Markdown / JSON）出力対応</span>
+        <span class="hero-tag">🎯 生成結果のプレビュー＆CSV保存可能</span>
+      </div>
+    </section>
+
+    <!-- ガイドボックス -->
+    <section class="guide-box">
+      <div class="guide-title">
+        <span>💡 使い方（3ステップで完了）</span>
+      </div>
+      <div class="guide-steps">
+        <div class="guide-step-item">
+          <div class="guide-step-header"><span>①</span> デッキJSONの読込</div>
+          <div class="guide-step-body">HUGデッキツールから保存した <code>hug_deck.json</code> をドロップ。サンプルデータで即お試しも可能です。</div>
+        </div>
+        <div class="guide-step-item">
+          <div class="guide-step-header"><span>②</span> プロンプト＆添付取得</div>
+          <div class="guide-step-body">「プロンプトをコピー」と「添付ファイルを保存」を押します。トーンや文量の調整も自在です。</div>
+        </div>
+        <div class="guide-step-item">
+          <div class="guide-step-header"><span>③</span> Geminiに送信</div>
+          <div class="guide-step-body">WebのGeminiにプロンプトを貼り、添付ファイルをアップロードして実行！出力結果をこの画面で確認できます。</div>
+        </div>
+      </div>
+    </section>
+
+    <div class="workflow-steps">
+      <!-- STEP 1: デッキJSON読み込み -->
+      <section class="step-card">
+        <div class="step-card-header">
+          <div class="step-badge-title">
+            <span class="step-num">1</span>
+            <div>
+              <h3 class="step-title">カードデッキのJSONデータを読み込む</h3>
+              <p class="step-desc">HUG構築ツールから出力した <code>hug_deck.json</code> または <code>cards_db.json</code> を読み込みます。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="dropzone-container">
+          <div class="dropzone" id="dropzone">
+            <div class="dropzone-icon">📥</div>
+            <div class="dropzone-main-text">ここにJSONファイルをドロップ、またはクリックして選択</div>
+            <div class="dropzone-sub-text"><code>hug_deck.json</code>, <code>cards_db.json</code> または カスタムデッキJSON</div>
+            <input type="file" id="file-input" class="file-input" accept=".json,application/json" />
+          </div>
+
+          <div class="preset-panel">
+            <div>
+              <div class="preset-title"><span>🧪</span> すぐに試す</div>
+              <p class="preset-desc">
+                ファイルをお持ちでない場合、代表的な世帯（高齢者、乳幼児連れ、ペット、要配慮者）とイベントを含むデモ用デッキを読み込めます。
+              </p>
+            </div>
+            <button type="button" class="btn btn-outline" id="load-sample-btn">
+              <span>📋</span> デモ用サンプルデッキを読込
+            </button>
+          </div>
+        </div>
+
+        <!-- 読み込み結果の統計表示バー -->
+        <div class="deck-stats-bar" id="deck-stats-bar">
+          <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:0.5rem;">
+            <div style="font-weight:700;font-size:0.95rem;color:var(--accent-hover);">
+              <span>✅ デッキデータを読み込みました：</span>
+              <span id="deck-file-name" style="color:var(--text);">hug_deck.json</span>
+            </div>
+            <span id="deck-seq-badge" style="font-size:0.75rem;padding:0.2rem 0.5rem;background:#d1fae5;border-radius:4px;color:#065f46;font-weight:600;">
+              シーケンス順序適用済み
+            </span>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-box">
+              <span class="stat-label">総カード数</span>
+              <span class="stat-value" id="stat-total-cards">0</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">避難者世帯数</span>
+              <span class="stat-value" id="stat-households">0</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">避難者総人数</span>
+              <span class="stat-value" id="stat-persons">0</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">ペット数</span>
+              <span class="stat-value" id="stat-pets">0</span>
+            </div>
+            <div class="stat-box">
+              <span class="stat-label">イベントカード数</span>
+              <span class="stat-value" id="stat-events">0</span>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 2: 生成条件のカスタマイズ -->
+      <section class="step-card">
+        <div class="step-card-header">
+          <div class="step-badge-title">
+            <span class="step-num">2</span>
+            <div>
+              <h3 class="step-title">生成AI（Gemini）への指示条件を設定</h3>
+              <p class="step-desc">訓練の目的や参加者のレベルに合わせて、語り口や出力形式をカスタマイズできます。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="options-grid">
+          <!-- 単位設定 -->
+          <div class="option-group">
+            <label class="option-label" for="opt-unit">
+              <span>🎯 出力の単位</span>
+            </label>
+            <select id="opt-unit" class="select-input">
+              <option value="household_and_event" selected>【推奨】世帯ごと ＋ イベント（計：世帯数＋イベント数）</option>
+              <option value="per_card">カード1枚ごと（全カード個別に出力）</option>
+            </select>
+            <span class="option-hint">※家族4人なら世帯単位で1つの案内フレーズにするのが避難所受付の実態に合います。</span>
+          </div>
+
+          <!-- トーン -->
+          <div class="option-group">
+            <label class="option-label" for="opt-tone">
+              <span>🗣️ コメントの語り口・トーン</span>
+            </label>
+            <select id="opt-tone" class="select-input">
+              <option value="gentle_facilitator" selected>【推奨】優しく寄り添うファシリテーター（落ち着く場所へ案内しましょう 等）</option>
+              <option value="professional">プロの防災コーディネーター（冷静・的確な配慮点の指示）</option>
+              <option value="beginner">子ども・地域初心者向け（親しみやすく、分かりやすい問いかけ）</option>
+              <option value="urgent">実践・本番即応モード（緊迫感・迅速な初動と連携を促す）</option>
+            </select>
+            <span class="option-hint">参加者の不安を和らげ、受入や対応のポイントへの自発的な気付きを促します。</span>
+          </div>
+
+          <!-- 文量 -->
+          <div class="option-group">
+            <label class="option-label" for="opt-length">
+              <span>📏 フレーズの長さ</span>
+            </label>
+            <select id="opt-length" class="select-input">
+              <option value="short" selected>【推奨】短め（1〜2文、40〜70文字程度・テンポよく読み上げ可能）</option>
+              <option value="medium">標準（2〜3文、70〜110文字程度・少し背景補足あり）</option>
+              <option value="detailed">しっかり（3〜4文、110〜160文字・思考ポイント付き）</option>
+            </select>
+            <span class="option-hint">訓練中にカードをめくってスムーズに読み上げられる長さがおすすめです。</span>
+          </div>
+
+          <!-- 出力形式 -->
+          <div class="option-group">
+            <label class="option-label" for="opt-format">
+              <span>📋 Geminiの出力フォーマット</span>
+            </label>
+            <select id="opt-format" class="select-input">
+              <option value="json" selected>【推奨】JSON形式（構造化データ・後でツール取り込み可能）</option>
+              <option value="markdown_table">Markdownテーブル形式（表形式・そのままコピーして見やすい）</option>
+              <option value="plain_list">箇条書きテキスト形式（シンプルなテキスト一覧）</option>
+            </select>
+            <span class="option-hint">JSON形式にしておくと、本ツール下のプレビュー画面にそのまま取り込めます。</span>
+          </div>
+
+          <!-- 添付データ形式 -->
+          <div class="option-group">
+            <label class="option-label" for="opt-data-format">
+              <span>📁 添付データの形式</span>
+            </label>
+            <select id="opt-data-format" class="select-input">
+              <option value="markdown" selected>【推奨】Markdown形式 (.md) - Geminiが文脈を最も把握しやすい</option>
+              <option value="json">JSON形式 (.json) - 厳密なデータ構造</option>
+            </select>
+            <span class="option-hint">GeminiにはMarkdownテキスト形式がトークン効率・理解精度ともに最適です。</span>
+          </div>
+
+          <!-- カスタム要望 -->
+          <div class="option-group">
+            <label class="option-label" for="opt-custom-notes">
+              <span>✏️ 追加の指示・特記事項（任意）</span>
+            </label>
+            <input type="text" id="opt-custom-notes" class="text-input" placeholder="例: 小平市の地域性を意識させて / 体調不良者の隔離に触れて など" />
+            <span class="option-hint">プロンプト内に特別指示として反映されます。</span>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 3: プロンプトと添付データの出力 -->
+      <section class="step-card">
+        <div class="step-card-header">
+          <div class="step-badge-title">
+            <span class="step-num">3</span>
+            <div>
+              <h3 class="step-title">生成されたプロンプト ＆ 添付データ</h3>
+              <p class="step-desc">以下の2つをコピーまたは保存して、Geminiに入力してください。</p>
+            </div>
+          </div>
+          <div>
+            <a href="https://gemini.google.com" target="_blank" rel="noopener noreferrer" class="btn btn-gemini">
+              <span>✨</span> Gemini (Web版) を開く ↗
+            </a>
+          </div>
+        </div>
+
+        <div class="output-panes-grid">
+          <!-- 左ペイン: プロンプト -->
+          <div class="output-pane">
+            <div class="pane-header">
+              <div class="pane-title">
+                <span>🤖</span> 1. Geminiに渡すプロンプト指示文
+              </div>
+              <div class="pane-actions">
+                <button type="button" class="btn btn-primary btn-sm" id="copy-prompt-btn">
+                  <span>📋</span> プロンプトをコピー
+                </button>
+              </div>
+            </div>
+            <div class="pane-content" id="prompt-preview">（デッキデータを読み込むと、ここにプロンプトが自動生成されます）</div>
+          </div>
+
+          <!-- 右ペイン: 添付データ -->
+          <div class="output-pane">
+            <div class="pane-header">
+              <div class="pane-title">
+                <span>📎</span> 2. Geminiに添付するデータファイル
+              </div>
+              <div class="pane-actions">
+                <button type="button" class="btn btn-outline btn-sm" id="copy-data-btn">
+                  <span>📋</span> コピー
+                </button>
+                <button type="button" class="btn btn-accent btn-sm" id="download-data-btn">
+                  <span>⬇️</span> ファイルを保存
+                </button>
+              </div>
+            </div>
+            <div class="pane-content" id="data-preview">（デッキデータを読み込むと、ここに添付用データが自動生成されます）</div>
+          </div>
+        </div>
+      </section>
+
+      <!-- STEP 4: 出力結果の確認・取り込みプレビュー（ボーナス機能） -->
+      <section class="step-card">
+        <div class="step-card-header">
+          <div class="step-badge-title">
+            <span class="step-num">4</span>
+            <div>
+              <h3 class="step-title">Geminiの出力結果をプレビュー（確認・台帳保存）</h3>
+              <p class="step-desc">Geminiから返ってきたコメント一覧（JSONまたはテキスト）を貼り付けると、カードと結合して一覧表示できます。</p>
+            </div>
+          </div>
+        </div>
+
+        <div class="import-results-zone">
+          <div style="display:flex;flex-direction:column;gap:0.5rem;">
+            <label for="ai-response-input" style="font-weight:700;font-size:0.85rem;">
+              <span>📥 Geminiの出力をここに貼り付け：</span>
+            </label>
+            <textarea id="ai-response-input" class="textarea-input" rows="4" placeholder="Geminiの回答（```json ... ``` または テキスト）を貼り付けて「結果を反映」を押してください"></textarea>
+            <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap;">
+              <button type="button" class="btn btn-primary btn-sm" id="apply-ai-result-btn">
+                <span>🔄</span> 結果を反映してプレビュー
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="download-commented-csv-btn" style="display:none;">
+                <span>📊</span> コメント付き台帳CSVを保存
+              </button>
+              <button type="button" class="btn btn-outline btn-sm" id="download-commented-json-btn" style="display:none;">
+                <span>💾</span> コメント付きJSONを保存
+              </button>
+            </div>
+          </div>
+
+          <div id="results-table-container" style="display:none;margin-top:1rem;">
+            <div style="font-weight:700;font-size:0.9rem;margin-bottom:0.4rem;display:flex;align-items:center;justify-content:space-between;">
+              <span>📋 訓練カード解説・コメント一覧プレビュー</span>
+              <span id="results-count-badge" style="font-size:0.75rem;color:var(--text-muted);">0件反映</span>
+            </div>
+            <div class="results-table-wrapper">
+              <table class="results-table" id="results-table">
+                <thead>
+                  <tr>
+                    <th style="width:60px;">No.</th>
+                    <th style="width:90px;">種別</th>
+                    <th style="width:160px;">対象 / 氏名</th>
+                    <th style="width:260px;">状況・特性・内容</th>
+                    <th>🎙️ AI解説・コメント（訓練ナレーション）</th>
+                  </tr>
+                </thead>
+                <tbody id="results-tbody">
+                  <!-- JS動的レンダリング -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- トースト通知 -->
+  <div id="toast">📋 コピーしました！</div>
+
+  <script>
+    // =========================================================================
+    // HUG デモ用サンプルデッキ（手元にファイルがない時でも即時動作確認可能）
+    // =========================================================================
+    const DEMO_DECK = {
+      _web_deck_meta: {
+        version: "6.2",
+        exported_at: "2026-11-09T12:00:00Z",
+        card_sequence: [
+          { card_number: 1, original_id: "EV-001", kind: "event" },
+          { card_number: 2, original_id: "M-0001", kind: "member", group_id: "GRP-001" },
+          { card_number: 3, original_id: "M-0002", kind: "member", group_id: "GRP-001" },
+          { card_number: 4, original_id: "EV-002", kind: "event" },
+          { card_number: 5, original_id: "M-0003", kind: "member", group_id: "GRP-002" },
+          { card_number: 6, original_id: "M-0004", kind: "member", group_id: "GRP-002" },
+          { card_number: 7, original_id: "M-0005", kind: "member", group_id: "GRP-002" },
+          { card_number: 8, original_id: "M-0006", kind: "member", group_id: "GRP-002" },
+          { card_number: 9, original_id: "EV-003", kind: "event" }
+        ]
+      },
+      cards_event: [
+        {
+          card_id: "EV-001",
+          event_name: "避難所本部の立ち上げ・本部長の決定",
+          category: ["行政対応", "避難所管理"],
+          must_respond: "あり（要即時対応）",
+          content: "夜間に震度6弱の地震が発生。教職員がまだ到着していません。地域代表者会議メンバーから本部長を決定し、避難所本部を立ち上げてください。",
+          scene_description: "暗闇の中、住民が続々と学校へ集まってきている。誰が指揮を執るか現場が混乱している。",
+          training_point: "市地域防災計画に沿った初動体制確立と本部長の迅速な選任。"
+        },
+        {
+          card_id: "EV-002",
+          event_name: "災害対策本部からの負傷者確認指示",
+          category: ["行政対応"],
+          must_respond: "あり（要即時対応）",
+          content: "市災害対策本部より無線連絡。「避難所内に救護が必要な重症者・中等症者が何名いるか至急集計し報告せよ」との指示です。",
+          scene_description: "本部からの第一報。避難者受付の混乱の中で負傷者の人数を早急に把握する必要がある。",
+          training_point: "要援護者・負傷者の迅速なトリアージと本部への情報伝達ルートの確立。"
+        },
+        {
+          card_id: "EV-003",
+          event_name: "支援物資（アルファ米・飲料水）の到着",
+          category: ["避難所管理", "物資対応"],
+          must_respond: "あり",
+          content: "トラック1台分の飲料水とアルファ米（ダンボール80箱）が正門前に到着しました。運転手1名のみのため、荷降ろしと仕分けの人手が必要です。",
+          scene_description: "正門前に大型車が停車。雨が降り出しそうな空模様で、急いで体育館脇へ運び込む必要がある。",
+          training_point: "力仕事ができる健康な避難者のボランティア組織化と物資受入場所の動線確保。"
+        }
+      ],
+      evacuee_groups: [
+        {
+          group_id: "GRP-001",
+          group_name: "佐藤世帯（高齢夫婦）",
+          member_count: 2,
+          pet_count: 0,
+          evacuation_origin: "花小金井2丁目（木造住宅一部倒壊）",
+          urgency_level: "要対応"
+        },
+        {
+          group_id: "GRP-002",
+          group_name: "高橋世帯（子育て家族4人）",
+          member_count: 4,
+          pet_count: 1,
+          evacuation_origin: "学園東町1丁目（マンション上階・断水停電）",
+          urgency_level: "一般"
+        }
+      ],
+      group_members: [
+        {
+          member_id: "M-0001",
+          group_id: "GRP-001",
+          data_type: "人物",
+          name: "佐藤 繁",
+          gender: "男性",
+          age: 82,
+          attributes: ["近隣住民"],
+          vulnerabilities: ["足腰不自由", "杖使用"],
+          health_condition: ["慢性腰痛"],
+          statement: "階段を上がるのは無理です。トイレに近い1階の平らな場所に寝かせてほしい。",
+          training_point: "車椅子・杖利用者の動線（トイレ・出入口への近さ）への配慮。"
+        },
+        {
+          member_id: "M-0002",
+          group_id: "GRP-001",
+          data_type: "人物",
+          name: "佐藤 房江",
+          gender: "女性",
+          age: 78,
+          attributes: ["近隣住民"],
+          vulnerabilities: [],
+          health_condition: ["良好"],
+          statement: "夫の足が悪いので心配です。私がずっと付き添います。",
+          training_point: "高齢者夫婦の同室配置と介護負担軽減への見守り。"
+        },
+        {
+          member_id: "M-0003",
+          group_id: "GRP-002",
+          data_type: "人物",
+          name: "高橋 健太",
+          gender: "男性",
+          age: 38,
+          attributes: ["会社員"],
+          vulnerabilities: [],
+          health_condition: ["良好"],
+          skills: ["応急手当", "力仕事"],
+          statement: "家族の場所が決まったら、私も避難所の運営や力仕事を手伝えます！",
+          training_point: "共助の担い手としての避難者ボランティアへの声かけと登録。"
+        },
+        {
+          member_id: "M-0004",
+          group_id: "GRP-002",
+          data_type: "人物",
+          name: "高橋 美咲",
+          gender: "女性",
+          age: 35,
+          attributes: ["主婦"],
+          vulnerabilities: [],
+          health_condition: ["疲労"],
+          statement: "子どもたちが地震の揺れに怯えて泣き止みません。授乳もできる落ち着いた場所はありますか？",
+          training_point: "乳幼児連れ家庭への配慮、授乳・更衣スペース（プライバシー空間）の案内。"
+        },
+        {
+          member_id: "M-0005",
+          group_id: "GRP-002",
+          data_type: "人物",
+          name: "高橋 陽太",
+          gender: "男性",
+          age: 4,
+          attributes: ["幼児"],
+          vulnerabilities: ["乳幼児"],
+          health_condition: ["良好"],
+          statement: "ママ、おうちこわれちゃうの？こわいよぉ…（泣いている）",
+          training_point: "子どものメンタルケアとキッズスペース等の設置検討。"
+        },
+        {
+          member_id: "M-0006",
+          group_id: "GRP-002",
+          data_type: "ペット",
+          name: "ポチ（柴犬）",
+          gender: "オス",
+          age: 3,
+          statement: "小型ケージに入っている。少し警戒して吠えている。",
+          training_point: "同行避難ペットの飼育管理エリア（屋外ピロティ・渡り廊下等）への誘導ルール遵守。"
+        }
+      ]
+    };
+
+    // =========================================================================
+    // アプリケーション状態管理
+    // =========================================================================
+    const appState = {
+      rawDeckData: null,
+      fileName: "",
+      normalizedDeck: null, // 整形済みデータ
+      generatedPrompt: "",
+      generatedDataText: "",
+      generatedDataFileName: "",
+      aiParsedResults: []
+    };
+
+    // DOM要素
+    const dropzone = document.getElementById("dropzone");
+    const fileInput = document.getElementById("file-input");
+    const loadSampleBtn = document.getElementById("load-sample-btn");
+    const deckStatsBar = document.getElementById("deck-stats-bar");
+    const deckFileNameEl = document.getElementById("deck-file-name");
+    const deckSeqBadgeEl = document.getElementById("deck-seq-badge");
+    const statTotalCardsEl = document.getElementById("stat-total-cards");
+    const statHouseholdsEl = document.getElementById("stat-households");
+    const statPersonsEl = document.getElementById("stat-persons");
+    const statPetsEl = document.getElementById("stat-pets");
+    const statEventsEl = document.getElementById("stat-events");
+
+    // オプション要素
+    const optUnit = document.getElementById("opt-unit");
+    const optTone = document.getElementById("opt-tone");
+    const optLength = document.getElementById("opt-length");
+    const optFormat = document.getElementById("opt-format");
+    const optDataFormat = document.getElementById("opt-data-format");
+    const optCustomNotes = document.getElementById("opt-custom-notes");
+
+    // プレビュー要素
+    const promptPreview = document.getElementById("prompt-preview");
+    const dataPreview = document.getElementById("data-preview");
+    const copyPromptBtn = document.getElementById("copy-prompt-btn");
+    const copyDataBtn = document.getElementById("copy-data-btn");
+    const downloadDataBtn = document.getElementById("download-data-btn");
+
+    // 結果プレビュー要素
+    const aiResponseInput = document.getElementById("ai-response-input");
+    const applyAiResultBtn = document.getElementById("apply-ai-result-btn");
+    const downloadCommentedCsvBtn = document.getElementById("download-commented-csv-btn");
+    const downloadCommentedJsonBtn = document.getElementById("download-commented-json-btn");
+    const resultsTableContainer = document.getElementById("results-table-container");
+    const resultsTable = document.getElementById("results-table");
+    const resultsTbody = document.getElementById("results-tbody");
+    const resultsCountBadge = document.getElementById("results-count-badge");
+    const toast = document.getElementById("toast");
+
+    // =========================================================================
+    // 初期化 & イベントリスナー
+    // =========================================================================
+    window.addEventListener("DOMContentLoaded", () => {
+      setupDragAndDrop();
+      setupOptionListeners();
+      setupActionButtons();
+
+      // 初期状態でデモデータを読み込んでおくことで、ユーザーが訪れた瞬間に動作が理解できるようにする
+      loadDeckData(DEMO_DECK, "demo_sample_deck.json");
+    });
+
+    function showToast(message) {
+      toast.textContent = message;
+      toast.classList.add("show");
+      setTimeout(() => {
+        toast.classList.remove("show");
+      }, 2600);
+    }
+
+    function setupDragAndDrop() {
+      dropzone.addEventListener("click", () => fileInput.click());
+
+      fileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (file) handleFile(file);
+      });
+
+      ["dragenter", "dragover"].forEach((eventName) => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.add("dragover");
+        });
+      });
+
+      ["dragleave", "drop"].forEach((eventName) => {
+        dropzone.addEventListener(eventName, (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          dropzone.classList.remove("dragover");
+        });
+      });
+
+      dropzone.addEventListener("drop", (e) => {
+        const file = e.dataTransfer.files[0];
+        if (file) handleFile(file);
+      });
+
+      loadSampleBtn.addEventListener("click", () => {
+        loadDeckData(DEMO_DECK, "demo_sample_deck.json");
+        showToast("📋 デモ用サンプルデッキを読み込みました");
+      });
+    }
+
+    function handleFile(file) {
+      if (!file.name.endsWith(".json")) {
+        alert("JSONファイル (.json) を選択してください。");
+        return;
+      }
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        try {
+          const parsed = JSON.parse(e.target.result);
+          loadDeckData(parsed, file.name);
+          showToast(`✅ ${file.name} を読み込みました`);
+        } catch (err) {
+          alert("JSONファイルの解析に失敗しました。正しいJSON形式かご確認ください。\n" + err.message);
+        }
+      };
+      reader.readAsText(file, "UTF-8");
+    }
+
+    function setupOptionListeners() {
+      [optUnit, optTone, optLength, optFormat, optDataFormat, optCustomNotes].forEach((el) => {
+        el.addEventListener("input", () => {
+          if (appState.normalizedDeck) {
+            updatePromptAndData();
+          }
+        });
+      });
+    }
+
+    function setupActionButtons() {
+      copyPromptBtn.addEventListener("click", () => {
+        if (!appState.generatedPrompt) return;
+        navigator.clipboard.writeText(appState.generatedPrompt).then(() => {
+          showToast("📋 プロンプトをクリップボードにコピーしました！");
+        });
+      });
+
+      copyDataBtn.addEventListener("click", () => {
+        if (!appState.generatedDataText) return;
+        navigator.clipboard.writeText(appState.generatedDataText).then(() => {
+          showToast("📋 添付データをクリップボードにコピーしました！");
+        });
+      });
+
+      downloadDataBtn.addEventListener("click", () => {
+        if (!appState.generatedDataText) return;
+        const format = optDataFormat.value;
+        const mime = format === "json" ? "application/json" : "text/markdown";
+        const filename = appState.generatedDataFileName || `hug_deck_attachment.${format === "json" ? "json" : "md"}`;
+        downloadBlob(appState.generatedDataText, filename, mime);
+        showToast(`⬇️ ${filename} をダウンロードしました`);
+      });
+
+      applyAiResultBtn.addEventListener("click", () => {
+        parseAndApplyAiResponse();
+      });
+
+      downloadCommentedCsvBtn.addEventListener("click", () => {
+        exportCommentedCsv();
+      });
+
+      downloadCommentedJsonBtn.addEventListener("click", () => {
+        exportCommentedJson();
+      });
+    }
+
+    function downloadBlob(content, filename, mimeType) {
+      const blob = new Blob([content], { type: `${mimeType};charset=utf-8` });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+    }
+
+    // =========================================================================
+    // デッキデータの正規化・解析
+    // =========================================================================
+    function loadDeckData(raw, fileName) {
+      appState.rawDeckData = raw;
+      appState.fileName = fileName;
+
+      const norm = normalizeDeck(raw);
+      appState.normalizedDeck = norm;
+
+      // 統計の表示
+      deckStatsBar.classList.add("active");
+      deckFileNameEl.textContent = fileName;
+      deckSeqBadgeEl.textContent = norm.hasSequence ? "シーケンス順序適用済み" : "世帯・イベント単位順";
+      statTotalCardsEl.textContent = norm.totalCards;
+      statHouseholdsEl.textContent = norm.groups.length;
+      statPersonsEl.textContent = norm.totalPersons;
+      statPetsEl.textContent = norm.totalPets;
+      statEventsEl.textContent = norm.events.length;
+
+      // プロンプトと添付データの生成
+      updatePromptAndData();
+    }
+
+    function normalizeDeck(raw) {
+      // 多様なJSONフォーマットへの柔軟な対応
+      const events = raw.cards_event || raw.events || [];
+      const groups = raw.evacuee_groups || raw.groups || [];
+      const members = raw.group_members || raw.members || [];
+      const meta = raw._web_deck_meta || raw.meta || {};
+      const sequence = meta.card_sequence || [];
+      const originOverrides = meta.origin_overrides || (meta.conditions && meta.conditions.origin_overrides) || {};
+
+      // グループマップ (IDと別名の両方で引けるように登録)
+      const groupMap = new Map();
+      groups.forEach((g) => {
+        const gid = String(g.group_id || g.id || "");
+        const origin = originOverrides[gid] || g.evacuation_origin || g.origin || "";
+        const groupObj = {
+          groupId: gid,
+          groupName: g.group_name || g.household_name || `世帯 (${gid})`,
+          memberCount: g.member_count || 0,
+          petCount: g.pet_count || 0,
+          origin: origin,
+          urgency: g.urgency_level || "通常",
+          members: []
+        };
+        groupMap.set(gid, groupObj);
+        if (g.original_id) groupMap.set(String(g.original_id), groupObj);
+      });
+
+      // メンバーマップ (member_id, original_id, card_number いずれでも引けるように登録)
+      let totalPersons = 0;
+      let totalPets = 0;
+      const memberMap = new Map();
+
+      members.forEach((m) => {
+        const mid = String(m.member_id !== undefined ? m.member_id : (m.id || ""));
+        const gid = String(m.group_id || "");
+        const isPet = m.data_type === "ペット" || m.dataType === "ペット";
+        if (isPet) totalPets++; else totalPersons++;
+
+        const memberObj = {
+          memberId: mid,
+          groupId: gid,
+          name: m.name || (isPet ? "ペット" : `避難者(${mid})`),
+          age: m.age !== undefined && m.age !== null ? m.age : "",
+          gender: m.gender || "",
+          dataType: isPet ? "ペット" : "人物",
+          attributes: Array.isArray(m.attributes) ? m.attributes : (m.attributes ? [m.attributes] : []),
+          vulnerabilities: Array.isArray(m.vulnerabilities) ? m.vulnerabilities : (m.vulnerabilities ? [m.vulnerabilities] : []),
+          health: Array.isArray(m.health_condition) ? m.health_condition : (m.health_condition ? [m.health_condition] : []),
+          statement: m.statement || "",
+          appearance: m.appearance || "",
+          skills: Array.isArray(m.skills) ? m.skills : (m.skills ? [m.skills] : []),
+          trainingPoint: m.training_point || ""
+        };
+
+        memberMap.set(mid, memberObj);
+        if (m.original_id) memberMap.set(String(m.original_id), memberObj);
+
+        // グループへの紐付け
+        if (groupMap.has(gid)) {
+          groupMap.get(gid).members.push(memberObj);
+        } else if (gid) {
+          // 未定義グループの場合自動生成
+          const fallbackGroup = {
+            groupId: gid,
+            groupName: `世帯 (${gid})`,
+            memberCount: 1,
+            petCount: isPet ? 1 : 0,
+            origin: originOverrides[gid] || "地域不明",
+            urgency: "通常",
+            members: [memberObj]
+          };
+          groupMap.set(gid, fallbackGroup);
+        }
+      });
+
+      // イベントマップ (card_id, original_id の双方で引けるように登録)
+      const eventMap = new Map();
+      events.forEach((ev) => {
+        const eid = String(ev.card_id !== undefined ? ev.card_id : (ev.id || ""));
+        const eventObj = {
+          cardId: eid,
+          originalId: ev.original_id ? String(ev.original_id) : eid,
+          eventName: ev.event_name || ev.title || `イベント (${eid})`,
+          categories: Array.isArray(ev.category) ? ev.category : (ev.category ? [ev.category] : []),
+          mustRespond: ev.must_respond || "任意",
+          content: ev.content || ev.instructions || "",
+          sceneDescription: ev.scene_description || "",
+          trainingPoint: ev.training_point || "",
+          source: ev.source || ""
+        };
+        eventMap.set(eid, eventObj);
+        if (ev.original_id) eventMap.set(String(ev.original_id), eventObj);
+      });
+
+      // 世帯の人数・ペット数の再計算
+      groupMap.forEach((grp) => {
+        const persons = grp.members.filter((m) => m.dataType === "人物").length;
+        const pets = grp.members.filter((m) => m.dataType === "ペット").length;
+        grp.personCount = persons;
+        grp.petCount = pets;
+        if (!grp.memberCount || grp.memberCount < persons) grp.memberCount = persons;
+      });
+
+      const totalCards = sequence.length > 0 ? sequence.length : (members.length + events.length);
+
+      return {
+        events: Array.from(new Set(eventMap.values())),
+        groups: Array.from(new Set(groupMap.values())),
+        members: Array.from(new Set(memberMap.values())),
+        sequence,
+        hasSequence: sequence.length > 0,
+        eventMap,
+        groupMap,
+        memberMap,
+        totalCards,
+        totalPersons,
+        totalPets
+      };
+    }
+
+    // =========================================================================
+    // 添付データ & プロンプトの構築
+    // =========================================================================
+    function updatePromptAndData() {
+      const norm = appState.normalizedDeck;
+      if (!norm) return;
+
+      const unitMode = optUnit.value; // 'household_and_event' | 'per_card'
+      const tone = optTone.value;
+      const lengthMode = optLength.value;
+      const format = optFormat.value;
+      const dataFormat = optDataFormat.value; // 'markdown' | 'json'
+      const customNotes = optCustomNotes.value.trim();
+
+      // 1. 訓練用構造化リストの作成（世帯ごと / カードごと）
+      const unitsList = buildUnitsList(norm, unitMode);
+
+      // 2. 添付データの文字列生成
+      let dataText = "";
+      let dataFileName = "";
+      if (dataFormat === "markdown") {
+        dataText = generateMarkdownAttachment(unitsList, norm, unitMode);
+        dataFileName = `hug_deck_items_${unitMode}.md`;
+      } else {
+        dataText = generateJsonAttachment(unitsList, norm, unitMode);
+        dataFileName = `hug_deck_items_${unitMode}.json`;
+      }
+
+      appState.generatedDataText = dataText;
+      appState.generatedDataFileName = dataFileName;
+      dataPreview.textContent = dataText;
+
+      // 3. プロンプト指示文の生成
+      const promptText = generateGeminiPrompt({
+        unitMode,
+        tone,
+        lengthMode,
+        format,
+        dataFormat,
+        customNotes,
+        unitsCount: unitsList.length,
+        norm
+      });
+
+      appState.generatedPrompt = promptText;
+      promptPreview.textContent = promptText;
+    }
+
+    function buildUnitsList(norm, unitMode) {
+      const list = [];
+      let seqIndex = 1;
+
+      if (unitMode === "household_and_event") {
+        // 世帯単位 ＋ イベント単位
+        if (norm.hasSequence) {
+          const visitedGroups = new Set();
+          for (const item of norm.sequence) {
+            const cNum = String(item.card_number || "");
+            const origId = String(item.original_id || "");
+
+            // イベントの判定 (kind === "event" または eventMap にヒット)
+            const isEvent = item.kind === "event" || norm.eventMap.has(cNum) || norm.eventMap.has(origId);
+
+            if (isEvent) {
+              const ev = norm.eventMap.get(cNum) || norm.eventMap.get(origId) || {
+                cardId: cNum || origId,
+                eventName: `イベント #${cNum || seqIndex}`,
+                content: ""
+              };
+              list.push({
+                seqNumber: item.card_number || seqIndex++,
+                unitType: "event",
+                unitId: ev.cardId || cNum,
+                name: ev.eventName,
+                detail: ev
+              });
+            } else {
+              // 避難者世帯
+              const mem = norm.memberMap.get(cNum) || norm.memberMap.get(origId);
+              const gid = (mem && mem.groupId) || item.group_id;
+              if (gid && !visitedGroups.has(gid)) {
+                visitedGroups.add(gid);
+                const grp = norm.groupMap.get(String(gid)) || {
+                  groupId: gid,
+                  groupName: `世帯 (${gid})`,
+                  origin: item.evacuation_origin || "",
+                  members: mem ? [mem] : []
+                };
+                if (!grp.origin && item.evacuation_origin) {
+                  grp.origin = item.evacuation_origin;
+                }
+                list.push({
+                  seqNumber: item.card_number || seqIndex++,
+                  unitType: "household",
+                  unitId: grp.groupId,
+                  name: grp.groupName,
+                  detail: grp
+                });
+              }
+            }
+          }
+        } else {
+          // シーケンスがない場合はイベントとグループをそのまま列挙
+          norm.events.forEach((ev) => {
+            list.push({
+              seqNumber: seqIndex++,
+              unitType: "event",
+              unitId: ev.cardId,
+              name: ev.eventName,
+              detail: ev
+            });
+          });
+          norm.groups.forEach((grp) => {
+            list.push({
+              seqNumber: seqIndex++,
+              unitType: "household",
+              unitId: grp.groupId,
+              name: grp.groupName,
+              detail: grp
+            });
+          });
+        }
+      } else {
+        // カード1枚ごと (全カード個別)
+        if (norm.hasSequence) {
+          for (const item of norm.sequence) {
+            const cNum = String(item.card_number || "");
+            const origId = String(item.original_id || "");
+            const isEvent = item.kind === "event" || norm.eventMap.has(cNum) || norm.eventMap.has(origId);
+
+            if (isEvent) {
+              const ev = norm.eventMap.get(cNum) || norm.eventMap.get(origId) || {};
+              list.push({
+                seqNumber: item.card_number || seqIndex++,
+                unitType: "event",
+                unitId: ev.cardId || cNum,
+                name: ev.eventName || `イベント (${cNum})`,
+                detail: ev
+              });
+            } else {
+              const mem = norm.memberMap.get(cNum) || norm.memberMap.get(origId) || {
+                memberId: cNum,
+                name: `避難者 (${cNum})`,
+                dataType: item.kind === "pet" ? "ペット" : "人物"
+              };
+              list.push({
+                seqNumber: item.card_number || seqIndex++,
+                unitType: "member",
+                unitId: mem.memberId || cNum,
+                groupId: mem.groupId || item.group_id,
+                name: mem.name,
+                detail: mem
+              });
+            }
+          }
+        } else {
+          norm.events.forEach((ev) => {
+            list.push({
+              seqNumber: seqIndex++,
+              unitType: "event",
+              unitId: ev.cardId,
+              name: ev.eventName,
+              detail: ev
+            });
+          });
+          norm.members.forEach((mem) => {
+            list.push({
+              seqNumber: seqIndex++,
+              unitType: "member",
+              unitId: mem.memberId,
+              groupId: mem.groupId,
+              name: mem.name,
+              detail: mem
+            });
+          });
+        }
+      }
+
+      return list;
+    }
+
+    function generateMarkdownAttachment(unitsList, norm, unitMode) {
+      const lines = [];
+      lines.push("# HUGカード訓練用 デッキ対象一覧データ");
+      lines.push(`- 出力日時: ${new Date().toLocaleString("ja-JP")}`);
+      lines.push(`- 単位モード: ${unitMode === "household_and_event" ? "世帯ごと ＋ イベント" : "カード1枚ごと"}`);
+      lines.push(`- 対象総件数: ${unitsList.length} 件`);
+      lines.push("");
+      lines.push("---");
+      lines.push("");
+
+      unitsList.forEach((u, idx) => {
+        const num = idx + 1;
+        const seqNumInfo = u.seqNumber ? `カード開始番号: ${u.seqNumber}, ` : "";
+        if (u.unitType === "event") {
+          const ev = u.detail || {};
+          const evName = ev.eventName || ev.event_name || u.name;
+          const evId = ev.cardId || ev.card_id || u.unitId;
+          lines.push(`### [${num}] 【イベント】 ${evName} (${seqNumInfo}ID: ${evId})`);
+          if (ev.source) lines.push(`- **発生源**: ${ev.source}`);
+          const mustResp = ev.mustRespond || ev.must_respond;
+          if (mustResp) lines.push(`- **緊急度**: ${mustResp}`);
+          const cat = ev.categories || ev.category;
+          if (cat && cat.length) lines.push(`- **カテゴリ**: ${Array.isArray(cat) ? cat.join(", ") : cat}`);
+          const content = ev.content || ev.instructions;
+          if (content) lines.push(`- **内容・指示**: ${content}`);
+          const scene = ev.sceneDescription || ev.scene_description;
+          if (scene) lines.push(`- **状況・読み上げ**: ${scene}`);
+          const tp = ev.trainingPoint || ev.training_point;
+          if (tp) lines.push(`- **訓練ポイント・狙い**: ${tp}`);
+        } else if (u.unitType === "household") {
+          const grp = u.detail || {};
+          const members = grp.members || [];
+          const persons = members.filter(m => m.dataType === "人物");
+          const pets = members.filter(m => m.dataType === "ペット");
+          const grpName = grp.groupName || grp.group_name || u.name;
+          const grpId = grp.groupId || grp.group_id || u.unitId;
+          const pCount = persons.length || grp.memberCount || grp.member_count || 0;
+          const petCount = pets.length || grp.petCount || grp.pet_count || 0;
+
+          lines.push(`### [${num}] 【避難者世帯】 ${grpName} (${seqNumInfo}世帯ID: ${grpId})`);
+          lines.push(`- **構成**: 合計${pCount}名 (ペット: ${petCount}匹)`);
+          const origin = grp.origin || grp.evacuation_origin;
+          if (origin) lines.push(`- **避難元**: ${origin}`);
+          const urgency = grp.urgency || grp.urgency_level;
+          if (urgency) lines.push(`- **緊急度**: ${urgency}`);
+
+          if (members.length > 0) {
+            lines.push("- **世帯員一覧**:");
+            members.forEach((m) => {
+              const ageStr = (m.age !== undefined && m.age !== "" && m.age !== null) ? `${m.age}歳` : "";
+              const genStr = m.gender ? `${m.gender}` : "";
+              const spec = [];
+              if (m.vulnerabilities && m.vulnerabilities.length) spec.push(`配慮:${m.vulnerabilities.join(",")}`);
+              if (m.health && m.health.length) spec.push(`健康:${m.health.join(",")}`);
+              if (m.skills && m.skills.length) spec.push(`特技:${m.skills.join(",")}`);
+              const specStr = spec.length > 0 ? ` [${spec.join(" / ")}]` : "";
+
+              let memLine = `  - **${m.name}** (${m.dataType || "人物"}, ${ageStr} ${genStr})${specStr}`;
+              if (m.statement) memLine += ` 発言:「${m.statement}」`;
+              lines.push(memLine);
+            });
+          }
+
+          // 世帯全体の訓練ポイント
+          const tPoints = members.map(m => m.trainingPoint || m.training_point).filter(Boolean);
+          if (tPoints.length > 0) {
+            lines.push(`- **訓練ポイント・配慮点**: ${Array.from(new Set(tPoints)).join(" / ")}`);
+          }
+        } else {
+          // member (個別カード)
+          const m = u.detail || {};
+          const ageStr = (m.age !== undefined && m.age !== "" && m.age !== null) ? `${m.age}歳` : "";
+          const genStr = m.gender ? `${m.gender}` : "";
+          const memId = m.memberId || m.member_id || u.unitId;
+          const gid = m.groupId || m.group_id || u.groupId || "";
+          lines.push(`### [${num}] 【個別避難者カード】 ${m.name || u.name} (${seqNumInfo}カードID: ${memId}${gid ? ", 所属世帯: " + gid : ""})`);
+          lines.push(`- **属性**: ${m.dataType || "人物"} / ${ageStr} ${genStr}`);
+          if (m.vulnerabilities && m.vulnerabilities.length) lines.push(`- **要配慮事項**: ${m.vulnerabilities.join(", ")}`);
+          if (m.health && m.health.length) lines.push(`- **健康状態**: ${m.health.join(", ")}`);
+          if (m.statement) lines.push(`- **本人の発言**: 「${m.statement}」`);
+          const tp = m.trainingPoint || m.training_point;
+          if (tp) lines.push(`- **訓練ポイント**: ${tp}`);
+        }
+        lines.push("");
+      });
+
+      return lines.join("\n");
+    }
+
+    function generateJsonAttachment(unitsList, norm, unitMode) {
+      const cleanList = unitsList.map((u, idx) => {
+        const item = {
+          seq_no: idx + 1,
+          card_number: u.seqNumber || (idx + 1),
+          unit_type: u.unitType,
+          id: u.unitId,
+          name: u.name
+        };
+
+        if (u.unitType === "event") {
+          const ev = u.detail || {};
+          item.event_name = ev.eventName || ev.event_name || u.name;
+          item.source = ev.source;
+          item.content = ev.content || ev.instructions;
+          item.scene_description = ev.sceneDescription || ev.scene_description;
+          item.training_point = ev.trainingPoint || ev.training_point;
+          item.must_respond = ev.mustRespond || ev.must_respond;
+        } else if (u.unitType === "household") {
+          const grp = u.detail || {};
+          item.household_name = grp.groupName || grp.group_name || u.name;
+          item.origin = grp.origin || grp.evacuation_origin;
+          item.person_count = grp.personCount || grp.memberCount || 0;
+          item.pet_count = grp.petCount || 0;
+          item.members = (grp.members || []).map((m) => ({
+            id: m.memberId || m.member_id,
+            name: m.name,
+            type: m.dataType || m.data_type || "人物",
+            age: m.age,
+            gender: m.gender,
+            vulnerabilities: m.vulnerabilities,
+            health_condition: m.health || m.health_condition,
+            statement: m.statement,
+            training_point: m.trainingPoint || m.training_point
+          }));
+        } else {
+          const m = u.detail || {};
+          item.group_id = u.groupId || m.groupId || m.group_id;
+          item.data_type = m.dataType || m.data_type || "人物";
+          item.age = m.age;
+          item.gender = m.gender;
+          item.vulnerabilities = m.vulnerabilities;
+          item.statement = m.statement;
+          item.training_point = m.trainingPoint || m.training_point;
+        }
+        return item;
+      });
+
+      return JSON.stringify({
+        description: "HUG訓練用 デッキデータ抽出リスト",
+        unit_mode: unitMode,
+        total_items: cleanList.length,
+        items: cleanList
+      }, null, 2);
+    }
+
+    // =========================================================================
+    // プロンプト生成ロジック
+    // =========================================================================
+    function generateGeminiPrompt({ unitMode, tone, lengthMode, format, dataFormat, customNotes, unitsCount }) {
+      // トーンの指示文
+      let toneDesc = "";
+      if (tone === "gentle_facilitator") {
+        toneDesc = `・語り口：優しく温かみのあるファシリテーター（進行役）。避難者の不安に寄り添い、参加者（訓練生）が自発的に気付きを得られるような問いかけや促しの語尾（「〜しましょう」「〜はいらっしゃるでしょうか」「〜の配慮が必要かもしれません」）を用いてください。`;
+      } else if (tone === "professional") {
+        toneDesc = `・語り口：プロの防災コーディネーター・現場アナウンス。冷静かつ的確に状況を伝え、見落としてはならない要配慮点や初動の安全確保を端的に指示してください。`;
+      } else if (tone === "beginner") {
+        toneDesc = `・語り口：子どもや地域防災の初心者にも分かりやすい平易な言葉。専門用語を避け、「みんなならどうする？」「まず〇〇に声をかけよう」といった直感的な問いかけにしてください。`;
+      } else {
+        toneDesc = `・語り口：実践・本番即応モード。災害直後の緊張感を保ちつつ、迅速な判断と連携（トリアージ、動線確保、人員配置）を促すテキパキとした表現にしてください。`;
+      }
+
+      // 文量の指示文
+      let lengthDesc = "";
+      if (lengthMode === "short") {
+        lengthDesc = `・文量：1〜2文程度の短いフレーズ（40〜70文字前後）。カードをテンポよくめくっていく進行の邪魔にならない、耳に入りやすい長さ厳守。`;
+      } else if (lengthMode === "medium") {
+        lengthDesc = `・文量：2〜3文（70〜110文字程度）。状況の描写に加えて、1つの具体的なアクションのヒントを含めてください。`;
+      } else {
+        lengthDesc = `・文量：3〜4文（110〜160文字程度）。背景の要配慮点や、避難所全体の運営ルールに踏み込んだ少し詳しい解説を含めてください。`;
+      }
+
+      // フォーマットの指示文
+      let formatDesc = "";
+      let formatExample = "";
+      if (format === "json") {
+        formatDesc = `出力は必ず以下のJSON形式のみを出力してください（Markdownコードブロック \`\`\`json で囲ってください。前後の余計な挨拶文は不要です）：`;
+        formatExample = `\`\`\`json
+[
+  {
+    "seq_no": 1,
+    "id": "EV-001",
+    "type": "event",
+    "target_name": "避難所本部の立ち上げ",
+    "comment": "災害対策本部からの指令です。避難者のうちけがをされている方の人数を数えて報告しましょう。"
+  },
+  {
+    "seq_no": 2,
+    "id": "GRP-001",
+    "type": "household",
+    "target_name": "佐藤世帯（高齢夫婦）",
+    "comment": "高齢者夫婦です。足が不自由なようですので避難所内の導線を考える必要があるかもしれません。"
+  }
+]
+\`\`\``;
+      } else if (format === "markdown_table") {
+        formatDesc = `出力は以下のMarkdownテーブル形式で一覧を出力してください（前後の挨拶文は不要です）：`;
+        formatExample = `| No. | ID | 種別 | 対象名 | AI解説・コメント（ナレーション） |
+|---|---|---|---|---|
+| 1 | EV-001 | イベント | 避難所本部の立ち上げ | 災害対策本部からの指令です。避難者のうちけがをされている方の人数を数えて報告しましょう。 |
+| 2 | GRP-001 | 避難者世帯 | 佐藤世帯（高齢夫婦） | 高齢者夫婦です。足が不自由なようですので避難所内の導線を考える必要があるかもしれません。 |`;
+      } else {
+        formatDesc = `出力は以下の番号付きテキスト一覧形式で出力してください：`;
+        formatExample = `1. [EV-001] 避難所本部の立ち上げ
+災害対策本部からの指令です。避難者のうちけがをされている方の人数を数えて報告しましょう。
+
+2. [GRP-001] 佐藤世帯（高齢夫婦）
+高齢者夫婦です。足が不自由なようですので避難所内の導線を考える必要があるかもしれません。`;
+      }
+
+      // プロンプト本文の組み立て
+      return `# 指示：HUG（避難所運営ゲーム）訓練カードめくり用「解説・ナレーションコメント」作成
+
+あなたは、避難所運営ゲーム（HUG）の熟練ファシリテーター兼防災専門家です。
+添付ファイル（\`${dataFormat === "markdown" ? "hug_deck_items_" + unitMode + ".md" : "hug_deck_items_" + unitMode + ".json"}\`）には、今回の訓練で使用するカードデッキの対象（全 ${unitsCount} 件）が記載されています。
+
+カードを順にめくっていく訓練の最中に、進行役が読み上げたり画面に提示するための、**【その世帯やイベントに対する簡単な解説と気付きを促すコメント】**を全件分作成してください。
+
+---
+
+## 求められるコメントのイメージ例（理想的なフレーズ）
+・「避難者家族４人です、お子さんはまだ小さく怯えています。まずは落ち着く場所へ案内しましょう。」
+・「高齢者夫婦です、足が不自由なようですので避難所内の導線を考える必要があるかもしれません。」
+・「災害対策本部からの指令です、避難者のうちけがをされている方の人数を数えて報告しましょう。」
+・「大量の物資が届いたようです、力仕事を頼める避難者はいらっしゃるでしょうか。」
+
+---
+
+## 作成条件
+1. ${toneDesc}
+2. ${lengthDesc}
+3. **着眼点**:
+   - 避難者世帯の場合：家族構成、小さな子ども、高齢者、妊産婦、持病・障がい、ペット、本人の不安な発言、または「手伝いができる特技・技能」に注目し、受入時の配慮や声かけのヒントを伝えてください。
+   - イベントカードの場合：指示元（本部、消防、近隣など）、緊急性、安全管理、必要人数、資機材、避難所全体の秩序維持など、訓練生が次に行うべき初動アクションへの気付きを促してください。
+${customNotes ? `4. **追加の特別指示**: ${customNotes}\n` : ""}
+4. **対象件数**: 添付データに含まれるすべての項目（No. 1 〜 No. ${unitsCount}）に対して、抜け漏れなく順番通りにコメントを作成してください。
+
+---
+
+## 出力フォーマット
+${formatDesc}
+
+${formatExample}
+`;
+    }
+
+    // =========================================================================
+    // Gemini出力結果のパース＆プレビュー反映
+    // =========================================================================
+    function parseAndApplyAiResponse() {
+      const text = aiResponseInput.value.trim();
+      if (!text) {
+        alert("Geminiの回答テキストを貼り付けてください。");
+        return;
+      }
+
+      let parsed = [];
+
+      // 1. JSONパースの試行 (```json ... ``` または 生の [ ... ] )
+      const jsonMatch = text.match(/```json([\s\S]*?)```/) || text.match(/(\[\s*\{[\s\S]*\}\s*\])/);
+      if (jsonMatch) {
+        try {
+          const rawJson = jsonMatch[1] || jsonMatch[0];
+          parsed = JSON.parse(rawJson);
+        } catch (e) {
+          console.warn("JSON parse error:", e);
+        }
+      }
+
+      // 2. JSONでパースできなかった場合、Markdownテーブルまたはテキストをパース
+      if (!Array.isArray(parsed) || parsed.length === 0) {
+        parsed = parseMarkdownTableOrList(text);
+      }
+
+      if (!parsed || parsed.length === 0) {
+        alert("出力結果を解析できませんでした。Geminiに「JSON形式」で出力させるか、Markdown表形式で貼り付けてください。");
+        return;
+      }
+
+      appState.aiParsedResults = parsed;
+      renderResultsTable(parsed);
+      resultsTableContainer.style.display = "block";
+      downloadCommentedCsvBtn.style.display = "inline-flex";
+      downloadCommentedJsonBtn.style.display = "inline-flex";
+      showToast(`🎉 ${parsed.length} 件の解説コメントを反映しました！`);
+    }
+
+    function parseMarkdownTableOrList(text) {
+      const list = [];
+      const lines = text.split("\n");
+
+      // テーブル行のチェック
+      const tableLines = lines.filter(l => l.trim().startsWith("|") && l.trim().endsWith("|"));
+      if (tableLines.length >= 3) {
+        for (let i = 2; i < tableLines.length; i++) {
+          const cells = tableLines[i].split("|").map(c => c.trim()).slice(1, -1);
+          if (cells.length >= 3) {
+            list.push({
+              seq_no: parseInt(cells[0], 10) || (list.length + 1),
+              id: cells[1] || "",
+              type: cells[2] || "",
+              target_name: cells[3] || "",
+              comment: cells[cells.length - 1] || ""
+            });
+          }
+        }
+        if (list.length > 0) return list;
+      }
+
+      // 番号付きリスト形式 (1. [EV-001] ... \n コメント)
+      let currentItem = null;
+      for (const line of lines) {
+        const trimmed = line.trim();
+        const numMatch = trimmed.match(/^(\d+)[\.\)]\s*(?:\[(.*?)\])?\s*(.*)$/);
+        if (numMatch) {
+          if (currentItem) list.push(currentItem);
+          currentItem = {
+            seq_no: parseInt(numMatch[1], 10),
+            id: numMatch[2] || "",
+            target_name: numMatch[3] || "",
+            comment: ""
+          };
+        } else if (currentItem && trimmed) {
+          currentItem.comment += (currentItem.comment ? " " : "") + trimmed;
+        }
+      }
+      if (currentItem) list.push(currentItem);
+
+      return list;
+    }
+
+    function renderResultsTable(parsed) {
+      resultsTbody.innerHTML = "";
+      resultsCountBadge.textContent = `${parsed.length} 件反映`;
+
+      const norm = appState.normalizedDeck;
+
+      parsed.forEach((item, index) => {
+        const tr = document.createElement("tr");
+
+        const no = item.seq_no || (index + 1);
+        const id = item.id || "";
+        const typeStr = item.type || (id.startsWith("EV") ? "イベント" : "世帯");
+        const isEvent = typeStr.includes("event") || typeStr.includes("イベント") || id.startsWith("EV");
+        const badgeClass = isEvent ? "badge-event" : "badge-group";
+        const badgeLabel = isEvent ? "イベント" : "避難者世帯";
+
+        // 元データから補足状況を取得
+        let contextDetail = "";
+        if (norm) {
+          if (isEvent && norm.eventMap.has(id)) {
+            const ev = norm.eventMap.get(id);
+            contextDetail = ev.content || ev.sceneDescription || "";
+          } else if (!isEvent && norm.groupMap.has(id)) {
+            const grp = norm.groupMap.get(id);
+            const pCount = grp.personCount || grp.memberCount || 0;
+            const petCount = grp.petCount || 0;
+            contextDetail = `${pCount}名 (${grp.origin})${petCount > 0 ? " 🐾ペット有" : ""}`;
+          }
+        }
+
+        tr.innerHTML = `
+          <td style="font-weight:700;color:var(--text-muted);">${no}</td>
+          <td><span class="type-badge ${badgeClass}">${badgeLabel}</span></td>
+          <td>
+            <div style="font-weight:700;color:var(--text);">${escapeHtml(item.target_name || id)}</div>
+            <div style="font-size:0.75rem;color:var(--text-light);">${escapeHtml(id)}</div>
+          </td>
+          <td style="font-size:0.8rem;color:var(--text-muted);max-width:280px;line-height:1.4;">
+            ${escapeHtml(contextDetail || "-")}
+          </td>
+          <td>
+            <div style="font-weight:600;color:#1e3a8a;background:#eff6ff;padding:0.4rem 0.65rem;border-radius:6px;border:1px solid #bfdbfe;line-height:1.5;">
+              🎙️ ${escapeHtml(item.comment || "")}
+            </div>
+          </td>
+        `;
+        resultsTbody.appendChild(tr);
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str || "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    // =========================================================================
+    // エクスポート（CSV / JSON）
+    // =========================================================================
+    function exportCommentedCsv() {
+      const items = appState.aiParsedResults;
+      if (!items || items.length === 0) return;
+
+      const header = ["通し番号", "ID", "種別", "対象名", "AI解説コメント"];
+      const rows = [header];
+
+      items.forEach((item, idx) => {
+        rows.push([
+          String(item.seq_no || idx + 1),
+          item.id || "",
+          item.type || "",
+          item.target_name || "",
+          item.comment || ""
+        ]);
+      });
+
+      const csvContent = "\ufeff" + rows.map(r => r.map(c => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\r\n");
+      downloadBlob(csvContent, "hug_deck_with_ai_comments.csv", "text/csv");
+      showToast("📊 コメント付き台帳CSVをダウンロードしました");
+    }
+
+    function exportCommentedJson() {
+      const items = appState.aiParsedResults;
+      if (!items || items.length === 0) return;
+
+      const output = {
+        meta: {
+          title: "HUG訓練用 AI解説・コメント付きデッキリスト",
+          source_file: appState.fileName,
+          exported_at: new Date().toISOString(),
+          total_items: items.length
+        },
+        items: items
+      };
+
+      downloadBlob(JSON.stringify(output, null, 2), "hug_deck_with_ai_comments.json", "application/json");
+      showToast("💾 コメント付きJSONをダウンロードしました");
+    }
+  </script>
+</body>
+</html>
