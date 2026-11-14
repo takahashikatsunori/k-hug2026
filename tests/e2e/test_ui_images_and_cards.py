@@ -528,3 +528,161 @@ def test_ui_im_04_deck_direct_card_preview_and_master_ledger(
     page.get_by_test_id("deck-submode-ledger").click()
     expect(page.get_by_test_id("deck-ledger-section")).to_be_visible()
     expect(page.get_by_test_id("master-ledger-table")).to_be_visible()
+
+
+def test_cv_09_group_header_layout_and_legacy_revert(page, e2e_server) -> None:
+    """CV-09: 避難者/ペットカードのグループ情報ヘッダ（固定2行高さ・共通配色）と legacy 切替復元の検証."""
+    page.goto(e2e_server["base_url"])
+    res = page.evaluate(
+        """async () => {
+            const {
+                EVACUEE_CARD_LAYOUT_MODE,
+                generateCardImageCanvas,
+                toCardRenderModel,
+                computeGroupPositionMap,
+            } = await import('/static/js/cardCanvas.js');
+
+            const shortGroupCard = {
+                id: '1',
+                original_id: 'M-1001',
+                group_id: 'GRP-100',
+                group_name: '林家',
+                group_index: 1,
+                group_total: 2,
+                type: '避難者',
+                name: '林 太郎',
+                origin: '花小金井１丁目',
+                age: '40',
+                gender: '男性',
+                attributes: '世帯主',
+                detailedFlags: ['高血圧'],
+                dialogue: 'テストセリフです。',
+                imageUrl: null,
+            };
+
+            const longGroupCard = {
+                ...shortGroupCard,
+                group_name: 'とても長い名前の特別支援三世代合同大世帯グループ名',
+                group_index: 2,
+                group_total: 12,
+            };
+
+            const petGroupCard = {
+                id: '2',
+                original_id: 'M-1002',
+                group_id: 'GRP-100',
+                group_name: '林家',
+                group_index: 2,
+                group_total: 2,
+                type: 'ペット',
+                name: 'ポチ',
+                origin: '花小金井１丁目',
+                age: '4',
+                gender: 'オス',
+                attributes: 'ペット',
+                detailedFlags: ['ケガ'],
+                dialogue: 'ケージの中でおとなしくしています。',
+                imageUrl: null,
+            };
+
+            const eventCard = {
+                id: '3',
+                original_id: 'EV-001',
+                type: 'イベント',
+                name: '停電発生',
+                attributes: '地震時必須',
+                detailedFlags: ['設備対応'],
+                dialogue: '避難所が停電しました。',
+                imageUrl: null,
+            };
+
+            const shortUrl = await generateCardImageCanvas(shortGroupCard, 'standard');
+            const longUrl = await generateCardImageCanvas(longGroupCard, 'standard');
+            const petUrl = await generateCardImageCanvas(petGroupCard, 'standard');
+            const legacyShortUrl = await generateCardImageCanvas(shortGroupCard, 'standard', {
+                layoutMode: 'legacy',
+            });
+            const evHeaderUrl = await generateCardImageCanvas(eventCard, 'standard');
+            const evLegacyUrl = await generateCardImageCanvas(eventCard, 'standard', {
+                layoutMode: 'legacy',
+            });
+
+            const loadCanvas = (url) =>
+                new Promise((resolve) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const c = document.createElement('canvas');
+                        c.width = img.width;
+                        c.height = img.height;
+                        const ctx = c.getContext('2d');
+                        ctx.drawImage(img, 0, 0);
+                        resolve(ctx);
+                    };
+                    img.src = url;
+                });
+
+            const shortCtx = await loadCanvas(shortUrl);
+            const longCtx = await loadCanvas(longUrl);
+            const petCtx = await loadCanvas(petUrl);
+            const legacyCtx = await loadCanvas(legacyShortUrl);
+
+            // (39, 138) は左端アクセントバー(#1d4ed8)、(555, 80) は右上ボックス背景(#eff6ff)
+            const px = (ctx, x, y) => Array.from(ctx.getImageData(x, y, 1, 1).data).slice(0, 3);
+
+            // 2文字グループ名と23文字グループ名で y=160..900 の領域（氏名・属性・セリフ）のY位置が完全一致することを確認
+            const lowerShort = shortCtx.getImageData(25, 160, 550, 740).data;
+            const lowerLong = longCtx.getImageData(25, 160, 550, 740).data;
+            let lowerDiffPixels = 0;
+            for (let i = 0; i < lowerShort.length; i += 4) {
+                if (
+                    Math.abs(lowerShort[i] - lowerLong[i]) > 2 ||
+                    Math.abs(lowerShort[i + 1] - lowerLong[i + 1]) > 2 ||
+                    Math.abs(lowerShort[i + 2] - lowerLong[i + 2]) > 2
+                ) {
+                    lowerDiffPixels++;
+                }
+            }
+
+            // computeGroupPositionMap + toCardRenderModel がデッキ側構成を基準に番号・総数を計算すること
+            const deckSubset = [
+                { card_number: 1, kind: 'person', original_id: 'M-1001', group_id: 'GRP-100', data: { member_id: 'M-1001', group_id: 'GRP-100', data_type: '人物', name: '林 太郎' }, group: { group_id: 'GRP-100', group_name: '林家' } },
+                { card_number: 2, kind: 'pet', original_id: 'M-1002', group_id: 'GRP-100', data: { member_id: 'M-1002', group_id: 'GRP-100', data_type: 'ペット', name: 'ポチ' }, group: { group_id: 'GRP-100', group_name: '林家' } },
+            ];
+            const posMap = computeGroupPositionMap(deckSubset);
+            const model2 = toCardRenderModel(deckSubset[1], null, posMap.get('M-1002') ? { groupIndex: posMap.get('M-1002').group_index, groupTotal: posMap.get('M-1002').group_total } : {});
+
+            return {
+                defaultLayoutMode: EVACUEE_CARD_LAYOUT_MODE,
+                shortBarPx: px(shortCtx, 39, 138),
+                shortBgPx: px(shortCtx, 555, 80),
+                petBarPx: px(petCtx, 39, 138),
+                petBgPx: px(petCtx, 555, 80),
+                legacyBarPx: px(legacyCtx, 39, 138),
+                legacyBgPx: px(legacyCtx, 555, 80),
+                lowerDiffPixels,
+                differsFromLegacy: shortUrl !== legacyShortUrl,
+                eventUnchanged: evHeaderUrl === evLegacyUrl,
+                model2Group: {
+                    group_name: model2.group_name,
+                    group_index: model2.group_index,
+                    group_total: model2.group_total,
+                },
+            };
+        }"""
+    )
+
+    assert res["defaultLayoutMode"] == "withGroupHeader"
+    # Proposal A 配色（避難者・ペット共通）: アクセント #1d4ed8=[29,78,216]、背景 #eff6ff=[239,246,255]
+    assert res["shortBarPx"] == [29, 78, 216]
+    assert res["shortBgPx"] == [239, 246, 255]
+    assert res["petBarPx"] == [29, 78, 216]
+    assert res["petBgPx"] == [239, 246, 255]
+    # legacy モードはグループ情報ヘッダなし（右上#eff6ff領域が白 #ffffff、左バー位置に青バーなし）で切り戻し可能
+    assert res["legacyBarPx"] != [29, 78, 216]
+    assert res["legacyBgPx"] == [255, 255, 255]
+    assert res["differsFromLegacy"] is True
+    assert res["eventUnchanged"] is True
+    # グループ名の長さに関わらず y=160..900 の領域は1ピクセルもずれないこと
+    assert res["lowerDiffPixels"] == 0
+    assert res["model2Group"] == {"group_name": "林家", "group_index": 2, "group_total": 2}
+

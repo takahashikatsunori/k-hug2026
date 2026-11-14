@@ -211,8 +211,14 @@ export function renderHouseholdCard(grp, members = [], options = {}) {
   `;
 
   const membersGrid = el.querySelector(".household-members-card-grid");
-  for (const m of members || []) {
-    const mModel = toCardRenderModel(m, grp);
+  const memberList = members || [];
+  const totalInHousehold = memberList.length;
+  for (let i = 0; i < memberList.length; i++) {
+    const m = memberList[i];
+    const mModel = toCardRenderModel(m, grp, {
+      groupIndex: i + 1,
+      groupTotal: totalInHousehold,
+    });
     const mid = m.member_id || "PREVIEW";
     const mWrap = document.createElement("div");
     mWrap.className = "household-member-card-item";
@@ -256,7 +262,10 @@ export function renderMemberCard(mem, grp = {}, options = {}) {
 
   const incomplete = isMemberIncomplete(mem);
   const hasImg = Boolean(mid && mid !== "PREVIEW" && store.imageIds && store.imageIds.has(mid));
-  const cardModel = toCardRenderModel(mem, grp);
+  const cardModel = toCardRenderModel(mem, grp, {
+    groupIndex: options.groupIndex,
+    groupTotal: options.groupTotal,
+  });
 
   el.innerHTML = `
     <div class="card-canvas-wrap">

@@ -64,3 +64,20 @@ def test_ap_10_saved_searches_lifecycle(seeded_client: TestClient):
     r_del = seeded_client.delete(f"/api/saved-searches/{sid}")
     assert r_del.status_code == 204
     assert seeded_client.get(f"/api/saved-searches/{sid}").status_code == 404
+
+
+def test_ap_search_returns_group_map_and_member_positions(seeded_client: TestClient):
+    """person/pet ビューでも親グループ情報とグループ内順番 (group_index / group_total) を取得できる."""
+    for view_name, list_key in (("person", "persons"), ("pet", "pets")):
+        r = seeded_client.post("/api/search", json={"view": view_name})
+        assert r.status_code == 200
+        body = r.json()
+        assert len(body[list_key]) > 0
+        first = body[list_key][0]
+        gid = first["group_id"]
+        mid = first["member_id"]
+        assert gid in body["group_map"]
+        assert body["group_map"][gid]["group_id"] == gid
+        assert mid in body["member_positions"]
+        pos = body["member_positions"][mid]
+        assert 1 <= pos["group_index"] <= pos["group_total"]

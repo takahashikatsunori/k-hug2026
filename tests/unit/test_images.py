@@ -359,3 +359,23 @@ def test_im_10_export_and_import_images_zip(tmp_path: Path) -> None:
         assert (get_images_dir(db2_path) / "M-0002.png").read_bytes() == png_mem
     finally:
         conn2.close()
+
+
+def test_im_11_card_models_include_group_positions(tmp_path: Path) -> None:
+    """IM-11: build_all_card_models が各世帯の構成員（人物・ペット含む）に group_index / group_total を付与する."""
+    db_path = tmp_path / "im11.db"
+    conn = connect(db_path)
+    try:
+        repo = Repository(conn)
+        _seed_sample_cards(repo)
+
+        models = build_all_card_models(conn)
+        grp1_models = [m for m in models if m.get("group_id") == "GRP-001"]
+        assert len(grp1_models) > 1
+        assert all(m["group_total"] == len(grp1_models) for m in grp1_models)
+        assert sorted(m["group_index"] for m in grp1_models) == list(
+            range(1, len(grp1_models) + 1)
+        )
+    finally:
+        conn.close()
+

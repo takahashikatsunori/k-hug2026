@@ -52,6 +52,8 @@ class DeckCard:
     new_group_id: str | None = None
     group_name: str | None = None
     group: dict[str, Any] | None = None
+    group_index: int | None = None
+    group_total: int | None = None
 
     def to_dict(self) -> dict[str, Any]:
         return {
@@ -66,7 +68,24 @@ class DeckCard:
             "new_group_id": self.new_group_id,
             "group_name": self.group_name,
             "group": self.group,
+            "group_index": self.group_index,
+            "group_total": self.group_total,
         }
+
+
+def _assign_deck_group_positions(cards: list[DeckCard]) -> None:
+    """デッキ内カード配列をもとに、各避難者・ペットカードのグループ内順位と総数を付与する."""
+    totals: dict[str, int] = {}
+    for c in cards:
+        if c.kind != "event" and c.group_id:
+            totals[c.group_id] = totals.get(c.group_id, 0) + 1
+    seen: dict[str, int] = {}
+    for c in cards:
+        if c.kind != "event" and c.group_id:
+            pos = seen.get(c.group_id, 0) + 1
+            seen[c.group_id] = pos
+            c.group_index = pos
+            c.group_total = totals.get(c.group_id, pos)
 
 
 @dataclass
@@ -486,6 +505,8 @@ def build_deck(
                     "card_numbers": hh_numbers,
                 }
             )
+
+    _assign_deck_group_positions(cards)
 
     export_events: list[dict[str, Any]] = []
     for orig_ev, new_cid in export_events_raw:

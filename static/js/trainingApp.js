@@ -5,7 +5,12 @@
  */
 import { escapeHtml } from "./util.js";
 import { store } from "./store.js";
-import { toCardRenderModel, bindCardCanvasImage } from "./cardCanvas.js";
+import {
+  toCardRenderModel,
+  bindCardCanvasImage,
+  computeGroupPositionsByIndex,
+  computeGroupPositionMap,
+} from "./cardCanvas.js";
 import {
   buildAllDatabaseCardEntries,
   buildInitialDeck,
@@ -286,6 +291,19 @@ export async function loadDeckFromJsonFile(file) {
   return loadDeckFromJsonString(text, file.name);
 }
 
+function annotateDeckGroupPositions(cards) {
+  const posList = computeGroupPositionsByIndex(cards);
+  return (cards || []).map((c, idx) => {
+    const pos = posList[idx];
+    if (!pos) return c;
+    return {
+      ...c,
+      group_index: pos.group_index,
+      group_total: pos.group_total,
+    };
+  });
+}
+
 export function loadDeckFromJsonString(jsonString, sourceName = "JSONファイル") {
   try {
     let result;
@@ -295,13 +313,22 @@ export function loadDeckFromJsonString(jsonString, sourceName = "JSONファイ�
       const parsed = JSON.parse(jsonString);
       const cards = parsed.cards || parsed.deck_cards || parsed.cards_event || [];
       result = {
-        deckCards: cards.map((c, i) => ({
-          card_number: i + 1,
-          original_id: c.card_id || c.original_id || `C-${i + 1}`,
-          kind: c.kind || (c.event_id ? "event" : "person"),
-          data: c.data || c,
-          group: c.group || null,
-        })),
+        deckCards: annotateDeckGroupPositions(
+          cards.map((c, i) => {
+            const rawData = c.data || c;
+            const grp = c.group || null;
+            const gid = c.group_id || rawData.group_id || grp?.group_id || null;
+            return {
+              card_number: c.card_number || i + 1,
+              original_id: c.card_id || c.original_id || rawData.member_id || `C-${i + 1}`,
+              kind: c.kind || (c.event_id ? "event" : rawData.data_type === "ペット" ? "pet" : "person"),
+              data: rawData,
+              group_id: gid,
+              group_name: c.group_name || grp?.group_name || null,
+              group: grp,
+            };
+          })
+        ),
         matchedCount: cards.length,
       };
     }
@@ -425,15 +452,19 @@ export async function loadDeckFromServerSavedDeck(deckId) {
       if (!buildRes.ok) throw new Error("デッキの再構築に失敗しました");
       const built = await buildRes.json();
       const cards = built.deck?.cards || built.cards || [];
-      appState.rawDeckCards = cards.map((c, i) => ({
-        card_number: c.card_number || i + 1,
-        original_id: c.original_id || c.card_id,
-        kind: c.kind,
-        data: c.data || c,
-        group: c.group || null,
-        group_id: c.group_id,
-        group_name: c.group_name,
-      }));
+      appState.rawDeckCards = annotateDeckGroupPositions(
+        cards.map((c, i) => ({
+          card_number: c.card_number || i + 1,
+          original_id: c.original_id || c.card_id,
+          kind: c.kind,
+          data: c.data || c,
+          group: c.group || null,
+          group_id: c.group_id,
+          group_name: c.group_name,
+          group_index: c.group_index,
+          group_total: c.group_total,
+        }))
+      );
     }
 
     appState.deckTitle = detail.name || `保存デッキ #${deckId}`;
@@ -1184,9 +1215,13 @@ export function highlightSingleCard(cardNo) {
 function bindCardImageIfNeeded(imgEl, card) {
   if (!imgEl.dataset.rendered) {
     imgEl.dataset.rendered = "true";
+    const posMap = computeGroupPositionMap(appState.rawDeckCards);
+    const pos = posMap.get(String(card.original_id || ""));
     const model = toCardRenderModel(card, card.group, {
       cardNumber: card.card_number,
       imageIds: store.imageIds,
+      groupIndex: pos?.group_index ?? card.group_index,
+      groupTotal: pos?.group_total ?? card.group_total,
     });
     if (model) {
       bindCardCanvasImage(imgEl, model, { showNumber: true });
@@ -1670,9 +1705,13 @@ function openLightboxForSlide(slideIdx) {
   const selectBtn = document.getElementById("tr-lightbox-select-btn");
 
   const firstCard = slide.cards[0];
+  const posMap = computeGroupPositionMap(appState.rawDeckCards);
+  const pos = posMap.get(String(firstCard.original_id || ""));
   const model = toCardRenderModel(firstCard, firstCard.group, {
     cardNumber: firstCard.card_number,
     imageIds: store.imageIds,
+    groupIndex: pos?.group_index ?? firstCard.group_index,
+    groupTotal: pos?.group_total ?? firstCard.group_total,
   });
   if (model) {
     bindCardCanvasImage(imgEl, model, { showNumber: true });

@@ -386,3 +386,31 @@ def test_de_22_manual_excluded_ids_excludes_units_and_cascades_prerequisites(s2_
     assert ev2_excl["manual"] is False
     assert "前提カード EV-001 がデッキにない" in ev2_excl["reasons"]
 
+
+def test_de_23_deck_card_group_positions(s2_payload: dict):
+    """DE-23: DeckCard にグループ内の順番 (group_index) と総数 (group_total) が付与される."""
+    res = build_deck(
+        s2_payload["cards_event"],
+        s2_payload["evacuee_groups"],
+        s2_payload["group_members"],
+        {"disaster_type": "地震", "shelter": "小平第五小学校"},
+    )
+    event_cards = [c for c in res.cards if c.kind == "event"]
+    assert all(c.group_index is None and c.group_total is None for c in event_cards)
+
+    hh_cards = [c for c in res.cards if c.kind != "event"]
+    assert len(hh_cards) > 0
+    by_gid: dict[str, list] = {}
+    for c in hh_cards:
+        assert c.group_id is not None
+        by_gid.setdefault(c.group_id, []).append(c)
+
+    for gid, grp_cards in by_gid.items():
+        expected_total = len(grp_cards)
+        assert [c.group_index for c in grp_cards] == list(range(1, expected_total + 1))
+        assert all(c.group_total == expected_total for c in grp_cards)
+        d0 = grp_cards[0].to_dict()
+        assert d0["group_index"] == 1
+        assert d0["group_total"] == expected_total
+
+

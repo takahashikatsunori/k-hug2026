@@ -934,13 +934,23 @@ export function buildInitialDeck(db, conditions = {}, options = {}) {
  * @returns {Array<Record<string, any>>}
  */
 export function renumberDeckCards(entries, db) {
+  const list = entries || [];
   const groupCounterMap = new Map();
+  const groupTotals = new Map();
+  for (const entry of list) {
+    if (entry.kind === "event") continue;
+    const gid = entry.group_id || (entry.group && entry.group.group_id) || null;
+    if (gid) groupTotals.set(gid, (groupTotals.get(gid) || 0) + 1);
+  }
+  const groupSeen = new Map();
   let grpSeq = 0;
 
-  return (entries || []).map((entry, idx) => {
+  return list.map((entry, idx) => {
     const seqNum = idx + 1;
     const isEvent = entry.kind === "event";
     let newGroupId = null;
+    let groupIndex = null;
+    let groupTotal = null;
     const gid = entry.group_id || (entry.group && entry.group.group_id) || null;
     if (!isEvent && gid) {
       if (!groupCounterMap.has(gid)) {
@@ -948,6 +958,9 @@ export function renumberDeckCards(entries, db) {
         groupCounterMap.set(gid, `GRP-${String(grpSeq).padStart(3, "0")}`);
       }
       newGroupId = groupCounterMap.get(gid);
+      groupIndex = (groupSeen.get(gid) || 0) + 1;
+      groupSeen.set(gid, groupIndex);
+      groupTotal = groupTotals.get(gid) || groupIndex;
     }
 
     const rec = entry.data || {};
@@ -969,6 +982,8 @@ export function renumberDeckCards(entries, db) {
       new_group_id: newGroupId,
       group_name: grp ? String(grp.group_name || gid || "") : null,
       group: grp,
+      group_index: groupIndex,
+      group_total: groupTotal,
       timing_index: timingIdx,
       phase_index: phaseIdx,
       timing_label: RELATIVE_TIMING_LIST[timingIdx] || "中盤",
@@ -1074,6 +1089,7 @@ export function buildAllDatabaseCardEntries(db) {
   for (const m of members) {
     groupMemberCounts.set(m.group_id, (groupMemberCounts.get(m.group_id) || 0) + 1);
   }
+  const groupSeenCounts = new Map();
 
   const out = [];
   for (const ev of events) {
@@ -1100,13 +1116,18 @@ export function buildAllDatabaseCardEntries(db) {
     const grp = groupById.get(m.group_id) || {};
     const tIdx = extractTimingIndex(grp);
     const pIdx = extractPhaseIndex(grp);
+    const groupTotal = groupMemberCounts.get(m.group_id) || 1;
+    const groupIndex = (groupSeenCounts.get(m.group_id) || 0) + 1;
+    groupSeenCounts.set(m.group_id, groupIndex);
     out.push({
       original_id: String(m.member_id),
       kind: m.data_type === "ペット" ? "pet" : "person",
       unit_id: String(m.group_id),
       group_id: String(m.group_id),
       group_name: String(grp.group_name || m.group_id),
-      group_total_cards: groupMemberCounts.get(m.group_id) || 1,
+      group_total_cards: groupTotal,
+      group_index: groupIndex,
+      group_total: groupTotal,
       title: String(m.name || m.member_id),
       data: m,
       group: grp,

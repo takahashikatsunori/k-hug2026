@@ -307,3 +307,86 @@ def test_web_deck_batch_origin_replace(page, e2e_server, tmp_path: Path):
     page.wait_for_selector("[data-testid='wd-deck-unit-list'] > .wd-unit-row")
     restored_deck_text = page.locator("[data-testid='wd-deck-unit-list']").inner_text()
     assert "小川東町１丁目" in restored_deck_text
+
+
+def test_web_deck_group_header_uses_deck_counts_on_single_member_remove_and_add(page, e2e_server):
+    """Webデッキで世帯の一部メンバーを抜き差しすると、デッキ側人数に合わせて『○名中 ○番目』が更新されDB側画像と区別される."""
+    page.set_viewport_size({"width": 1440, "height": 900})
+    page.goto(f"{e2e_server['base_url']}/deck.html")
+    page.evaluate("localStorage.clear()")
+    page.reload()
+    page.wait_for_selector("[data-testid='wd-workspace-toolbar']")
+
+    # デッキ内の複数名世帯を探して展開する
+    hh_rows = page.locator("[data-testid='wd-deck-unit-list'] > .wd-unit-row[data-unit-key^='G:']")
+    target_row = None
+    target_key = None
+    for i in range(hh_rows.count()):
+        r = hh_rows.nth(i)
+        r.locator(".wd-unit-body").click()
+        if r.locator("[data-single-remove]").count() >= 2:
+            target_row = r
+            target_key = r.get_attribute("data-unit-key")
+            break
+    assert target_row is not None and target_key is not None
+
+    # 1人外す前の先頭メンバー展開画像を待つ
+    first_img = target_row.locator(".wd-expand-img").first
+    page.wait_for_function(
+        "el => el && el.src && el.src.startsWith('data:image/png')",
+        arg=first_img.element_handle(),
+    )
+    img_before_src = first_img.get_attribute("src")
+
+    # 2番目のメンバーだけデッキから外す
+    target_row.locator("[data-single-remove]").nth(1).click()
+
+    # 外した後のデッキ側先頭メンバー画像（総人数が1人減ったため画像が変わる）
+    updated_row = page.locator(f"[data-testid='wd-deck-unit-list'] > .wd-unit-row[data-unit-key='{target_key}']")
+    updated_first_img = updated_row.locator(".wd-expand-img").first
+    page.wait_for_function(
+        "([el, prev]) => el && el.src && el.src.startsWith('data:image/png') && el.src !== prev",
+        arg=[updated_first_img.element_handle(), img_before_src],
+    )
+    img_after_src = updated_first_img.get_attribute("src")
+    assert img_after_src != img_before_src
+
+    # 上部ヘッダピル領域 (x=400..555, y=84..126) でもデッキ更新後にピクセルが変化していることを確認
+    diff = page.evaluate(
+        """async ([srcA, srcB]) => {
+            const load = (u) => new Promise((res) => {
+                const im = new Image();
+                im.onload = () => {
+                    const c = document.createElement('canvas');
+                    c.width = im.width; c.height = im.height;
+                    const x = c.getContext('2d');
+                    x.drawImage(im, 0, 0);
+                    res(x.getImageData(400, 84, 155, 42).data);
+                };
+                im.src = u;
+            });
+            const a = await load(srcA);
+            const b = await load(srcB);
+            let cnt = 0;
+            for (let i = 0; i < a.length; i += 4) {
+                if (Math.abs(a[i] - b[i]) > 10 || Math.abs(a[i + 1] - b[i + 1]) > 10) cnt++;
+            }
+            return cnt;
+        }""",
+        [img_before_src, img_after_src],
+    )
+    assert diff > 20
+
+    # サムネイル拡大モーダルから外したメンバーをデッキへ戻すと、元の総人数のカード画像に戻る
+    updated_row.locator(".wd-unit-thumb").click()
+    page.wait_for_selector("[data-testid='wd-household-zoom-modal'] [data-zoom-add]")
+    page.locator("[data-testid='wd-household-zoom-modal'] [data-zoom-add]").first.click()
+    page.wait_for_selector("[data-testid='wd-household-zoom-modal']", state="detached")
+
+    restored_row = page.locator(f"[data-testid='wd-deck-unit-list'] > .wd-unit-row[data-unit-key='{target_key}']")
+    restored_img = restored_row.locator(".wd-expand-img").first
+    page.wait_for_function(
+        "([el, expected]) => el && el.src === expected",
+        arg=[restored_img.element_handle(), img_before_src],
+    )
+

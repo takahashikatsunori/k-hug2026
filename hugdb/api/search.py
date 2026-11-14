@@ -53,22 +53,41 @@ def search_cards(
     res = _run_repo_search(repo, payload)
     out = res.to_dict()
 
-    # 各レコードの「要入力（必須項目未入力）」一覧を付与
+    # 各レコードの「要入力（必須項目未入力）」一覧と、構成員のグループ位置情報を付与
     missing_map: dict[str, list[str]] = {}
     for ev in repo.list_events():
         m = has_missing_required("event", ev)
         if m:
             missing_map[ev["card_id"]] = m
-    for grp in repo.list_groups():
+    all_groups = repo.list_groups()
+    group_map: dict[str, dict[str, Any]] = {}
+    for grp in all_groups:
+        gid = grp.get("group_id")
+        if gid:
+            group_map[gid] = grp
         m = has_missing_required("group", grp)
         if m:
             missing_map[grp["group_id"]] = m
+    members_by_group: dict[str, list[dict[str, Any]]] = {}
     for mem in repo.list_members():
+        gid = str(mem.get("group_id") or "")
+        if gid:
+            members_by_group.setdefault(gid, []).append(mem)
         m = has_missing_required("member", mem)
         if m:
             missing_map[mem["member_id"]] = m
 
+    member_positions: dict[str, dict[str, int]] = {}
+    for mems in members_by_group.values():
+        tot = len(mems)
+        for idx_in_grp, mem in enumerate(mems, start=1):
+            mid = mem.get("member_id")
+            if mid:
+                member_positions[mid] = {"group_index": idx_in_grp, "group_total": tot}
+
     out["missing_required"] = missing_map
+    out["group_map"] = group_map
+    out["member_positions"] = member_positions
     return out
 
 

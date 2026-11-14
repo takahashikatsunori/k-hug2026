@@ -3,7 +3,11 @@
  * 1枚ずつの送り、および「1世帯分を横並び（横スクロール）でまとめて表示」に対応.
  */
 import { escapeHtml } from "../util.js";
-import { toCardRenderModel, bindCardCanvasImage } from "../cardCanvas.js";
+import {
+  toCardRenderModel,
+  bindCardCanvasImage,
+  computeGroupPositionMap,
+} from "../cardCanvas.js";
 
 let activeTrainingKeyHandler = null;
 
@@ -58,6 +62,8 @@ export function openTrainingView(cards, options = {}) {
   if (!Array.isArray(cards) || cards.length === 0) {
     return;
   }
+
+  const deckPosMap = computeGroupPositionMap(cards);
 
   // デフォルトで世帯まとめて表示（options で明示的に指定可能）
   let groupByHousehold =
@@ -342,8 +348,11 @@ export function openTrainingView(cards, options = {}) {
     overlay.querySelectorAll(".training-rendered-card-img").forEach((img) => {
       const origId = img.dataset.origId;
       const c = slide.cards.find((x) => x.original_id === origId) || firstCard;
+      const pos = deckPosMap.get(String(c.original_id || ""));
       const model = toCardRenderModel(c, c.group || grp, {
         cardNumber: c.card_number,
+        groupIndex: pos?.group_index ?? c.group_index,
+        groupTotal: pos?.group_total ?? c.group_total,
       });
       if (model) {
         bindCardCanvasImage(img, model, { showNumber: true });

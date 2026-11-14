@@ -2745,6 +2745,8 @@ function openCardDetailModal(origId, isInDeck = false) {
   const renderModel = toCardRenderModel(rec, grp, {
     cardNumber: cardNo,
     originalId: origId,
+    groupIndex: target.group_index,
+    groupTotal: target.group_total,
   });
 
   const hhMembers = grp && target.group_id

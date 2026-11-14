@@ -15,6 +15,9 @@ def test_ap_16_deck_build(seeded_client: TestClient):
     data = r.json()
     assert data["stats"]["total_cards"] == 41
     assert len(data["conflicts"]) == 9
+    hh_card = next(c for c in data["cards"] if c["kind"] != "event")
+    assert hh_card["group_index"] >= 1
+    assert hh_card["group_total"] >= hh_card["group_index"]
 
 
 def test_ap_17_deck_reorder_and_409_on_prerequisite_violation(seeded_client: TestClient):

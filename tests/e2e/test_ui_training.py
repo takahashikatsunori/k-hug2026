@@ -303,3 +303,80 @@ def test_training_page_mobile_single_card_view(page, e2e_server):
     finally:
         Path(temp_path).unlink(missing_ok=True)
 
+
+def test_training_mode_group_header_rendered_with_deck_counts(page, e2e_server):
+    """訓練モードでもデッキ構成に基づくグループヘッダが避難者カードに描画される."""
+    import tempfile
+
+    with open("data/cards_db.json", encoding="utf-8") as f:
+        cards_db = json.load(f)
+
+    ev = cards_db["cards_event"][0]
+    grp = [g for g in cards_db["evacuee_groups"] if g["group_id"] == "GRP-655"][0]
+    all_members = [m for m in cards_db["group_members"] if m["group_id"] == "GRP-655"]
+    # あえて4名世帯のうち2名だけをデッキに含めて比較
+    partial_deck = {
+        "cards_event": [ev],
+        "evacuee_groups": [grp],
+        "group_members": all_members[:2],
+    }
+
+    with tempfile.NamedTemporaryFile("w", suffix=".json", delete=False, encoding="utf-8") as f:
+        json.dump(partial_deck, f, ensure_ascii=False)
+        temp_path = f.name
+
+    try:
+        page.goto(f"{e2e_server['base_url']}/training.html")
+        page.locator("#tr-file-input").set_input_files(temp_path)
+        page.wait_for_selector("[data-testid='tr-start-training-btn']")
+        page.get_by_test_id("tr-start-training-btn").click()
+        page.wait_for_selector("[data-testid='tr-stage-view']")
+
+        # スライドを進める: EV -> GRP-655 (2枚)
+        page.keyboard.press("Space")
+        page.keyboard.press("Space")
+
+        slot2_img = page.locator("#tr-card-slot-2 img.tr-carousel-card-img")
+        page.wait_for_function(
+            "el => el && el.src && el.src.startsWith('data:image/png')",
+            arg=slot2_img.element_handle(),
+        )
+        partial_src = slot2_img.get_attribute("src")
+        px_info = page.evaluate(
+            """async (src) => {
+                const img = new Image();
+                await new Promise((res) => { img.onload = res; img.src = src; });
+                const c = document.createElement('canvas');
+                c.width = img.width; c.height = img.height;
+                const x = c.getContext('2d');
+                x.drawImage(img, 0, 0);
+                return {
+                    barPx: Array.from(x.getImageData(39, 138, 1, 1).data).slice(0, 3),
+                    bgPx: Array.from(x.getImageData(555, 80, 1, 1).data).slice(0, 3),
+                };
+            }""",
+            partial_src,
+        )
+        # 訓練モードのレンダリング画像にも Proposal A のグループヘッダが描画されていること
+        assert px_info["barPx"] == [29, 78, 216]
+        assert px_info["bgPx"] == [239, 246, 255]
+
+        # 同じ No.2 カードを全4名デッキ相当と比較し、「2名中」と「4名中」で描画が変わることも確認
+        differs_from_db_four = page.evaluate(
+            """async ({ partialSrc, grp, member }) => {
+                const { toCardRenderModel, generateCardImageCanvas } = await import('/static/js/cardCanvas.js');
+                const model4 = toCardRenderModel(member, grp, {
+                    cardNumber: 2,
+                    groupIndex: 1,
+                    groupTotal: 4,
+                });
+                const url4 = await generateCardImageCanvas(model4, 'standard');
+                return url4 !== partialSrc;
+            }""",
+            {"partialSrc": partial_src, "grp": grp, "member": all_members[0]},
+        )
+        assert differs_from_db_four is True
+    finally:
+        Path(temp_path).unlink(missing_ok=True)
+
+

@@ -459,6 +459,8 @@ def member_to_card_model(
     *,
     card_number: int | str | None = None,
     image_meta_map: dict[str, dict[str, Any]] | None = None,
+    group_index: int | None = None,
+    group_total: int | None = None,
 ) -> dict[str, Any]:
     """構成員（人物・ペット）レコードをカード描画モデル (HugCard互換) に変換する."""
     orig_id = str(member.get("member_id") or "")
@@ -505,6 +507,8 @@ def member_to_card_model(
         "original_id": orig_id,
         "group_id": str(member.get("group_id") or (group or {}).get("group_id") or ""),
         "group_name": str((group or {}).get("group_name") or ""),
+        "group_index": group_index,
+        "group_total": group_total,
         "kind": kind_code,
         "type": type_label,
         "name": str(member.get("name") or ""),
@@ -546,14 +550,17 @@ def build_all_card_models(
             orphan_members.append(m)
 
     # 世帯ごとに fill_household_names を適用し、構成員ID順を維持できるようマップ化
-    filled_member_by_id: dict[str, tuple[dict[str, Any], dict[str, Any] | None]] = {}
+    filled_member_by_id: dict[
+        str, tuple[dict[str, Any], dict[str, Any] | None, int, int]
+    ] = {}
     for gid, grp in group_by_id.items():
         grp_members = members_by_group.get(gid, [])
         filled_list = fill_household_names(grp, grp_members)
-        for fm in filled_list:
-            filled_member_by_id[fm["member_id"]] = (fm, grp)
+        grp_total = len(filled_list)
+        for idx_in_grp, fm in enumerate(filled_list, start=1):
+            filled_member_by_id[fm["member_id"]] = (fm, grp, idx_in_grp, grp_total)
     for om in orphan_members:
-        filled_member_by_id[om["member_id"]] = (om, None)
+        filled_member_by_id[om["member_id"]] = (om, None, 1, 1)
 
     models: list[dict[str, Any]] = []
     for ev in events:
@@ -565,8 +572,16 @@ def build_all_card_models(
         key=lambda mid: (parse_id_number("M", mid) or 999999, mid),
     )
     for mid in sorted_member_ids:
-        fm, grp = filled_member_by_id[mid]
-        models.append(member_to_card_model(fm, grp, image_meta_map=image_meta_map))
+        fm, grp, g_idx, g_tot = filled_member_by_id[mid]
+        models.append(
+            member_to_card_model(
+                fm,
+                grp,
+                image_meta_map=image_meta_map,
+                group_index=g_idx,
+                group_total=g_tot,
+            )
+        )
 
     return models
 

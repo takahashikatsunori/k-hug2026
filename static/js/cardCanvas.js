@@ -133,6 +133,83 @@ export const PRINT_SIZES = {
 export const FIXED_DESIGN_MODE = "standard";
 export const FIXED_PRINT_SIZE_ID = "business";
 
+/**
+ * 避難者・ペットカードのレイアウト切替フラグ.
+ * 元のレイアウト（グループ情報なし）へ戻す場合はここを `"legacy"` に変更してください.
+ * @type {"withGroupHeader" | "legacy"}
+ */
+export const EVACUEE_CARD_LAYOUT_MODE = "withGroupHeader";
+
+/**
+ * 指定カード・オプションに対する有効なレイアウトモードを解決する.
+ * @param {Record<string, any> | null | undefined} card
+ * @param {{ layoutMode?: "withGroupHeader" | "legacy" }} [options]
+ * @returns {"withGroupHeader" | "legacy"}
+ */
+export function resolveEvacueeCardLayoutMode(card, options = {}) {
+  const mode = options?.layoutMode || card?.layoutMode || EVACUEE_CARD_LAYOUT_MODE;
+  return mode === "legacy" ? "legacy" : "withGroupHeader";
+}
+
+/**
+ * カード／レコードからグループIDを抽出する.
+ * @param {Record<string, any> | null | undefined} item
+ * @param {Record<string, any> | null | undefined} [group]
+ * @returns {string}
+ */
+export function resolveCardGroupId(item, group = null) {
+  if (!item) return "";
+  return String(
+    item.group_id || item.data?.group_id || item.group?.group_id || group?.group_id || ""
+  ).trim();
+}
+
+/**
+ * カード配列の各要素について、同一配列（デッキまたは世帯）内でのグループ内順番・総数を計算する.
+ * @param {Array<Record<string, any>>} cards
+ * @returns {Array<{ group_index: number, group_total: number } | null>}
+ */
+export function computeGroupPositionsByIndex(cards) {
+  if (!Array.isArray(cards) || cards.length === 0) return [];
+  const totals = new Map();
+  const groupIds = cards.map((c) => {
+    if (!c || c.kind === "event" || c.type === "イベント") return "";
+    return resolveCardGroupId(c);
+  });
+  for (const gid of groupIds) {
+    if (gid) totals.set(gid, (totals.get(gid) || 0) + 1);
+  }
+  const seen = new Map();
+  return groupIds.map((gid) => {
+    if (!gid) return null;
+    const pos = (seen.get(gid) || 0) + 1;
+    seen.set(gid, pos);
+    return {
+      group_index: pos,
+      group_total: totals.get(gid) || pos,
+    };
+  });
+}
+
+/**
+ * カード配列から `original_id` (または `member_id`/`id`) をキーとするグループ内順番マップを構築する.
+ * @param {Array<Record<string, any>>} cards
+ * @returns {Map<string, { group_index: number, group_total: number }>}
+ */
+export function computeGroupPositionMap(cards) {
+  const byId = new Map();
+  if (!Array.isArray(cards)) return byId;
+  const positions = computeGroupPositionsByIndex(cards);
+  for (let i = 0; i < cards.length; i++) {
+    const pos = positions[i];
+    if (!pos) continue;
+    const c = cards[i];
+    const oid = String(c.original_id || c.member_id || c.id || "").trim();
+    if (oid) byId.set(oid, pos);
+  }
+  return byId;
+}
+
 const cardImageCache = new Map();
 const baseCardCanvasCache = new Map();
 const baseCardDataUrlCache = new Map();
@@ -470,7 +547,12 @@ export function shouldDrawCardNumber(card, options = {}) {
  * @param {boolean} [withImage=true]
  * @returns {string}
  */
-function buildBaseCardCacheKey(card, designMode = "standard", withImage = true) {
+function buildBaseCardCacheKey(
+  card,
+  designMode = "standard",
+  withImage = true,
+  options = {}
+) {
   return JSON.stringify({
     original_id: String(card.original_id || card.id || ""),
     type: String(card.type || ""),
@@ -481,9 +563,148 @@ function buildBaseCardCacheKey(card, designMode = "standard", withImage = true) 
     attributes: String(card.attributes || ""),
     detailedFlags: Array.isArray(card.detailedFlags) ? card.detailedFlags : [],
     dialogue: String(card.dialogue || ""),
+    group_name: String(card.group_name || ""),
+    group_index: card.group_index ?? null,
+    group_total: card.group_total ?? null,
     imageUrl: withImage ? String(card.imageUrl || "") : "",
     designMode: designMode || "standard",
+    layoutMode: resolveEvacueeCardLayoutMode(card, options),
   });
+}
+
+/**
+ * 避難者・ペットカード上部のグループ名＆「○名中 ○番目」ヘッダ帯（固定2行高さ）を描画する.
+ * 提案A配色（避難者・ペット共通で高い視認性を維持）を使用する.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {Record<string, any>} card
+ * @param {number} width
+ * @returns {number} 次要素（氏名）のベースラインY座標
+ */
+function drawGroupInfoBanner(ctx, card, width) {
+  const boxX = 35;
+  const boxY = 74;
+  const boxW = width - 70;
+  const boxH = 74;
+
+  const rawGroupName = String(card.group_name || "").trim();
+  const groupIdx = Number(card.group_index);
+  const groupTot = Number(card.group_total);
+  const hasPos =
+    Number.isFinite(groupIdx) &&
+    Number.isFinite(groupTot) &&
+    groupIdx > 0 &&
+    groupTot > 0;
+  const posText = hasPos ? `${groupTot}名中 ${groupIdx}番目` : "";
+
+  if (!rawGroupName && !posText) {
+    return boxY + boxH + 56;
+  }
+
+  // 外枠＆薄い青背景（避難者・ペット共通の提案A配色）
+  ctx.fillStyle = "#eff6ff";
+  drawRoundRect(ctx, boxX, boxY, boxW, boxH, 8);
+  ctx.fill();
+  ctx.strokeStyle = "#60a5fa";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  // 左端アクセントバー（角丸に合わせてクリップ）
+  ctx.save();
+  drawRoundRect(ctx, boxX, boxY, boxW, boxH, 8);
+  ctx.clip();
+  ctx.fillStyle = "#1d4ed8";
+  ctx.fillRect(boxX, boxY, 8, boxH);
+  ctx.restore();
+
+  // 右側「○名中 ○番目」ピル
+  let nameRightLimit = boxX + boxW - 14;
+  if (posText) {
+    ctx.font = "bold 23px sans-serif";
+    const pillW = Math.ceil(ctx.measureText(posText).width + 24);
+    const pillH = 34;
+    const pillX = boxX + boxW - 12 - pillW;
+    const pillY = boxY + Math.round((boxH - pillH) / 2);
+
+    ctx.fillStyle = "#1d4ed8";
+    drawRoundRect(ctx, pillX, pillY, pillW, pillH, 6);
+    ctx.fill();
+
+    ctx.fillStyle = "#ffffff";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(posText, pillX + pillW / 2, pillY + pillH / 2 + 1);
+    ctx.textAlign = "left";
+    ctx.textBaseline = "alphabetic";
+    nameRightLimit = pillX - 10;
+  }
+
+  // 左側グループ名（1行収まり優先 → 長い場合は自動縮小＆最大2行折り返し、超過分はクリップ）
+  const displayGroupName = rawGroupName || "(グループ名未設定)";
+  const nameStartX = boxX + 20;
+  const nameMaxW = Math.max(40, nameRightLimit - nameStartX);
+  const wrapByWidth = (text, maxW) => {
+    const lines = [];
+    let cur = "";
+    for (const ch of text) {
+      if (cur && ctx.measureText(cur + ch).width > maxW) {
+        lines.push(cur);
+        cur = ch;
+      } else {
+        cur += ch;
+      }
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  };
+
+  let drawnLines = null;
+  let chosenFont = 31;
+  for (const fs of [31, 29, 27, 25]) {
+    ctx.font = `bold ${fs}px sans-serif`;
+    if (ctx.measureText(displayGroupName).width <= nameMaxW) {
+      chosenFont = fs;
+      drawnLines = [displayGroupName];
+      break;
+    }
+  }
+  if (!drawnLines) {
+    for (const fs of [25, 23, 21]) {
+      ctx.font = `bold ${fs}px sans-serif`;
+      const lines = wrapByWidth(displayGroupName, nameMaxW);
+      chosenFont = fs;
+      drawnLines = lines;
+      if (lines.length <= 2) break;
+    }
+  }
+
+  const visibleLines = (drawnLines || [displayGroupName]).slice(0, 2);
+  ctx.save();
+  ctx.beginPath();
+  ctx.rect(
+    boxX + 10,
+    boxY + 2,
+    Math.max(10, nameRightLimit - (boxX + 10)),
+    boxH - 4
+  );
+  ctx.clip();
+  ctx.fillStyle = rawGroupName ? "#1e3a8a" : "#64748b";
+  ctx.font = `bold ${chosenFont}px sans-serif`;
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  if (visibleLines.length === 1) {
+    ctx.fillText(visibleLines[0], nameStartX, boxY + boxH / 2 + 1);
+  } else {
+    const lineH = Math.round(chosenFont * 1.24);
+    const totalH = visibleLines.length * lineH;
+    const firstMidY = boxY + Math.round((boxH - totalH) / 2 + lineH / 2);
+    for (let li = 0; li < visibleLines.length; li++) {
+      ctx.fillText(visibleLines[li], nameStartX, firstMidY + li * lineH);
+    }
+  }
+  ctx.restore();
+  ctx.textBaseline = "alphabetic";
+
+  return boxY + boxH + 56;
 }
 
 /**
@@ -492,12 +713,14 @@ function buildBaseCardCacheKey(card, designMode = "standard", withImage = true) 
  * @param {Record<string, any>} card
  * @param {'standard' | 'largeText'} [designMode='standard']
  * @param {HTMLImageElement | null} [loadedImg=null]
+ * @param {{ layoutMode?: 'withGroupHeader' | 'legacy' }} [options]
  * @returns {HTMLCanvasElement}
  */
 function renderBaseCardCanvasSync(
   card,
   designMode = "standard",
-  loadedImg = null
+  loadedImg = null,
+  options = {}
 ) {
   const canvas = document.createElement("canvas");
   const ctx = canvas.getContext("2d");
@@ -574,7 +797,14 @@ function renderBaseCardCanvasSync(
     return currentY;
   };
 
+  const layoutMode = resolveEvacueeCardLayoutMode(card, options);
+  const useGroupHeader = !isEvent && !isLarge && layoutMode === "withGroupHeader";
+
   let currentY = isLarge ? 130 : 110;
+  if (useGroupHeader) {
+    currentY = drawGroupInfoBanner(ctx, card, width);
+    ctx.fillStyle = textColor;
+  }
   const cardName = String(card.name || (isEvent ? "(イベント名未設定)" : "(氏名自動生成)"));
 
   if (!isEvent) {
@@ -830,13 +1060,16 @@ function renderBaseCardCanvasSync(
     ctx.lineWidth = 2;
     ctx.stroke();
 
+    const clipDialogue = useGroupHeader;
+    const minDialogueFont = clipDialogue ? 25 : 12;
+
     ctx.fillStyle = "#0f172a";
     let dialogueFontSize = 33;
     let dialogueLineHeight = Math.floor(dialogueFontSize * 1.45);
     ctx.font = `bold ${dialogueFontSize}px sans-serif`;
     const dialogueText = String(card.dialogue || "");
 
-    while (dialogueFontSize > 12) {
+    while (dialogueFontSize > minDialogueFont) {
       if (!dialogueText) break;
       const chars = dialogueText.split("");
       let testLine = "";
@@ -860,7 +1093,14 @@ function renderBaseCardCanvasSync(
       ctx.font = `bold ${dialogueFontSize}px sans-serif`;
     }
 
-    const finalMaxLinesFit = Math.ceil((boxHeight - 20) / dialogueLineHeight);
+    const finalMaxLinesFit = clipDialogue
+      ? Math.max(1, Math.floor((boxHeight - 16) / dialogueLineHeight))
+      : Math.ceil((boxHeight - 20) / dialogueLineHeight);
+    if (clipDialogue) {
+      ctx.save();
+      drawRoundRect(ctx, 35, currentY, width - 70, boxHeight, 8);
+      ctx.clip();
+    }
     wrapText(
       dialogueText,
       55,
@@ -869,6 +1109,9 @@ function renderBaseCardCanvasSync(
       dialogueLineHeight,
       finalMaxLinesFit
     );
+    if (clipDialogue) {
+      ctx.restore();
+    }
   }
 
   // カード画像の右下隅にデータベース上の一意のカードID (EV-xxx / M-xxxx 等) を小さく描画
@@ -944,15 +1187,20 @@ async function loadImageElement(url) {
  * 番号以外のベースカード Canvas と DataURL を取得（キャッシュ済みなら即返却）する.
  * @param {Record<string, any>} card
  * @param {'standard' | 'largeText'} [designMode='standard']
+ * @param {{ layoutMode?: 'withGroupHeader' | 'legacy' }} [options]
  * @returns {Promise<{ canvas: HTMLCanvasElement, dataUrl: string }>}
  */
-export async function generateBaseCardCanvas(card, designMode = "standard") {
-  const key = buildBaseCardCacheKey(card, designMode, true);
+export async function generateBaseCardCanvas(
+  card,
+  designMode = "standard",
+  options = {}
+) {
+  const key = buildBaseCardCacheKey(card, designMode, true, options);
   if (baseCardCanvasCache.has(key)) {
     return baseCardCanvasCache.get(key);
   }
   const loadedImg = card.imageUrl ? await loadImageElement(card.imageUrl) : null;
-  const canvas = renderBaseCardCanvasSync(card, designMode, loadedImg);
+  const canvas = renderBaseCardCanvasSync(card, designMode, loadedImg, options);
   const dataUrl = canvas.toDataURL("image/png");
   const entry = {
     canvas,
@@ -968,7 +1216,7 @@ export async function generateBaseCardCanvas(card, designMode = "standard") {
  * イラスト画像が未ロードの場合でも、まずイラストなしベース画像を即座に返すため白紙にならない.
  * @param {Record<string, any>} card
  * @param {'standard' | 'largeText'} [designMode='standard']
- * @param {{ showNumber?: boolean }} [options]
+ * @param {{ showNumber?: boolean, layoutMode?: 'withGroupHeader' | 'legacy' }} [options]
  * @returns {{ dataUrl: string, isComplete: boolean }}
  */
 export function getCardImageDataUrlSync(
@@ -977,7 +1225,7 @@ export function getCardImageDataUrlSync(
   options = {}
 ) {
   const showNum = shouldDrawCardNumber(card, options);
-  const baseCompleteKey = buildBaseCardCacheKey(card, designMode, true);
+  const baseCompleteKey = buildBaseCardCacheKey(card, designMode, true, options);
   const fullCacheKey = JSON.stringify({
     baseKey: baseCompleteKey,
     id: showNum ? String(card.id) : "",
@@ -999,14 +1247,14 @@ export function getCardImageDataUrlSync(
 
   const hasReadyImage =
     !card.imageUrl || loadedImageElementCache.has(card.imageUrl);
-  const baseKey = buildBaseCardCacheKey(card, designMode, hasReadyImage);
+  const baseKey = buildBaseCardCacheKey(card, designMode, hasReadyImage, options);
   let baseEntry = baseCardCanvasCache.get(baseKey);
   if (!baseEntry) {
     const imgEl =
       hasReadyImage && card.imageUrl
         ? loadedImageElementCache.get(card.imageUrl)
         : null;
-    const canvas = renderBaseCardCanvasSync(card, designMode, imgEl);
+    const canvas = renderBaseCardCanvasSync(card, designMode, imgEl, options);
     const dataUrl = canvas.toDataURL("image/png");
     baseEntry = { canvas, dataUrl };
     setBoundedMap(baseCardCanvasCache, baseKey, baseEntry, MAX_CANVAS_CACHE_ENTRIES);
@@ -1128,7 +1376,7 @@ export function bindCardCanvasImage(imgEl, card, options = {}) {
   if (!imgEl || !card) return;
   const designMode = options.designMode || FIXED_DESIGN_MODE;
   const showNum = shouldDrawCardNumber(card, options);
-  const baseCompleteKey = buildBaseCardCacheKey(card, designMode, true);
+  const baseCompleteKey = buildBaseCardCacheKey(card, designMode, true, options);
   const fullCacheKey = JSON.stringify({
     baseKey: baseCompleteKey,
     id: showNum ? String(card.id) : "",
@@ -1182,12 +1430,18 @@ export function bindCardCanvasImage(imgEl, card, options = {}) {
  */
 export async function prebuildCardBaseImages(cards) {
   if (!Array.isArray(cards) || cards.length === 0) return;
+  const posList = computeGroupPositionsByIndex(cards);
   const limit = Math.min(cards.length, 12);
   for (let i = 0; i < limit; i++) {
     while (activeRenderCount > 0 || renderQueue.length > 0) {
       await new Promise((r) => setTimeout(r, 120));
     }
-    const model = toCardRenderModel(cards[i]);
+    const c = cards[i];
+    const pos = posList[i];
+    const model = toCardRenderModel(c, c?.group || null, {
+      groupIndex: c?.group_index ?? pos?.group_index,
+      groupTotal: c?.group_total ?? pos?.group_total,
+    });
     if (model) {
       try {
         await generateBaseCardCanvas(model, FIXED_DESIGN_MODE);
@@ -1204,7 +1458,7 @@ export async function prebuildCardBaseImages(cards) {
  * あらかじめ生成・キャッシュされたベース画像（番号以外）を利用し、通し番号がある場合のみ左上に `No. X` を合成する.
  * @param {Record<string, any>} card
  * @param {'standard' | 'largeText'} [designMode='standard']
- * @param {{ showNumber?: boolean }} [options]
+ * @param {{ showNumber?: boolean, layoutMode?: 'withGroupHeader' | 'legacy' }} [options]
  * @returns {Promise<string>}
  */
 export const generateCardImageCanvas = async (
@@ -1213,7 +1467,7 @@ export const generateCardImageCanvas = async (
   options = {}
 ) => {
   const showNum = shouldDrawCardNumber(card, options);
-  const baseCompleteKey = buildBaseCardCacheKey(card, designMode, true);
+  const baseCompleteKey = buildBaseCardCacheKey(card, designMode, true, options);
   const fullCacheKey = JSON.stringify({
     baseKey: baseCompleteKey,
     id: showNum ? String(card.id) : "",
@@ -1233,7 +1487,7 @@ export const generateCardImageCanvas = async (
     return cachedUrl;
   }
 
-  const baseEntry = await generateBaseCardCanvas(card, designMode);
+  const baseEntry = await generateBaseCardCanvas(card, designMode, options);
   const finalDataUrl = showNum
     ? composeCardNumberOnBaseCanvas(baseEntry.canvas, String(card.id), designMode)
     : baseEntry.dataUrl;
@@ -1293,10 +1547,25 @@ export function toCardRenderModel(item, group = null, options = {}) {
         : hasImage
           ? resolveCardImageUrl(origId, ver)
           : null;
+    const resolvedGroupName =
+      options.groupName !== undefined && options.groupName !== null
+        ? String(options.groupName)
+        : String(item.group_name || group?.group_name || "");
+    const resolvedGroupIdx =
+      options.groupIndex !== undefined && options.groupIndex !== null
+        ? Number(options.groupIndex)
+        : item.group_index ?? null;
+    const resolvedGroupTot =
+      options.groupTotal !== undefined && options.groupTotal !== null
+        ? Number(options.groupTotal)
+        : item.group_total ?? null;
     return {
       ...item,
       id: displayId,
       original_id: origId,
+      group_name: resolvedGroupName,
+      group_index: resolvedGroupIdx,
+      group_total: resolvedGroupTot,
       hasImage,
       imageUrl,
     };
@@ -1311,6 +1580,18 @@ export function toCardRenderModel(item, group = null, options = {}) {
           ? options.cardNumber
           : item.card_number,
       originalId: item.original_id,
+      groupName:
+        options.groupName !== undefined && options.groupName !== null
+          ? options.groupName
+          : item.group_name,
+      groupIndex:
+        options.groupIndex !== undefined && options.groupIndex !== null
+          ? options.groupIndex
+          : item.group_index,
+      groupTotal:
+        options.groupTotal !== undefined && options.groupTotal !== null
+          ? options.groupTotal
+          : item.group_total,
     });
   }
 
@@ -1391,11 +1672,26 @@ export function toCardRenderModel(item, group = null, options = {}) {
   const hasImage = imageSet.has(origId);
   const ver = (store.imageCacheBust && store.imageCacheBust[origId]) || "";
 
+  const resolvedGroupIdx =
+    options.groupIndex !== undefined && options.groupIndex !== null
+      ? Number(options.groupIndex)
+      : item.group_index ?? null;
+  const resolvedGroupTot =
+    options.groupTotal !== undefined && options.groupTotal !== null
+      ? Number(options.groupTotal)
+      : item.group_total ?? null;
+
   return {
     id: displayId,
     original_id: origId,
     group_id: String(item.group_id || grp.group_id || ""),
-    group_name: String(grp.group_name || ""),
+    group_name: String(
+      options.groupName !== undefined && options.groupName !== null
+        ? options.groupName
+        : grp.group_name || item.group_name || ""
+    ),
+    group_index: resolvedGroupIdx,
+    group_total: resolvedGroupTot,
     kind: isPet ? "pet" : "person",
     type: isPet ? "ペット" : "避難者",
     name: String(item.name || ""),
@@ -1436,15 +1732,24 @@ export async function generateCardImagesBatch(
 
     const chunk = cardsToProcess.slice(i, i + concurrency);
     const chunkPromises = chunk.map(async (card) => {
-      const cacheKey = JSON.stringify({ card, designMode });
+      const cacheKey = JSON.stringify({
+        card,
+        designMode,
+        layoutMode: resolveEvacueeCardLayoutMode(card, options),
+      });
       if (cardImageCache.has(cacheKey)) {
         return { id: String(card.id), dataUrl: cardImageCache.get(cacheKey) };
       }
 
       await new Promise((resolve) => setTimeout(resolve, 1));
       try {
-        const dataUrl = await generateCardImageCanvas(card, designMode);
-        cardImageCache.set(cacheKey, dataUrl);
+        const dataUrl = await generateCardImageCanvas(card, designMode, options);
+        setBoundedMap(
+          cardImageCache,
+          cacheKey,
+          dataUrl,
+          MAX_DATAURL_CACHE_ENTRIES
+        );
         return { id: String(card.id), dataUrl };
       } catch (err) {
         console.error(`Failed to generate image for card ${card.id}`, err);
@@ -1658,6 +1963,7 @@ export function renderCardPreviewElement(card, options = {}) {
     bindCardCanvasImage(canvasImg, card, {
       designMode,
       showNumber: options.showNumber,
+      layoutMode: options.layoutMode,
     });
   }
 
@@ -1668,6 +1974,7 @@ export function renderCardPreviewElement(card, options = {}) {
       try {
         const dataUrl = await generateCardImageCanvas(card, designMode, {
           showNumber: options.showNumber,
+          layoutMode: options.layoutMode,
         });
         const link = document.createElement("a");
         link.download = `hug-card-${card.id}.png`;

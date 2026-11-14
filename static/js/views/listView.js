@@ -183,6 +183,8 @@ export async function renderListView(container, callbacks) {
           grpMap[h.group.group_id] = h;
         }
       }
+      const fallbackGroupMap = res.group_map || {};
+      const memberPositions = res.member_positions || {};
 
       if (view === "all") {
         if (
@@ -240,8 +242,12 @@ export async function renderListView(container, callbacks) {
       } else if (view === "person") {
         for (const p of res.persons || []) {
           const hh = grpMap[p.group_id];
+          const grp = (hh && hh.group) || fallbackGroupMap[p.group_id] || {};
+          const pos = memberPositions[p.member_id] || {};
           grid.appendChild(
-            renderMemberCard(p, hh ? hh.group : {}, {
+            renderMemberCard(p, grp, {
+              groupIndex: pos.group_index,
+              groupTotal: pos.group_total,
               onClick: (m) => openModalFor("member", m.member_id),
             })
           );
@@ -249,8 +255,12 @@ export async function renderListView(container, callbacks) {
       } else if (view === "pet") {
         for (const pt of res.pets || []) {
           const hh = grpMap[pt.group_id];
+          const grp = (hh && hh.group) || fallbackGroupMap[pt.group_id] || {};
+          const pos = memberPositions[pt.member_id] || {};
           grid.appendChild(
-            renderMemberCard(pt, hh ? hh.group : {}, {
+            renderMemberCard(pt, grp, {
+              groupIndex: pos.group_index,
+              groupTotal: pos.group_total,
               onClick: (m) => openModalFor("member", m.member_id),
             })
           );

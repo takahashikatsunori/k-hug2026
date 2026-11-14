@@ -13,6 +13,7 @@ import { showToast } from "../components/toast.js";
 import {
   PRINT_SIZES,
   toCardRenderModel,
+  computeGroupPositionsByIndex,
   renderCardPreviewElement,
   renderMasterListElement,
   printMasterLedger,
@@ -707,8 +708,15 @@ export async function renderDeckView(container) {
 
   function getDeckRenderCards() {
     const rawCards = (store.currentDeck && store.currentDeck.cards) || [];
+    const positions = computeGroupPositionsByIndex(rawCards);
     return rawCards
-      .map((dc) => toCardRenderModel(dc))
+      .map((dc, idx) => {
+        const pos = positions[idx];
+        return toCardRenderModel(dc, dc.group || null, {
+          groupIndex: pos?.group_index ?? dc.group_index,
+          groupTotal: pos?.group_total ?? dc.group_total,
+        });
+      })
       .filter(Boolean);
   }
 
