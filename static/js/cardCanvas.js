@@ -152,6 +152,27 @@ export function resolveEvacueeCardLayoutMode(card, options = {}) {
 }
 
 /**
+ * イベントカードタイトルのレイアウト切替フラグ.
+ * 元の可変行レイアウト（1行時にイラストが上へ詰まる形式）へ戻す場合は `"legacy"` に変更してください.
+ * @type {"fixedTwoLine" | "legacy"}
+ */
+export const EVENT_CARD_TITLE_LAYOUT_MODE = "fixedTwoLine";
+
+/**
+ * 指定カード・オプションに対する有効なイベントタイトルレイアウトモードを解決する.
+ * @param {Record<string, any> | null | undefined} card
+ * @param {{ eventTitleLayoutMode?: "fixedTwoLine" | "legacy" }} [options]
+ * @returns {"fixedTwoLine" | "legacy"}
+ */
+export function resolveEventCardTitleLayoutMode(card, options = {}) {
+  const mode =
+    options?.eventTitleLayoutMode ||
+    card?.eventTitleLayoutMode ||
+    EVENT_CARD_TITLE_LAYOUT_MODE;
+  return mode === "legacy" ? "legacy" : "fixedTwoLine";
+}
+
+/**
  * カード／レコードからグループIDを抽出する.
  * @param {Record<string, any> | null | undefined} item
  * @param {Record<string, any> | null | undefined} [group]
@@ -569,7 +590,329 @@ function buildBaseCardCacheKey(
     imageUrl: withImage ? String(card.imageUrl || "") : "",
     designMode: designMode || "standard",
     layoutMode: resolveEvacueeCardLayoutMode(card, options),
+    eventTitleLayoutMode: resolveEventCardTitleLayoutMode(card, options),
   });
+}
+
+/**
+ * 幅上限で単純文字折り返しを行うフォールバックヘルパー.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {string} text
+ * @param {number} maxW
+ * @returns {string[]}
+ */
+function wrapTextByCharWidth(ctx, text, maxW) {
+  const lines = [];
+  let cur = "";
+  for (const ch of text) {
+    if (cur && ctx.measureText(cur + ch).width > maxW) {
+      lines.push(cur);
+      cur = ch;
+    } else {
+      cur += ch;
+    }
+  }
+  if (cur) lines.push(cur);
+  return lines;
+}
+
+/**
+ * 明示的な改行 (\n) を含む文字列を行ごとに幅折り返しする.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {string} text
+ * @param {number} maxW
+ * @returns {string[]}
+ */
+function wrapExplicitNewlines(ctx, text, maxW) {
+  const explicit = text.split("\n").filter((s) => s.length > 0);
+  const wrapped = [];
+  for (const part of explicit) {
+    wrapped.push(...wrapTextByCharWidth(ctx, part, maxW));
+  }
+  return wrapped.length ? wrapped : [text];
+}
+
+/**
+ * 2行折り返し時に助詞・記号・カタカナ単語などの意味の切れ目で自然に分割する.
+ * 明示的な改行（\n）がある場合はそれを優先する.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {string} text
+ * @param {number} maxW
+ * @returns {string[]}
+ */
+function splitGroupNameSmart(ctx, text, maxW) {
+  if (text.includes("\n")) {
+    return wrapExplicitNewlines(ctx, text, maxW);
+  }
+
+  const raw = wrapTextByCharWidth(ctx, text, maxW);
+  if (raw.length <= 1) return raw;
+
+  const chars = Array.from(text);
+  const isKatakana = (c) => c !== "・" && /[\u30A0-\u30FF]/.test(c);
+  const isHiragana = (c) => /[\u3040-\u309F]/.test(c);
+  const isAscii = (c) => /[A-Za-z0-9]/.test(c);
+
+  let best = null;
+  for (let i = 1; i < chars.length; i++) {
+    const l1 = chars.slice(0, i).join("");
+    const l2 = chars.slice(i).join("");
+    if (ctx.measureText(l1).width > maxW || ctx.measureText(l2).width > maxW) {
+      continue;
+    }
+
+    let score = 0;
+    const prev = chars[i - 1];
+    const next = chars[i];
+    if (prev === "・" || prev === "、" || prev === " " || prev === "　") {
+      score += 120;
+    }
+    if ((next === "（" || next === "(") && i >= 2) {
+      score += 110;
+    }
+    if (next === "・") score -= 60;
+    if (next === "）" || next === ")" || next === "、") score -= 220;
+    if (prev === "（" || prev === "(") score -= 180;
+    if (/[0-9０-９]/.test(prev) && /[人名匹歳階]/.test(next)) score -= 100;
+
+    // 末尾1〜3文字だけ2行目に落ちる孤立折り返しや極端に短い1行目を抑制
+    if (chars.length - i < 4) score -= 140;
+    if (i < 2) score -= 100;
+    if (i === 2) score -= 25;
+
+    // カタカナ語・英数字の途中切れを避け、文字種の境目を優先
+    if (isAscii(prev) && isAscii(next)) score -= 130;
+    if (isKatakana(prev) && isKatakana(next)) score -= 120;
+    if (
+      (isKatakana(prev) && !isKatakana(next) && next !== "）" && next !== "・") ||
+      (!isKatakana(prev) && isKatakana(next) && prev !== "（" && prev !== "・")
+    ) {
+      score += 35;
+    }
+    if (isHiragana(prev) && !isHiragana(next) && next !== "）") score += 25;
+
+    score -= Math.abs(i - (chars.length - i)) * 2;
+    if (!best || score > best.score) {
+      best = { score, lines: [l1, l2] };
+    }
+  }
+  return best ? best.lines : raw;
+}
+
+/**
+ * グループ名バナー用にフォントサイズと表示行（最大2行）を決定する.
+ * 1行収まりを優先し、2行になる場合は意味の区切りで自然に改行する.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {string} displayGroupName
+ * @param {number} nameMaxW
+ * @returns {{ fontSize: number, lines: string[] }}
+ */
+export function layoutGroupNameText(ctx, displayGroupName, nameMaxW) {
+  const text = String(displayGroupName || "");
+  if (!text.includes("\n")) {
+    for (const fs of [31, 29, 27, 25]) {
+      ctx.font = `bold ${fs}px sans-serif`;
+      if (ctx.measureText(text).width <= nameMaxW) {
+        return { fontSize: fs, lines: [text] };
+      }
+    }
+  }
+  let fallbackLines = [text];
+  let fallbackFont = 21;
+  for (const fs of [25, 23, 21]) {
+    ctx.font = `bold ${fs}px sans-serif`;
+    const lines = splitGroupNameSmart(ctx, text, nameMaxW);
+    fallbackFont = fs;
+    fallbackLines = lines;
+    if (lines.length <= 2) {
+      return { fontSize: fs, lines };
+    }
+  }
+  return { fontSize: fallbackFont, lines: fallbackLines };
+}
+
+const EVENT_TITLE_PARTICLES = new Set(["の", "と", "を", "に", "へ", "で", "が", "や"]);
+const EVENT_TITLE_BREAK_AFTER_PHRASES = [
+  "による",
+  "への",
+  "での",
+  "からの",
+  "に伴う",
+  "に対する",
+  "における",
+  "を巡る",
+];
+const EVENT_TITLE_BREAK_BEFORE_PHRASES = ["からの", "への", "による", "に伴う"];
+
+/**
+ * イベントカードタイトルの最適な2行分割位置スコアを算出する.
+ * @param {string[]} chars
+ * @param {number} i
+ * @param {number} depthAtIndex
+ * @returns {number}
+ */
+function scoreEventTitleSplit(chars, i, depthAtIndex) {
+  const isKatakana = (c) =>
+    c === "ー" || (c !== "・" && /[\u30A0-\u30FF]/.test(c));
+  const isHiragana = (c) => /[\u3040-\u309F]/.test(c);
+  const isKanji = (c) => /[\u4E00-\u9FFF]/.test(c);
+  const isAscii = (c) => /[A-Za-z0-9]/.test(c);
+  const isDigit = (c) => /[0-9０-９]/.test(c);
+
+  const l1 = chars.slice(0, i).join("");
+  const l2 = chars.slice(i).join("");
+  const prev = chars[i - 1];
+  const next = chars[i];
+  let score = 0;
+
+  // 括弧内の途中改行を抑止し、開き括弧の直前での改行を優先する
+  if (depthAtIndex > 0 && next !== "）" && next !== ")") score -= 240;
+  if (prev === "（" || prev === "(") score -= 280;
+  if (next === "）" || next === ")") score -= 340;
+  if ((next === "（" || next === "(") && i >= 2) score += 240;
+
+  if (prev === "・" || prev === "、" || prev === " " || prev === "　") {
+    score += i <= 3 && chars.length >= 10 ? 30 : 150;
+  }
+  if (next === "・" || next === "、") score -= 180;
+
+  // カタカナ・ひらがな語・英数字・数字+単位・送り仮名・複合語の途中切れを抑止
+  if (isAscii(prev) && isAscii(next)) score -= 220;
+  if (isKatakana(prev) && isKatakana(next)) score -= 210;
+  if (
+    isHiragana(prev) &&
+    isHiragana(next) &&
+    !EVENT_TITLE_PARTICLES.has(prev) &&
+    !EVENT_TITLE_PARTICLES.has(next)
+  ) {
+    score -= 210;
+  }
+  if (
+    (prev === "第" && isDigit(next)) ||
+    (isDigit(prev) && /[便名基世帯丁目時間度枚]/.test(next))
+  ) {
+    score -= 220;
+  }
+  if (isKanji(prev) && isHiragana(next) && !EVENT_TITLE_PARTICLES.has(next)) {
+    score -= 220;
+  }
+  if (/[者替錠室所品用等]/.test(next)) score -= 210;
+  if ((prev === "施" && next === "設") || (prev === "設" && next === "営")) {
+    score -= 240;
+  }
+  if (l1.endsWith("に") && l2.startsWith("伴う")) score -= 220;
+  if (l1.endsWith("おむつ") && l2.startsWith("替え")) score -= 210;
+
+  if (EVENT_TITLE_BREAK_AFTER_PHRASES.some((ph) => l1.endsWith(ph))) {
+    score += 140;
+  }
+  if (EVENT_TITLE_BREAK_BEFORE_PHRASES.some((ph) => l2.startsWith(ph))) {
+    score += 105;
+  }
+
+  if (EVENT_TITLE_PARTICLES.has(prev) && !EVENT_TITLE_PARTICLES.has(next) && next !== "・") {
+    score += 85;
+  }
+  if (EVENT_TITLE_PARTICLES.has(next) && !l2.startsWith("からの")) {
+    score -= 105;
+  }
+
+  // 極端に短い孤立行を避け、中央バランスを微調整する
+  if (chars.length - i <= 2) score -= 200;
+  else if (chars.length - i === 3) score -= 50;
+  if (i <= 2) score -= 170;
+  else if (i === 3) score -= 45;
+
+  score -= Math.abs(i - chars.length / 2) * 2;
+  return score;
+}
+
+/**
+ * イベントカードタイトルを2行以内に分割する際、助詞・中黒・括弧・複合語の境界で自然に改行する.
+ * 明示的な改行（\n）がある場合はそれを優先する.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {string} text
+ * @param {number} maxW
+ * @returns {string[]}
+ */
+function splitEventTitleSmart(ctx, text, maxW) {
+  const s = String(text || "");
+  if (s.includes("\n")) {
+    return wrapExplicitNewlines(ctx, s, maxW);
+  }
+  const raw = wrapTextByCharWidth(ctx, s, maxW);
+  if (raw.length <= 1) return raw;
+
+  const chars = Array.from(s);
+  const depthBefore = [];
+  let depth = 0;
+  for (let k = 0; k < chars.length; k++) {
+    depthBefore.push(depth);
+    if (chars[k] === "（" || chars[k] === "(") depth++;
+    else if ((chars[k] === "）" || chars[k] === ")") && depth > 0) depth--;
+  }
+
+  let best = null;
+  for (let i = 1; i < chars.length; i++) {
+    const l1 = chars.slice(0, i).join("");
+    const l2 = chars.slice(i).join("");
+    if (ctx.measureText(l1).width > maxW || ctx.measureText(l2).width > maxW) {
+      continue;
+    }
+    const score = scoreEventTitleSplit(chars, i, depthBefore[i]);
+    if (!best || score > best.score) {
+      best = { score, lines: [l1, l2] };
+    }
+  }
+  return best ? best.lines : raw;
+}
+
+/**
+ * イベントカードタイトル用にフォントサイズと表示行（最大2行）を決定する.
+ * カタカナ語・英数字・括弧内が途中切れしないサイズまで段階縮小して見栄えを整える.
+ * @param {CanvasRenderingContext2D} ctx
+ * @param {string} titleText
+ * @param {number} maxW
+ * @param {{ baseFontSize?: number, minPreferredFontSize?: number, minFontSize?: number }} [options]
+ * @returns {{ fontSize: number, lines: string[] }}
+ */
+export function layoutEventTitleText(ctx, titleText, maxW, options = {}) {
+  const text = String(titleText || "");
+  const baseFs = options.baseFontSize ?? 54;
+  const minPreferredFs = options.minPreferredFontSize ?? 40;
+  const minFs = options.minFontSize ?? 14;
+
+  const hasMidTokenBreak = (lines) => {
+    if (lines.length !== 2) return false;
+    const l1 = lines[0] || "";
+    const l2 = lines[1] || "";
+    const prev = l1.slice(-1);
+    const next = l2.slice(0, 1);
+    const midKata =
+      prev !== "・" &&
+      next !== "・" &&
+      /[\u30A0-\u30FF]/.test(prev) &&
+      /[\u30A0-\u30FF]/.test(next);
+    const midAsc = /[A-Za-z0-9]/.test(prev) && /[A-Za-z0-9]/.test(next);
+    const brokenParen =
+      l1.split("（").length - l1.split("）").length > 0 ||
+      l1.split("(").length - l1.split(")").length > 0;
+    return midKata || midAsc || brokenParen;
+  };
+
+  for (let fs = baseFs; fs >= minFs; fs -= 2) {
+    ctx.font = `bold ${fs}px sans-serif`;
+    const lines = splitEventTitleSmart(ctx, text, maxW);
+    if (lines.length <= 2) {
+      if (hasMidTokenBreak(lines) && fs > minPreferredFs) {
+        continue;
+      }
+      return { fontSize: fs, lines };
+    }
+  }
+
+  ctx.font = `bold ${minFs}px sans-serif`;
+  return { fontSize: minFs, lines: splitEventTitleSmart(ctx, text, maxW) };
 }
 
 /**
@@ -638,44 +981,15 @@ function drawGroupInfoBanner(ctx, card, width) {
     nameRightLimit = pillX - 10;
   }
 
-  // 左側グループ名（1行収まり優先 → 長い場合は自動縮小＆最大2行折り返し、超過分はクリップ）
+  // 左側グループ名（1行収まり優先 → 長い場合は自動縮小＆スマート2行折り返し、超過分はクリップ）
   const displayGroupName = rawGroupName || "(グループ名未設定)";
   const nameStartX = boxX + 20;
   const nameMaxW = Math.max(40, nameRightLimit - nameStartX);
-  const wrapByWidth = (text, maxW) => {
-    const lines = [];
-    let cur = "";
-    for (const ch of text) {
-      if (cur && ctx.measureText(cur + ch).width > maxW) {
-        lines.push(cur);
-        cur = ch;
-      } else {
-        cur += ch;
-      }
-    }
-    if (cur) lines.push(cur);
-    return lines;
-  };
-
-  let drawnLines = null;
-  let chosenFont = 31;
-  for (const fs of [31, 29, 27, 25]) {
-    ctx.font = `bold ${fs}px sans-serif`;
-    if (ctx.measureText(displayGroupName).width <= nameMaxW) {
-      chosenFont = fs;
-      drawnLines = [displayGroupName];
-      break;
-    }
-  }
-  if (!drawnLines) {
-    for (const fs of [25, 23, 21]) {
-      ctx.font = `bold ${fs}px sans-serif`;
-      const lines = wrapByWidth(displayGroupName, nameMaxW);
-      chosenFont = fs;
-      drawnLines = lines;
-      if (lines.length <= 2) break;
-    }
-  }
+  const { fontSize: chosenFont, lines: drawnLines } = layoutGroupNameText(
+    ctx,
+    displayGroupName,
+    nameMaxW
+  );
 
   const visibleLines = (drawnLines || [displayGroupName]).slice(0, 2);
   ctx.save();
@@ -819,38 +1133,77 @@ function renderBaseCardCanvasSync(
     ctx.fillText(cardName, 35, currentY);
     currentY += isLarge ? 15 : 10;
   } else {
-    let titleFontSize = isLarge ? 72 : 54;
-    let titleLineHeight = Math.floor(titleFontSize * 1.15);
-    ctx.font = `bold ${titleFontSize}px sans-serif`;
+    const eventTitleLayoutMode = resolveEventCardTitleLayoutMode(card, options);
+    const baseTitleFont = isLarge ? 72 : 54;
+    const maxTitleWidth = width - 70;
 
-    while (titleFontSize > 12) {
-      if (!cardName) break;
-      const chars = cardName.split("");
-      let testLine = "";
-      let testLineCount = 1;
-      for (let n = 0; n < chars.length; n++) {
-        const testNext = testLine + chars[n];
-        if (ctx.measureText(testNext).width > width - 70 && n > 0) {
-          testLine = chars[n];
-          testLineCount++;
-        } else {
-          testLine = testNext;
+    if (eventTitleLayoutMode === "fixedTwoLine") {
+      const baseLineHeight = Math.floor(baseTitleFont * 1.15);
+      const { fontSize: titleFontSize, lines: rawLines } = layoutEventTitleText(
+        ctx,
+        cardName,
+        maxTitleWidth,
+        {
+          baseFontSize: baseTitleFont,
+          minPreferredFontSize: isLarge ? 52 : 40,
+          minFontSize: 14,
         }
-      }
-      if (testLineCount <= 2) {
-        break;
-      }
-      titleFontSize -= 2;
-      titleLineHeight = Math.floor(titleFontSize * 1.15);
-      ctx.font = `bold ${titleFontSize}px sans-serif`;
-    }
+      );
+      const visibleLines = (
+        rawLines && rawLines.length ? rawLines : [cardName]
+      ).slice(0, 2);
+      const titleLineHeight = Math.floor(titleFontSize * 1.15);
 
-    const linesRendered =
-      (wrapText(cardName, 35, currentY, width - 70, titleLineHeight, 2) -
-        currentY) /
-      titleLineHeight;
-    currentY += (Math.max(1, linesRendered) - 1) * titleLineHeight;
-    currentY += isLarge ? 15 : 10;
+      // 1行タイトルも2行タイトルもイラスト開始Y座標を完全固定するため、2行枠の中央を基準に配置する
+      const refCenterBaseline = currentY + Math.floor(baseLineHeight / 2);
+      const blockSpan = (visibleLines.length - 1) * titleLineHeight;
+      const startBaselineY = Math.round(
+        refCenterBaseline - blockSpan / 2 + (baseTitleFont - titleFontSize) * 0.35
+      );
+
+      ctx.fillStyle = textColor;
+      ctx.font = `bold ${titleFontSize}px sans-serif`;
+      ctx.textAlign = "left";
+      for (let i = 0; i < visibleLines.length; i++) {
+        ctx.fillText(visibleLines[i], 35, startBaselineY + i * titleLineHeight);
+      }
+
+      currentY += baseLineHeight;
+      currentY += isLarge ? 15 : 10;
+    } else {
+      let titleFontSize = baseTitleFont;
+      let titleLineHeight = Math.floor(titleFontSize * 1.15);
+      ctx.font = `bold ${titleFontSize}px sans-serif`;
+
+      while (titleFontSize > 12) {
+        if (!cardName) break;
+        const chars = cardName.split("");
+        let testLine = "";
+        let testLineCount = 1;
+        for (let n = 0; n < chars.length; n++) {
+          const testNext = testLine + chars[n];
+          if (ctx.measureText(testNext).width > maxTitleWidth && n > 0) {
+            testLine = chars[n];
+            testLineCount++;
+          } else {
+            testLine = testNext;
+          }
+        }
+        if (testLineCount <= 2) {
+          break;
+        }
+        titleFontSize -= 2;
+        titleLineHeight = Math.floor(titleFontSize * 1.15);
+        ctx.font = `bold ${titleFontSize}px sans-serif`;
+      }
+
+      const linesRendered =
+        (wrapText(cardName, 35, currentY, maxTitleWidth, titleLineHeight, 2) -
+          currentY) /
+        titleLineHeight;
+      currentY += (Math.max(1, linesRendered) - 1) * titleLineHeight;
+      currentY += isLarge ? 15 : 10;
+    }
   }
 
   const validAge =
@@ -1736,6 +2089,7 @@ export async function generateCardImagesBatch(
         card,
         designMode,
         layoutMode: resolveEvacueeCardLayoutMode(card, options),
+        eventTitleLayoutMode: resolveEventCardTitleLayoutMode(card, options),
       });
       if (cardImageCache.has(cacheKey)) {
         return { id: String(card.id), dataUrl: cardImageCache.get(cacheKey) };
@@ -1964,6 +2318,7 @@ export function renderCardPreviewElement(card, options = {}) {
       designMode,
       showNumber: options.showNumber,
       layoutMode: options.layoutMode,
+      eventTitleLayoutMode: options.eventTitleLayoutMode,
     });
   }
 
@@ -1975,6 +2330,7 @@ export function renderCardPreviewElement(card, options = {}) {
         const dataUrl = await generateCardImageCanvas(card, designMode, {
           showNumber: options.showNumber,
           layoutMode: options.layoutMode,
+          eventTitleLayoutMode: options.eventTitleLayoutMode,
         });
         const link = document.createElement("a");
         link.download = `hug-card-${card.id}.png`;

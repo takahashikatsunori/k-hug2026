@@ -686,3 +686,421 @@ def test_cv_09_group_header_layout_and_legacy_revert(page, e2e_server) -> None:
     assert res["lowerDiffPixels"] == 0
     assert res["model2Group"] == {"group_name": "林家", "group_index": 2, "group_total": 2}
 
+
+def test_group_name_smart_wrapping_and_catalog_fit(page, e2e_server):
+    """スマート改行ロジックと data/cards_db.json 全144グループのヘッダ収まりを実 Canvas で検証する."""
+    import json
+    from pathlib import Path
+
+    static_db = json.loads(Path("data/cards_db.json").read_text(encoding="utf-8"))
+    counts = {}
+    for m in static_db["group_members"]:
+        gid = m.get("group_id")
+        counts[gid] = counts.get(gid, 0) + 1
+    groups_payload = [
+        {
+            "group_id": g["group_id"],
+            "group_name": g["group_name"],
+            "total": counts.get(g["group_id"], 1),
+        }
+        for g in static_db["evacuee_groups"]
+    ]
+
+    page.goto(e2e_server["base_url"])
+    res = page.evaluate(
+        """async (groups) => {
+            const { layoutGroupNameText } = await import('/static/js/cardCanvas.js');
+            const canvas = document.createElement('canvas');
+            canvas.width = 600;
+            canvas.height = 993;
+            const ctx = canvas.getContext('2d');
+
+            const measureFor = (name, total) => {
+                ctx.font = 'bold 23px sans-serif';
+                const pillW = Math.ceil(ctx.measureText(`${total}名中 ${total}番目`).width + 24);
+                const pillX = 35 + 530 - 12 - pillW;
+                const nameMaxW = Math.max(40, (pillX - 10) - (35 + 20));
+                return layoutGroupNameText(ctx, name, nameMaxW);
+            };
+
+            const smartCases = {
+                mosco: measureFor('モスコ・ミュールグループ（保育園集団避難）', 1).lines,
+                kaku: measureFor('角行家（視覚障害者と盲導犬）', 2).lines,
+                syosyo: measureFor('小暑家（単身女性・ボランティア経験者）', 1).lines,
+                ritto: measureFor('立冬家（若い単身女性・ITエンジニア）', 1).lines,
+                kosho: measureFor('胡椒家（全焼トラウマ・ショック世帯）', 2).lines,
+                hanshin: measureFor('阪神スイミングクラブ遠征団', 15).lines,
+                kyoto: measureFor('京都ユース蹴球クラブ遠征団', 20).lines,
+                explicitNewline: measureFor('独自改行テスト\\n2行目サンプル', 2).lines,
+            };
+
+            const allMeasured = groups.map((g) => ({
+                group_id: g.group_id,
+                group_name: g.group_name,
+                total: g.total,
+                ...measureFor(g.group_name, g.total),
+            }));
+            return { smartCases, allMeasured };
+        }""",
+        groups_payload,
+    )
+
+    sc = res["smartCases"]
+    assert sc["mosco"] == ["モスコ・ミュールグループ", "（保育園集団避難）"]
+    assert sc["kaku"] == ["角行家", "（視覚障害者と盲導犬）"]
+    assert sc["syosyo"] == ["小暑家（単身女性・", "ボランティア経験者）"]
+    assert sc["ritto"] == ["立冬家（若い単身女性・", "ITエンジニア）"]
+    assert sc["kosho"] == ["胡椒家（全焼トラウマ・", "ショック世帯）"]
+    assert sc["hanshin"] == ["阪神", "スイミングクラブ遠征団"]
+    assert sc["kyoto"] == ["京都ユース蹴球", "クラブ遠征団"]
+    assert sc["explicitNewline"] == ["独自改行テスト", "2行目サンプル"]
+
+    updated_1line_ids = {f"GRP-{i}" for i in ([740] + list(range(743, 755)) + list(range(760, 775)))}
+    all_names = []
+    for item in res["allMeasured"]:
+        all_names.append(item["group_name"])
+        lines = item["lines"]
+        assert 1 <= len(lines) <= 2, f"{item['group_id']} overflowed: {lines}"
+        if item["group_id"] in updated_1line_ids:
+            assert len(lines) == 1, f"{item['group_id']} wrapped unexpectedly: {lines}"
+            assert "（" in item["group_name"]
+        if len(lines) == 2:
+            assert len(lines[1]) >= 4, f"{item['group_id']} short 2nd line: {lines}"
+            assert not lines[0].endswith(("（", "(")), f"{item['group_id']} dangling (: {lines}"
+            assert not lines[1].startswith(("）", ")", "・")), f"{item['group_id']} bad 2nd line start: {lines}"
+
+    assert len(all_names) == len(set(all_names)) == 144
+
+
+def test_dialogue_length_and_catalog_canvas_fit(page, e2e_server):
+    """data/cards_db.json と DB の全445件のセリフ表示領域が50文字以内で、33px切れなしに収まることを検証する."""
+    import json
+    from pathlib import Path
+    import sqlite3
+
+    static_db = json.loads(Path("data/cards_db.json").read_text(encoding="utf-8"))
+    members = static_db["group_members"]
+    groups_by_id = {g["group_id"]: g for g in static_db["evacuee_groups"]}
+    assert len(members) == 445
+
+    db_file = Path("data/hug_cards.db")
+    db_members = {}
+    if db_file.exists():
+        ro_conn = sqlite3.connect(f"file:{db_file.resolve()}?mode=ro", uri=True)
+        try:
+            for mid, raw in ro_conn.execute("SELECT member_id, data FROM group_members").fetchall():
+                db_members[mid] = json.loads(raw)
+        finally:
+            ro_conn.close()
+
+    expected_shortened = {
+        "M-6120": ("statement", "管理栄養士です。食物アレルギーの配慮や栄養バランスの良い配給を助言できます。"),
+        "M-6195": ("statement", "地域の避難誘導を終えて真っ先に五小に来ました。鍵が開かず、中の状況が分からず不安です。"),
+        "M-6201": ("statement", "指示に従いすぐ避難しました。何か手伝えることはありますか？情報が途絶え状況が掴めません。"),
+        "M-6202": ("statement", "愛犬と早めに来ました。ペット同伴で避難所に入れるか、断られないか不安でたまりません。"),
+        "M-6204": ("statement", "家族全員で歩いて避難してきました。避難所の開所手順や今の状況を教えてほしいです。"),
+        "M-6209": ("statement", "看護師です。早期避難しました。医療救護所の設営は手伝えますが被害情報が少なく不安です。"),
+        "M-6210": ("statement", "ラジオの避難指示で夫婦で来ました。校庭待機ですが、今後の見通しが分からず怖いです。"),
+        "M-6212": ("statement", "夫の出張中に子どもと避難しました。携帯が繋がらず、夫と連絡が取れず不安です。"),
+        "M-6214": ("statement", "防災士です。発電機や備蓄確認など開設準備を手伝えます。状況の全体像も知りたいです。"),
+        "M-6215": ("statement", "ハザードマップを見て安全な五小に来ました。今後の開所手順や情報共有はどうなりますか？"),
+        "M-6219": ("statement", "家の物が倒れて怖かったです。安全と思い逃げてきましたが、連絡が取れない親戚が心配です。"),
+        "M-6222": ("statement", "五小が指定避難所なので迷わず来ました。中に入れない理由や開所時間を教えてください。"),
+        "M-6231": ("statement", "赤ちゃんとおばあちゃんがいるためすぐ避難しました。畳の部屋や授乳場所はありますか？"),
+        "M-6235": ("statement", "アパートから避難広報を聞き来ました。停電でネットも繋がらず情報がなく怖いです。"),
+        "M-6263": ("statement", "戸籍は男性ですが性自認は女性です。女子トイレや専用室の利用を相談したいです。"),
+        "M-6266": ("statement", "ヴィーガンで、ナッツ類に重度のアレルギーがあります。配給のご飯に入っていませんか？"),
+        "M-6402": ("statement", "鉋さんとリヤカーを押してきました。教員志望なので子どもやお年寄りの世話を手伝います！"),
+        "M-6404": ("statement", "兄のホアンと来日、母国では料理人でした。避難時に手を擦りむきましたが元気です！"),
+        "M-6405": ("statement", "3ヶ国語対応の看護留学生です。薬を持たず避難し、重度のそばアレルギーがあります。"),
+        "M-6334": ("appearance", "約25kgの大型日本犬ミックス。首輪とリード着用。しつけ済で無駄吠えしないが緊張気味。"),
+        "M-6347": ("appearance", "約28kgのラブラドール。黄色い「盲導犬」ハーネス装着。極めて高い訓練済で無駄吠えなし。"),
+        "M-6385": ("appearance", "頭と耳に火山灰が付いた三毛猫。赤い首輪あり、リード・ケージなしで飼い主の懐にいる。"),
+    }
+
+    if db_file.exists():
+        assert len(db_members) == 445
+
+    for m in members:
+        mid = m["member_id"]
+        if db_members:
+            db_m = db_members[mid]
+            assert db_m.get("statement") == m.get("statement")
+            assert db_m.get("appearance") == m.get("appearance")
+        field = "appearance" if m.get("data_type") == "ペット" else "statement"
+        text = str(m.get(field) or "")
+        assert len(text) <= 50, f"{mid} ({field}) len={len(text)} > 50: {text}"
+        if mid in expected_shortened:
+            exp_field, exp_text = expected_shortened[mid]
+            assert field == exp_field
+            assert text == exp_text
+
+    page.goto(e2e_server["base_url"])
+    res = page.evaluate(
+        """async ({ members, groupsById }) => {
+            const { toCardRenderModel, CARD_CANVAS_WIDTH, CARD_CANVAS_HEIGHT } = await import('/static/js/cardCanvas.js');
+            const canvas = document.createElement('canvas');
+            canvas.width = CARD_CANVAS_WIDTH;
+            canvas.height = CARD_CANVAS_HEIGHT;
+            const ctx = canvas.getContext('2d');
+            const width = CARD_CANVAS_WIDTH;
+            const height = CARD_CANVAS_HEIGHT;
+
+            const results = [];
+            for (const item of members) {
+                const grp = groupsById[item.group_id] || null;
+                const card = toCardRenderModel(item, grp, {});
+
+                // cardCanvas.js (standard + withGroupHeader + イラスト有り) の dialogue boxHeight 算出を再現
+                let currentY = 236; // group info banner 後 (102 + 78 + 56)
+                currentY += 10;     // name 後
+                currentY += 300 + 15; // imgAreaHeight(300) + 15
+
+                const hasBadge = (v) => v !== undefined && v !== null && v !== '' && v !== '-';
+                const validOrigin = hasBadge(card.origin) ? String(card.origin) : '';
+                if (validOrigin) {
+                    currentY += 40 + 12; // origin badgeHeight (40 + 12)
+                }
+                currentY += 15; // attr block end
+
+                if (card.attributes) {
+                    currentY += 15 + 20;
+                }
+                if (Array.isArray(card.detailedFlags) && card.detailedFlags.length > 0) {
+                    let flagX = 35;
+                    ctx.font = 'bold 26px sans-serif';
+                    const badgeHeight = 26 + 16;
+                    for (const flag of card.detailedFlags) {
+                        const textWidth = ctx.measureText(String(flag)).width;
+                        if (flagX + textWidth + 20 > width - 35) {
+                            flagX = 35;
+                            currentY += badgeHeight + 10;
+                        }
+                        flagX += textWidth + 30;
+                    }
+                    currentY += 50;
+                }
+
+                const boxHeight = Math.max(60, height - currentY - 46);
+                const fontSize = 33;
+                const lineHeight = Math.floor(fontSize * 1.45);
+                ctx.font = `bold ${fontSize}px sans-serif`;
+
+                const dialogueText = String(card.dialogue || '');
+                let lines = 1;
+                if (dialogueText) {
+                    const chars = dialogueText.split('');
+                    let testLine = '';
+                    for (let n = 0; n < chars.length; n++) {
+                        const testNext = testLine + chars[n];
+                        if (ctx.measureText(testNext).width > width - 110 && n > 0) {
+                            testLine = chars[n];
+                            lines++;
+                        } else {
+                            testLine = testNext;
+                        }
+                    }
+                }
+                const maxLinesFitShrinkCheck = Math.floor((boxHeight - 20) / lineHeight);
+                const finalMaxLinesFit = Math.max(1, Math.floor((boxHeight - 16) / lineHeight));
+
+                results.push({
+                    id: item.member_id,
+                    len: [...dialogueText].length,
+                    lines,
+                    maxLinesFitShrinkCheck,
+                    finalMaxLinesFit,
+                    fitsAt33: lines <= maxLinesFitShrinkCheck && lines <= finalMaxLinesFit,
+                });
+            }
+            return results;
+        }""",
+        {"members": members, "groupsById": groups_by_id},
+    )
+
+    assert len(res) == 445
+    assert all(r["len"] <= 50 for r in res), [r for r in res if r["len"] > 50]
+    assert all(r["fitsAt33"] for r in res), [r for r in res if not r["fitsAt33"]]
+
+
+def test_event_fixed_two_line_title_and_catalog_fit(page, e2e_server) -> None:
+    """イベントカードの固定2行タイトル枠（イラストY位置固定・legacy切替可）と全172件の文面・描画収まりを検証する."""
+    import json
+    import re
+    import sqlite3
+
+    static_db = json.loads(Path("data/cards_db.json").read_text(encoding="utf-8"))
+    events = static_db["cards_event"]
+    assert len(events) == 172
+
+    db_file = Path("data/hug_cards.db")
+    db_events = {}
+    if db_file.exists():
+        ro_conn = sqlite3.connect(f"file:{db_file.resolve()}?mode=ro", uri=True)
+        try:
+            for cid, raw in ro_conn.execute("SELECT card_id, data FROM cards_event").fetchall():
+                db_events[cid] = json.loads(raw)
+        finally:
+            ro_conn.close()
+        assert len(db_events) == 172
+
+    titles_seen = set()
+    for ev in events:
+        cid = ev["card_id"]
+        if db_events:
+            assert db_events[cid] == ev, f"DB/JSON mismatch on {cid}"
+        title = str(ev["event_name"] or "")
+        body = str(ev["content"] or "")
+        titles_seen.add(title)
+        assert 42 <= len(body) <= 56, f"{cid} body len={len(body)}: {body}"
+        assert body.endswith(("か？", "てください。")), f"{cid} unexpected ending: {body}"
+        assert not re.search(r"マンホール(?!トイレ)", title + body), f"{cid} abbreviated マンホール"
+
+    assert len(titles_seen) == 172
+
+    ev_by_id = {e["card_id"]: e for e in events}
+    assert "アナフィラキシーショック" in ev_by_id["EV-838"]["event_name"]
+    assert "アナフィラキシーショック" in ev_by_id["EV-838"]["content"]
+    assert ev_by_id["EV-815"]["training_point"].endswith("徹底。")
+    for cid in ("EV-879", "EV-880", "EV-881"):
+        assert "他全員" not in ev_by_id[cid]["content"]
+        assert "隔離室へ退避させてください。" in ev_by_id[cid]["content"]
+
+    page.goto(e2e_server["base_url"])
+    res = page.evaluate(
+        """async (events) => {
+            const {
+                EVENT_CARD_TITLE_LAYOUT_MODE,
+                layoutEventTitleText,
+                generateBaseCardCanvas,
+                toCardRenderModel,
+                CARD_CANVAS_WIDTH,
+                CARD_CANVAS_HEIGHT,
+            } = await import('/static/js/cardCanvas.js');
+
+            // テスト用の固定イラスト（青背景 + 赤帯）を生成
+            const imgCanvas = document.createElement('canvas');
+            imgCanvas.width = 400;
+            imgCanvas.height = 240;
+            const ictx = imgCanvas.getContext('2d');
+            ictx.fillStyle = '#0ea5e9';
+            ictx.fillRect(0, 0, 400, 240);
+            const dummyImgUrl = imgCanvas.toDataURL('image/png');
+
+            const probeCanvas = document.createElement('canvas');
+            probeCanvas.width = CARD_CANVAS_WIDTH;
+            probeCanvas.height = CARD_CANVAS_HEIGHT;
+            const ctx = probeCanvas.getContext('2d');
+            const width = CARD_CANVAS_WIDTH;
+            const height = CARD_CANVAS_HEIGHT;
+
+            // EV-845 (1行) と EV-875 (2行) で fixedTwoLine / legacy のイラストY位置を比較
+            const ev1 = events.find((e) => e.card_id === 'EV-845');
+            const ev2 = events.find((e) => e.card_id === 'EV-875');
+            const makeModel = (ev) => {
+                const m = toCardRenderModel(ev, null, {});
+                m.hasImage = true;
+                m.imageUrl = dummyImgUrl;
+                return m;
+            };
+            const base1 = (await generateBaseCardCanvas(makeModel(ev1), 'standard')).canvas;
+            const base2 = (await generateBaseCardCanvas(makeModel(ev2), 'standard')).canvas;
+            const base1Legacy = (await generateBaseCardCanvas(makeModel(ev1), 'standard', {
+                eventTitleLayoutMode: 'legacy',
+            })).canvas;
+
+            const findFirstSkyRow = (canvas) => {
+                const c = canvas.getContext('2d');
+                for (let y = 100; y < 350; y++) {
+                    const px = c.getImageData(300, y, 1, 1).data;
+                    if (px[0] < 40 && px[1] > 140 && px[2] > 200) {
+                        return y;
+                    }
+                }
+                return -1;
+            };
+
+            const titleAndBodyChecks = [];
+            for (const item of events) {
+                const card = toCardRenderModel(item, null, {});
+                const titleInfo = layoutEventTitleText(ctx, card.name, width - 70);
+
+                // fixedTwoLine: タイトル終了後の currentY = 182 -> 画像あり時は + 315 = 497 -> 空白属性加算 + 15 = 512
+                let currentY = 182 + 300 + 15 + 15;
+                if (card.attributes) {
+                    currentY += 15 + 20;
+                }
+                if (Array.isArray(card.detailedFlags) && card.detailedFlags.length > 0) {
+                    let flagX = 35;
+                    ctx.font = 'bold 26px sans-serif';
+                    const badgeHeight = 26 + 16;
+                    for (const flag of card.detailedFlags) {
+                        const textWidth = ctx.measureText(String(flag)).width;
+                        if (flagX + textWidth + 20 > width - 35) {
+                            flagX = 35;
+                            currentY += badgeHeight + 10;
+                        }
+                        flagX += textWidth + 30;
+                    }
+                    currentY += 50;
+                }
+
+                const boxHeight = Math.max(60, height - currentY - 46);
+                const fontSize = 33;
+                const lineHeight = Math.floor(fontSize * 1.45);
+                ctx.font = `bold ${fontSize}px sans-serif`;
+
+                let bodyLines = 1;
+                const chars = String(card.dialogue || '').split('');
+                let testLine = '';
+                for (let n = 0; n < chars.length; n++) {
+                    const testNext = testLine + chars[n];
+                    if (ctx.measureText(testNext).width > width - 110 && n > 0) {
+                        testLine = chars[n];
+                        bodyLines++;
+                    } else {
+                        testLine = testNext;
+                    }
+                }
+
+                titleAndBodyChecks.push({
+                    id: item.card_id,
+                    titleFont: titleInfo.fontSize,
+                    titleLines: titleInfo.lines,
+                    fitsDialogueAt33: bodyLines <= Math.floor((boxHeight - 20) / lineHeight),
+                });
+            }
+
+            return {
+                defaultEventTitleLayoutMode: EVENT_CARD_TITLE_LAYOUT_MODE,
+                imgTop1LineFixed: findFirstSkyRow(base1),
+                imgTop2LineFixed: findFirstSkyRow(base2),
+                imgTop1LineLegacy: findFirstSkyRow(base1Legacy),
+                checks: titleAndBodyChecks,
+            };
+        }""",
+        events,
+    )
+
+    assert res["defaultEventTitleLayoutMode"] == "fixedTwoLine"
+    # 1行タイトル(EV-845)も2行タイトル(EV-875)もイラスト開始Y座標が完全一致すること (枠192, 中身193)
+    assert res["imgTop1LineFixed"] == res["imgTop2LineFixed"] >= 192
+    # legacy 切替時は 1行タイトルのイラスト開始位置が上へ詰まるため明確に異なる
+    assert res["imgTop1LineLegacy"] < res["imgTop1LineFixed"]
+
+    by_id = {c["id"]: c for c in res["checks"]}
+    assert by_id["EV-838"]["titleLines"] == ["配給誤食による", "アナフィラキシーショック"]
+    assert by_id["EV-881"]["titleLines"] == ["感染症発生", "（新型コロナウイルス疑い）"]
+    for item in res["checks"]:
+        cid = item["id"]
+        lines = item["titleLines"]
+        assert 1 <= len(lines) <= 2, f"{cid} title wrapped > 2 lines: {lines}"
+        assert 40 <= item["titleFont"] <= 54, f"{cid} unexpected font={item['titleFont']}"
+        assert item["fitsDialogueAt33"] is True, f"{cid} dialogue overflows at 33px"
+        if len(lines) == 2:
+            assert not lines[0].endswith(("（", "(")), f"{cid} dangling (: {lines}"
+            assert not lines[1].startswith(("）", ")", "・")), f"{cid} bad line2 start: {lines}"
+
+
+
+
