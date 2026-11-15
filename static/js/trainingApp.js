@@ -1216,11 +1216,9 @@ function updateCarouselSpotlight(scrollIntoView = true) {
           : "";
       bannerWrap.innerHTML = `
         <div class="tr-stage-banner is-household" data-testid="tr-household-header">
-          <div class="tr-stage-banner-main">
-            <span class="tr-badge tr-badge-household">🏠 避難世帯</span>
-            <span class="tr-stage-banner-title">${escapeHtml(grp.group_id || firstCard.group_id || "")}: ${escapeHtml(grp.group_name || firstCard.group_name || "世帯")}</span>
-            ${stepBadgeHtml}
-          </div>
+          <span class="tr-badge tr-badge-household">🏠 避難世帯</span>
+          <span class="tr-stage-banner-title">${escapeHtml(grp.group_id || firstCard.group_id || "")}: ${escapeHtml(grp.group_name || firstCard.group_name || "世帯")}</span>
+          ${stepBadgeHtml}
           <div class="tr-stage-banner-meta">
             👤 <strong>${memberCount}名</strong> 🐾 <strong>${petCount}匹</strong>
           </div>
@@ -1237,12 +1235,10 @@ function updateCarouselSpotlight(scrollIntoView = true) {
           : "";
       bannerWrap.innerHTML = `
         <div class="tr-stage-banner ${isEvent ? "is-event" : "is-household"}" data-testid="tr-event-header">
-          <div class="tr-stage-banner-main">
-            <span class="tr-badge ${isEvent ? "tr-badge-event" : "tr-badge-household"}">
-              ${isEvent ? "⚡ イベント" : firstCard.kind === "pet" ? "🐾 ペット" : "👤 避難者"}
-            </span>
-            <span class="tr-stage-banner-title">No.${firstCard.card_number}: ${escapeHtml(title || "")}</span>
-          </div>
+          <span class="tr-badge ${isEvent ? "tr-badge-event" : "tr-badge-household"}">
+            ${isEvent ? "⚡ イベント" : firstCard.kind === "pet" ? "🐾 ペット" : "👤 避難者"}
+          </span>
+          <span class="tr-stage-banner-title">No.${firstCard.card_number}: ${escapeHtml(title || "")}</span>
           ${hhMetaHtml}
         </div>
       `;

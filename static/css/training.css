@@ -534,41 +534,48 @@ body.training-body.is-setup {
   to { transform: scale(1.15); }
 }
 
-/* 2. ステージ見出しバー（対象スライドの情報） */
+/* 2. ステージ見出しバー（固定高さにして情報量によるカード位置・サイズ変動を防止） */
 .tr-stage-banner-row {
-  min-height: 58px;
-  height: auto;
-  flex: 0 0 auto;
+  height: 78px;
+  min-height: 78px;
+  max-height: 78px;
+  flex: 0 0 78px;
   padding: 0.45rem 1.5rem 0.25rem;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
+  overflow: hidden;
   z-index: 15;
 }
 
 .tr-stage-banner-wrap {
   width: 100%;
+  height: 100%;
   display: flex;
   justify-content: center;
+  align-items: stretch;
 }
 
 .tr-stage-banner-waiting {
   background: #ffffff;
   border: 1px solid var(--tr-border);
   color: #475569;
-  justify-content: center;
+  justify-content: center !important;
+  gap: 0.75rem !important;
 }
 
 .tr-stage-banner {
-  display: inline-flex;
+  display: flex;
   align-items: center;
-  justify-content: space-between;
-  gap: 1.25rem;
-  padding: 0.65rem 1.5rem;
+  justify-content: flex-start;
+  gap: 0.85rem;
+  padding: 0.5rem 1.4rem;
   border-radius: 1rem;
   max-width: 1200px;
   width: 100%;
+  height: 100%;
   box-sizing: border-box;
+  overflow-y: auto;
   box-shadow: 0 3px 10px rgba(0, 0, 0, 0.06);
 }
 
@@ -584,30 +591,27 @@ body.training-body.is-setup {
   color: var(--tr-household-color);
 }
 
-.tr-stage-banner-main {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.7rem;
-  min-width: 0;
-  flex: 1 1 auto;
-}
-
 .tr-stage-banner .tr-badge {
+  order: 1;
   font-size: 0.96rem;
   padding: 0.34rem 0.85rem;
   flex-shrink: 0;
 }
 
 .tr-stage-banner-title {
+  order: 2;
+  flex: 1 1 auto;
+  min-width: 0;
   font-size: clamp(1.22rem, 2.2vw, 1.75rem);
   font-weight: 800;
-  line-height: 1.3;
+  line-height: 1.28;
   white-space: normal;
   word-break: break-word;
 }
 
 .tr-stage-banner-meta {
+  order: 4;
+  margin-left: auto;
   font-size: clamp(1.02rem, 1.35vw, 1.25rem);
   font-weight: 800;
   white-space: nowrap;
@@ -615,6 +619,7 @@ body.training-body.is-setup {
 }
 
 .tr-member-step-badge {
+  order: 3;
   display: inline-flex;
   align-items: center;
   background: #15803d;
@@ -682,8 +687,10 @@ body.training-body.is-setup {
   right: 1rem;
 }
 
-/* カルーセル水平スクロールトラック */
+/* カルーセル水平スクロールトラック（親アリーナの確定高さに追従） */
 .tr-carousel-track-wrap {
+  position: absolute;
+  inset: 0;
   width: 100%;
   height: 100%;
   display: flex;
@@ -1353,28 +1360,35 @@ body.training-body.is-setup {
     white-space: nowrap;
   }
 
-  /* 訓練ステージ 2. 見出しバナー（画面を有効活用して大きく読みやすい表示） */
+  /* 訓練ステージ 2. 見出しバナー（固定高さスロットでカード表示位置・サイズを一定に保つ） */
   .tr-stage-banner-row {
-    min-height: 0;
-    height: auto;
-    flex: 0 0 auto;
+    height: 104px;
+    min-height: 104px;
+    max-height: 104px;
+    flex: 0 0 104px;
     padding: 0.35rem 0.6rem 0.2rem;
+    overflow: hidden;
   }
 
   .tr-stage-banner {
-    flex-direction: column;
-    align-items: flex-start;
-    justify-content: center;
-    gap: 0.3rem;
-    padding: 0.55rem 0.85rem;
-    border-radius: 0.75rem;
+    height: 100%;
     width: 100%;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    align-content: center;
+    justify-content: flex-start;
+    gap: 0.28rem 0.5rem;
+    padding: 0.45rem 0.8rem;
+    border-radius: 0.75rem;
     box-sizing: border-box;
+    overflow-y: auto;
   }
 
-  /* 待機中バナーは横並びでロゴ＋案内テキストをすっきり表示 */
+  /* 待機中バナーも同一スロット内で横並びでロゴ＋案内テキストをすっきり表示 */
   .tr-stage-banner-waiting {
     flex-direction: row !important;
+    flex-wrap: nowrap !important;
     align-items: center !important;
     justify-content: flex-start !important;
     gap: 0.5rem !important;
@@ -1383,56 +1397,55 @@ body.training-body.is-setup {
     padding: 0.45rem 0.75rem;
   }
 
-  .tr-stage-banner-main {
-    width: 100%;
-    gap: 0.45rem;
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    min-width: 0;
-  }
-
   .tr-stage-banner .tr-badge {
-    padding: 0.22rem 0.58rem;
-    font-size: 0.84rem;
+    order: 1;
+    padding: 0.2rem 0.55rem;
+    font-size: 0.82rem;
     flex-shrink: 0;
   }
 
-  .tr-stage-banner-title {
-    font-size: 1.15rem;
+  .tr-stage-banner-meta {
+    order: 2;
+    width: auto;
+    flex: 0 1 auto;
+    margin-left: 0;
+    font-size: 0.9rem;
     font-weight: 800;
-    line-height: 1.28;
-    flex: 1 1 auto;
-    min-width: 0;
-    white-space: normal;
-    overflow: visible;
-    word-break: break-word;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    padding-left: 0;
   }
 
   .tr-member-step-badge {
-    font-size: 0.84rem;
+    order: 3;
+    font-size: 0.82rem;
     padding: 0.16rem 0.55rem;
     margin-left: auto;
     flex-shrink: 0;
   }
 
-  .tr-stage-banner-meta {
-    font-size: 0.96rem;
-    font-weight: 800;
+  .tr-stage-banner-title {
+    order: 4;
+    flex: 1 0 100%;
     width: 100%;
+    min-width: 0;
+    font-size: clamp(1.06rem, 4.6vw, 1.16rem);
+    font-weight: 800;
+    line-height: 1.24;
     white-space: normal;
     overflow: visible;
-    padding-left: 0.1rem;
+    word-break: break-word;
   }
 
-  /* 訓練ステージ 3. カルーセル（1枚中央スナップ表示） */
+  /* 訓練ステージ 3. カルーセル（全カードで位置・サイズ一定） */
   .tr-carousel-arena {
-    padding: 0.15rem 0;
+    padding: 0;
     min-height: 0;
   }
 
   .tr-carousel-track-wrap {
-    padding: 0.25rem 50vw;
+    padding: 0 50vw;
     gap: 0.85rem;
     scroll-snap-type: x mandatory;
     -webkit-overflow-scrolling: touch;
@@ -1441,18 +1454,27 @@ body.training-body.is-setup {
   .tr-carousel-card {
     scroll-snap-align: center;
     scroll-snap-stop: always;
-    height: min(
-      calc(100vh - 205px),
-      calc(100dvh - 198px),
-      calc(84vw * 993 / 600)
-    );
-    max-height: 96%;
+    flex: 0 0 auto;
+    height: min(92%, calc(84vw * 993 / 600));
+    max-height: none;
+    width: auto;
+    aspect-ratio: 600 / 993;
+  }
+
+  .tr-carousel-card.is-back,
+  .tr-carousel-card.is-back:hover,
+  .tr-carousel-card.is-past,
+  .tr-carousel-card.is-past:hover {
+    transform: scale(1);
   }
 
   .tr-carousel-card.is-spotlight {
     transform: scale(1);
-    border-width: 3px;
-    box-shadow: 0 0 18px var(--tr-spotlight-glow), 0 6px 16px rgba(0, 0, 0, 0.14);
+    border: none;
+    box-shadow:
+      0 0 0 3px var(--tr-spotlight-border),
+      0 0 18px var(--tr-spotlight-glow),
+      0 6px 16px rgba(0, 0, 0, 0.14);
   }
 
   .tr-carousel-card.is-spotlight::before {
@@ -1476,10 +1498,10 @@ body.training-body.is-setup {
     z-index: 21;
   }
 
-  /* 訓練ステージ 4. 下部操作バー（ボタン同士の重なり・文字溢れを防止） */
+  /* 訓練ステージ 4. 下部操作バー（ボタン同士の重なり・高さ変動を防止） */
   .tr-arena-bottombar {
-    height: auto;
-    min-height: 54px;
+    height: calc(54px + env(safe-area-inset-bottom, 0px));
+    min-height: calc(54px + env(safe-area-inset-bottom, 0px));
     flex: 0 0 auto;
     padding: 0.35rem 0.45rem calc(0.35rem + env(safe-area-inset-bottom, 0px));
     gap: 0.3rem;

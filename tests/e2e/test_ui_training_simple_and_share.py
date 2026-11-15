@@ -339,3 +339,81 @@ def test_simple_training_static_github_pages_fallback_loads_basic_set(page, e2e_
     page.get_by_test_id("tr-start-training-btn").click()
     page.get_by_test_id("tr-next-card-btn").click()
     expect(page.get_by_test_id("tr-progress-counter")).to_contain_text("1")
+
+
+def test_mobile_card_position_and_size_invariant_across_banner_lengths(page, e2e_server, tmp_path: Path):
+    """スマホ表示で裏返し・短いイベント・長いイベント・長い世帯名の全カードで表示位置(Y)・サイズ(W,H)が一定であることを検証."""
+    cards_db = json.loads(Path("data/cards_db.json").read_text(encoding="utf-8"))
+    ev_short = next(e for e in cards_db["cards_event"] if len(e.get("event_name", "")) <= 12)
+    ev_long = max(cards_db["cards_event"], key=lambda e: len(e.get("event_name", "")))
+    grp_long = max(cards_db["evacuee_groups"], key=lambda g: len(g.get("group_name", "")))
+    mems_long = [m for m in cards_db["group_members"] if m["group_id"] == grp_long["group_id"]]
+    assert len(mems_long) >= 2
+
+    seq = [
+        {"card_number": 1, "kind": "event", "original_id": ev_short["card_id"], "group_id": None},
+        {"card_number": 2, "kind": "event", "original_id": ev_long["card_id"], "group_id": None},
+    ] + [
+        {
+            "card_number": i + 3,
+            "kind": "pet" if m.get("data_type") == "ペット" else "person",
+            "original_id": m["member_id"],
+            "group_id": grp_long["group_id"],
+        }
+        for i, m in enumerate(mems_long)
+    ]
+    deck_json = {
+        "cards_event": [ev_short, ev_long],
+        "evacuee_groups": [grp_long],
+        "group_members": mems_long,
+        "_web_deck_meta": {"card_sequence": seq},
+    }
+    deck_path = tmp_path / "invariant_size_deck.json"
+    deck_path.write_text(json.dumps(deck_json, ensure_ascii=False), encoding="utf-8")
+
+    for vp in ({"width": 390, "height": 800}, {"width": 390, "height": 664}):
+        page.set_viewport_size(vp)
+        page.goto(f"{e2e_server['base_url']}/training-simple.html")
+        page.get_by_test_id("tr-simple-menu-btn").click()
+        page.get_by_test_id("tr-menu-file-input").set_input_files(str(deck_path))
+        page.get_by_test_id("tr-start-training-btn").click()
+
+        page.wait_for_timeout(200)
+        box_wait = page.locator("#tr-card-slot-1").bounding_box()
+
+        # No.1 (短いイベント)
+        page.get_by_test_id("tr-next-card-btn").click()
+        page.wait_for_timeout(400)
+        box_short_ev = page.locator("#tr-card-slot-1").bounding_box()
+
+        # No.2 (長いイベント)
+        page.get_by_test_id("tr-next-card-btn").click()
+        page.wait_for_timeout(400)
+        box_long_ev = page.locator("#tr-card-slot-2").bounding_box()
+
+        # No.3 (最長世帯名 1枚目)
+        page.get_by_test_id("tr-next-card-btn").click()
+        page.wait_for_timeout(400)
+        box_hh_1 = page.locator("#tr-card-slot-3").bounding_box()
+
+        # No.4 (同世帯 2枚目)
+        page.get_by_test_id("tr-next-card-btn").click()
+        page.wait_for_timeout(400)
+        box_hh_2 = page.locator("#tr-card-slot-4").bounding_box()
+
+        boxes = [box_wait, box_short_ev, box_long_ev, box_hh_1, box_hh_2]
+        assert all(b is not None for b in boxes), f"Missing box on viewport {vp}: {boxes}"
+
+        # Y位置・幅・高さがすべて一定（±1.5px以内）で、X中心も画面中央付近に揃うこと
+        base = box_short_ev
+        for idx, b in enumerate(boxes):
+            assert abs(b["y"] - base["y"]) <= 1.5, f"Y shifted at step {idx} ({vp}): {b} vs {base}"
+            assert abs(b["width"] - base["width"]) <= 1.5, f"Width changed at step {idx} ({vp}): {b} vs {base}"
+            assert abs(b["height"] - base["height"]) <= 1.5, f"Height changed at step {idx} ({vp}): {b} vs {base}"
+            cx = b["x"] + b["width"] / 2
+            assert abs(cx - vp["width"] / 2) <= 25, f"Card not centered horizontally at step {idx} ({vp}): {b}"
+            # バナーおよび下部バーと重ならないこと
+            banner_row_box = page.locator(".tr-stage-banner-row").bounding_box()
+            bottom_bar_box = page.locator(".tr-arena-bottombar").bounding_box()
+            assert banner_row_box["y"] + banner_row_box["height"] <= b["y"] + 1
+            assert b["y"] + b["height"] <= bottom_bar_box["y"] + 1
