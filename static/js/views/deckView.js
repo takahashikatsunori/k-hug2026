@@ -166,6 +166,9 @@ export async function renderDeckView(container) {
             <button type="button" class="btn btn-sm btn-primary" id="play-saved-deck-btn" data-testid="play-saved-deck-btn" style="background:#0284c7;border-color:#0369a1;" disabled>
               📱 スマホHUG訓練
             </button>
+            <button type="button" class="btn btn-sm btn-primary" id="play-saved-board-btn" data-testid="play-saved-board-btn" style="background:#0d9488;border-color:#0f766e;" disabled>
+              🗺️ 台紙配置訓練
+            </button>
             <button type="button" class="btn btn-sm btn-secondary" id="share-saved-deck-btn" data-testid="share-saved-deck-btn" disabled>
               🔗 URL・QR
             </button>
@@ -968,6 +971,7 @@ export async function renderDeckView(container) {
   const savedSelect = container.querySelector("#deck-saved-list-select");
   const loadSavedBtn = container.querySelector("#load-saved-deck-btn");
   const playSavedBtn = container.querySelector("#play-saved-deck-btn");
+  const playSavedBoardBtn = container.querySelector("#play-saved-board-btn");
   const shareSavedBtn = container.querySelector("#share-saved-deck-btn");
   const delSavedBtn = container.querySelector("#delete-saved-deck-btn");
   const shareBannerWrap = container.querySelector("#deck-share-banner-wrap");
@@ -978,6 +982,7 @@ export async function renderDeckView(container) {
     const hasVal = Boolean(savedSelect && savedSelect.value);
     if (loadSavedBtn) loadSavedBtn.disabled = !hasVal;
     if (playSavedBtn) playSavedBtn.disabled = !hasVal;
+    if (playSavedBoardBtn) playSavedBoardBtn.disabled = !hasVal;
     if (shareSavedBtn) shareSavedBtn.disabled = !hasVal;
     if (delSavedBtn) delSavedBtn.disabled = !hasVal;
   };
@@ -1038,6 +1043,18 @@ export async function renderDeckView(container) {
       const targetUrl = deckName
         ? `/hug-game.html?deck=${encodeURIComponent(deckName)}`
         : `/hug-game.html?deck_id=${encodeURIComponent(savedSelect.value)}`;
+      window.open(targetUrl, "_blank", "noopener");
+    });
+  }
+
+  if (playSavedBoardBtn && savedSelect) {
+    playSavedBoardBtn.addEventListener("click", () => {
+      const opt = savedSelect.options[savedSelect.selectedIndex];
+      const deckName = opt?.dataset?.deckName || "";
+      if (!savedSelect.value) return;
+      const targetUrl = deckName
+        ? `/board.html?deck=${encodeURIComponent(deckName)}`
+        : `/board.html?deck_id=${encodeURIComponent(savedSelect.value)}`;
       window.open(targetUrl, "_blank", "noopener");
     });
   }

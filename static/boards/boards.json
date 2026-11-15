@@ -1,0 +1,12 @@
+{
+  "_comment": "台紙(PDF)の一覧。新しい台紙を追加するときは、PDFをこのフォルダ(static/boards/)に置き、下の配列に1件追加してください。page は使用するページ番号(1始まり)です。",
+  "boards": [
+    {
+      "id": "goshou_triage_20260716",
+      "name": "5小トリアージ図（2026/07/16修正）",
+      "file": "goshou_triage_20260716.pdf",
+      "fallbackUrl": "./docs/20260716修正　5小トリアージ図.pdf",
+      "page": 1
+    }
+  ]
+}

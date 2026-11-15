@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <meta name="theme-color" content="#1e293b" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <title>台紙配置シミュレーション - HUGカード</title>
+  <link rel="icon" href="./static/logo/official_logo.jpeg" />
+  <link rel="stylesheet" href="./static/css/board.css?v=20261115a" />
+</head>
+<body class="bd-body is-setup" id="bd-body">
+  <main id="bd-main" class="bd-main" data-testid="bd-main">
+    <div class="bd-loading">カードデータベースと台紙を読み込んでいます...</div>
+  </main>
+  <div id="bd-toast-container" class="bd-toast-container" data-testid="bd-toast-container"></div>
+
+  <script src="./static/vendor/pdfjs/pdf.min.js"></script>
+  <script src="./static/vendor/pdf-lib.min.js"></script>
+  <script type="module" src="./static/js/boardApp.js?v=20261115a"></script>
+</body>
+</html>

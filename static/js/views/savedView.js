@@ -127,6 +127,14 @@ export async function renderSavedView(container, callbacks) {
                 data-testid="play-saved-deck-${d.id}"
                 style="background:#0284c7;border-color:#0369a1;color:#fff;text-decoration:none;"
               >📱 スマホHUG訓練</a>
+              <a
+                href="/board.html?deck=${encodeURIComponent(d.name || "")}"
+                target="_blank"
+                rel="noopener"
+                class="btn btn-sm btn-primary"
+                data-testid="play-saved-board-${d.id}"
+                style="background:#0d9488;border-color:#0f766e;color:#fff;text-decoration:none;"
+              >🗺️ 台紙配置訓練</a>
               <button
                 type="button"
                 class="btn btn-sm btn-secondary share-saved-deck-btn"

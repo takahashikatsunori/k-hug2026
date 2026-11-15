@@ -2382,6 +2382,14 @@ export async function openSimpleMenuModal() {
             >
               📱 スマホHUG配置訓練シミュレーターを開く
             </a>
+            <a
+              href="./board.html${appState.deckTitle && appState.deckTitle !== "読み込み待ち" ? `?deck=${encodeURIComponent(appState.deckTitle)}` : ""}"
+              class="tr-btn tr-btn-primary tr-simple-menu-full-btn"
+              data-testid="tr-menu-open-board-link"
+              style="text-decoration:none;display:inline-flex;justify-content:center;background:#0d9488;border-color:#0f766e;margin-top:0.45rem;"
+            >
+              🗺️ 台紙配置シミュレーションを開く
+            </a>
           </div>
         </section>
 

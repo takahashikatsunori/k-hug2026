@@ -257,6 +257,12 @@ def create_app(db_path: Path | str | None = None) -> FastAPI:
         game_file = config.BASE_DIR / "hug-game.html"
         return FileResponse(str(game_file), media_type="text/html; charset=utf-8")
 
+    @app.get("/board.html", include_in_schema=False)
+    @app.get("/board", include_in_schema=False)
+    async def serve_board_sim_page() -> FileResponse:
+        board_file = config.BASE_DIR / "board.html"
+        return FileResponse(str(board_file), media_type="text/html; charset=utf-8")
+
     return app
 
 
