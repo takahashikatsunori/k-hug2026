@@ -145,6 +145,17 @@ def test_board_setup_smartphone_and_url_params_with_relative_scale(page, e2e_ser
     expect(stage).not_to_have_class(re.compile(r"\bis-cluster\b"))
     expect(page.locator("#bd-card-world .bd-card").first).to_be_visible()
 
+    # スマホで最大付近まで連続ズームインしてもキャンバスがビューポートサイズに収まりクラッシュしないこと
+    for _ in range(5):
+        page.get_by_test_id("bd-zoom-in").click()
+        page.wait_for_timeout(120)
+    page.wait_for_timeout(300)
+    canvas_box = sheet.evaluate("c => ({ w: c.width, h: c.height, cw: c.clientWidth, ch: c.clientHeight })")
+    assert canvas_box["cw"] <= 400
+    assert canvas_box["ch"] <= 900
+    assert canvas_box["w"] <= 1200
+    assert canvas_box["h"] <= 2700
+
 
 def test_board_draw_drag_overlap_cluster_undo_and_pdf_download(page, e2e_server, tmp_path: Path):
     """PCでカード1枚ずつドロー・ドラッグ配置・移動・重なり許可・クラスタ拡大・Undo・PDF出力が一貫動作する."""

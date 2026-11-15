@@ -36,7 +36,7 @@ const MM_PER_PT = 25.4 / 72;
 const PT_PER_MM = 72 / 25.4;
 const DESK_MARGIN = 150; // 台紙の外側に置ける余白 (mm)
 const CLUSTER_CARD_PX = 28; // 画面上のカード幅がこれ未満になったら枚数バブル表示
-const MAX_SCALE = 14; // px/mm
+const MAX_SCALE = 8; // px/mm (55×91mm カードで最大 440×728px)
 const SESSION_KEY = "hug_board_session_v1";
 const SETTINGS_KEY = "hug_board_settings_v1";
 
@@ -82,6 +82,8 @@ const app = {
   boardInfo: null, // { doc, page, bytes, wPt, hPt }
   geo: null, // { W, H, pdf:{x,y,w,h,ptToMm} }
   baseRes: 1, // ベース画像の px/mm
+  baseOffscreen: null, // 全台紙のオフスクリーンキャンバス
+  detailOffscreen: null, // 拡大表示用の再利用オフスクリーンキャンバス
   ink: null, // 空き領域探索用の積分画像
 
   view: { s: 1, tx: 0, ty: 0 },
@@ -255,17 +257,16 @@ async function renderBoardThumb(board, canvas) {
   }
 }
 
-/** ベース画像（台紙全体）を描画する. */
+/** ベース画像（台紙全体）をオフスクリーンに描画する. */
 async function renderBaseBoard() {
   const { geo, boardInfo } = app;
-  const canvas = app.els.baseCanvas;
   const coarse = window.matchMedia?.("(pointer: coarse)")?.matches;
-  const maxPixels = coarse ? 9e6 : 16e6;
+  const maxPixels = coarse ? 4e6 : 12e6;
   const r = Math.min(Math.sqrt(maxPixels / (geo.W * geo.H)), 8);
-  canvas.width = Math.round(geo.W * r);
-  canvas.height = Math.round(geo.H * r);
-  canvas.style.width = `${geo.W}px`;
-  canvas.style.height = `${geo.H}px`;
+  const canvas = app.baseOffscreen || document.createElement("canvas");
+  app.baseOffscreen = canvas;
+  canvas.width = Math.max(1, Math.round(geo.W * r));
+  canvas.height = Math.max(1, Math.round(geo.H * r));
   const ctx = canvas.getContext("2d");
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(0, 0, canvas.width, canvas.height);
@@ -277,10 +278,11 @@ async function renderBaseBoard() {
   }).promise;
   app.baseRes = r;
   buildInkMap();
+  drawViewportBoard();
 }
 
 // ---------------------------------------------------------------------------
-// 拡大時の高精細描画（表示範囲のみ）
+// 拡大時の高精細描画（表示範囲のみ・GPUレイヤー肥大化を防ぐため単一キャンバスへ合成）
 // ---------------------------------------------------------------------------
 const detail = { timer: 0, task: null, rendered: null, token: 0 };
 
@@ -292,12 +294,13 @@ function scheduleDetailRender() {
 async function renderDetail() {
   const { geo, boardInfo, els } = app;
   if (!geo || !boardInfo || !els.stage) return;
-  const dpr = Math.min(window.devicePixelRatio || 1, 3);
+  const coarse = window.matchMedia?.("(pointer: coarse)")?.matches;
+  const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 2 : 2.5);
   const v = { ...app.view };
   const needed = v.s * dpr > app.baseRes * 1.15;
   if (!needed) {
-    els.detailCanvas.style.display = "none";
     detail.rendered = null;
+    drawViewportBoard();
     return;
   }
   const token = ++detail.token;
@@ -307,51 +310,130 @@ async function renderDetail() {
     } catch {
       // ignore
     }
+    detail.task = null;
   }
   const vw = els.stage.clientWidth;
   const vh = els.stage.clientHeight;
-  const off = document.createElement("canvas");
-  off.width = Math.max(1, Math.round(vw * dpr));
-  off.height = Math.max(1, Math.round(vh * dpr));
+  if (!vw || !vh) return;
+
+  // PDF.js の内部キャンバス肥大化によるモバイルクラッシュを防ぐため、論理解像度上限を設ける
+  const maxPdfPx = coarse ? 32768 : 65536;
+  const maxR = maxPdfPx / Math.max(geo.W, geo.H);
+  const r = Math.min(v.s * dpr, maxR);
+  const effScale = r / dpr;
+  const canvasScale = r / (v.s * dpr);
+  const offW = Math.max(1, Math.round(vw * dpr * canvasScale));
+  const offH = Math.max(1, Math.round(vh * dpr * canvasScale));
+
+  const off = app.detailOffscreen || document.createElement("canvas");
+  app.detailOffscreen = off;
+  if (off.width !== offW || off.height !== offH) {
+    off.width = offW;
+    off.height = offH;
+  }
   const ctx = off.getContext("2d");
-  const r = v.s * dpr;
-  const sx = v.tx * dpr;
-  const sy = v.ty * dpr;
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, offW, offH);
+
+  const sx = v.tx * dpr * canvasScale;
+  const sy = v.ty * dpr * canvasScale;
   ctx.fillStyle = "#ffffff";
   ctx.fillRect(sx, sy, geo.W * r, geo.H * r);
-  const viewport = boardInfo.page.getViewport({ scale: r * geo.pdf.ptToMm });
-  const task = boardInfo.page.render({
-    canvasContext: ctx,
-    viewport,
-    transform: [1, 0, 0, 1, sx + geo.pdf.x * r, sy + geo.pdf.y * r],
-    background: "rgba(0,0,0,0)",
-  });
-  detail.task = task;
+
   try {
+    const viewport = boardInfo.page.getViewport({ scale: r * geo.pdf.ptToMm });
+    const task = boardInfo.page.render({
+      canvasContext: ctx,
+      viewport,
+      transform: [1, 0, 0, 1, sx + geo.pdf.x * r, sy + geo.pdf.y * r],
+      background: "rgba(0,0,0,0)",
+    });
+    detail.task = task;
     await task.promise;
   } catch {
-    return; // キャンセル
+    return; // キャンセルまたは一時エラー
   }
   if (token !== detail.token) return;
   detail.task = null;
-  const dc = els.detailCanvas;
-  dc.width = off.width;
-  dc.height = off.height;
-  dc.getContext("2d").drawImage(off, 0, 0);
-  dc.style.width = `${vw}px`;
-  dc.style.height = `${vh}px`;
-  dc.style.display = "block";
-  detail.rendered = v;
-  positionDetailCanvas();
+  detail.rendered = { s: v.s, tx: v.tx, ty: v.ty, vw, vh, effScale };
+  drawViewportBoard();
 }
 
-function positionDetailCanvas() {
+function drawViewportBoard() {
+  const { els, geo } = app;
+  const canvas = els.baseCanvas;
+  if (!canvas || !els.stage) return;
+  const vw = els.stage.clientWidth;
+  const vh = els.stage.clientHeight;
+  if (!vw || !vh) return;
+  const coarse = window.matchMedia?.("(pointer: coarse)")?.matches;
+  const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 2 : 2.5);
+  const cw = Math.max(1, Math.round(vw * dpr));
+  const ch = Math.max(1, Math.round(vh * dpr));
+  if (canvas.width !== cw || canvas.height !== ch) {
+    canvas.width = cw;
+    canvas.height = ch;
+  }
+  const ctx = canvas.getContext("2d");
+  ctx.setTransform(1, 0, 0, 1, 0, 0);
+  ctx.clearRect(0, 0, cw, ch);
+  if (!geo) return;
+
+  const { s, tx, ty } = app.view;
+  const k = s * dpr;
+
+  // デスク余白
+  const deskX = (tx - DESK_MARGIN * s) * dpr;
+  const deskY = (ty - DESK_MARGIN * s) * dpr;
+  const deskW = (geo.W + DESK_MARGIN * 2) * k;
+  const deskH = (geo.H + DESK_MARGIN * 2) * k;
+  ctx.fillStyle = "#cbd5e1";
+  ctx.fillRect(deskX, deskY, deskW, deskH);
+
+  // 台紙の影と白地
+  const sx = tx * dpr;
+  const sy = ty * dpr;
+  const sw = geo.W * k;
+  const sh = geo.H * k;
+  ctx.save();
+  ctx.fillStyle = "#ffffff";
+  ctx.shadowColor = "rgba(15, 23, 42, 0.24)";
+  ctx.shadowBlur = 16 * dpr;
+  ctx.shadowOffsetY = 6 * dpr;
+  ctx.fillRect(sx, sy, sw, sh);
+  ctx.restore();
+
+  // ベース画像（可視領域のみ転送）
+  const base = app.baseOffscreen;
+  if (base && base.width > 0 && base.height > 0) {
+    const wx0 = clamp(-tx / s, 0, geo.W);
+    const wy0 = clamp(-ty / s, 0, geo.H);
+    const wx1 = clamp((vw - tx) / s, 0, geo.W);
+    const wy1 = clamp((vh - ty) / s, 0, geo.H);
+    if (wx1 > wx0 && wy1 > wy0) {
+      const srcX = wx0 * app.baseRes;
+      const srcY = wy0 * app.baseRes;
+      const srcW = (wx1 - wx0) * app.baseRes;
+      const srcH = (wy1 - wy0) * app.baseRes;
+      const dstX = (wx0 * s + tx) * dpr;
+      const dstY = (wy0 * s + ty) * dpr;
+      const dstW = (wx1 - wx0) * k;
+      const dstH = (wy1 - wy0) * k;
+      ctx.drawImage(base, srcX, srcY, srcW, srcH, dstX, dstY, dstW, dstH);
+    }
+  }
+
+  // 高精細ディテール画像（拡大時）
   const r = detail.rendered;
-  if (!r) return;
-  const k = app.view.s / r.s;
-  const dx = app.view.tx - r.tx * k;
-  const dy = app.view.ty - r.ty * k;
-  app.els.detailCanvas.style.transform = `translate(${dx}px, ${dy}px) scale(${k})`;
+  const det = app.detailOffscreen;
+  if (r && det && det.width > 0 && det.height > 0 && s * dpr > app.baseRes * 1.15) {
+    const scaleRatio = s / r.s;
+    const dx = (tx - r.tx * scaleRatio) * dpr;
+    const dy = (ty - r.ty * scaleRatio) * dpr;
+    const dw = r.vw * scaleRatio * dpr;
+    const dh = r.vh * scaleRatio * dpr;
+    ctx.drawImage(det, 0, 0, det.width, det.height, dx, dy, dw, dh);
+  }
 }
 
 // ---------------------------------------------------------------------------
@@ -363,7 +445,7 @@ function buildInkMap() {
   const gw = Math.ceil(geo.W / cell);
   const gh = Math.ceil(geo.H / cell);
   // 段階的に縮小して細い線も平均化して残す
-  let src = app.els.baseCanvas;
+  let src = app.baseOffscreen || app.els.baseCanvas;
   let w = src.width;
   let h = src.height;
   while (w / 2 > gw * 1.5) {
@@ -489,7 +571,6 @@ function applyView() {
   if (!els.stage) return;
   const { s, tx, ty } = app.view;
   const t = `translate(${tx}px, ${ty}px) scale(${s})`;
-  els.boardWorld.style.transform = t;
   els.cardWorld.style.transform = t;
   const cluster = isClusterMode();
   els.stage.classList.toggle("is-cluster", cluster);
@@ -498,7 +579,7 @@ function applyView() {
     if (el) el.style.setProperty("--ui-px", `${1 / s}px`);
   }
   renderClusters();
-  positionDetailCanvas();
+  drawViewportBoard();
   scheduleDetailRender();
 }
 
@@ -1485,7 +1566,8 @@ async function exportPdf() {
       page.drawPage(embedded, box(geo.pdf.x, geo.pdf.y, geo.pdf.w, geo.pdf.h));
     } catch {
       // 埋め込めないPDFは画像で代替
-      const blob = await new Promise((r) => app.els.baseCanvas.toBlob(r, "image/jpeg", 0.92));
+      const imgSource = app.baseOffscreen || app.els.baseCanvas;
+      const blob = await new Promise((r) => imgSource.toBlob(r, "image/jpeg", 0.92));
       const jpg = await doc.embedJpg(new Uint8Array(await blob.arrayBuffer()));
       page.drawImage(jpg, box(0, 0, geo.W, geo.H));
     }
@@ -1557,6 +1639,16 @@ function leavePlay() {
   window.removeEventListener("resize", onResizeCaptureCenter);
   window.removeEventListener("resize", onResize);
   document.removeEventListener("keydown", onKeyDown);
+  if (app.baseOffscreen) {
+    app.baseOffscreen.width = 0;
+    app.baseOffscreen.height = 0;
+    app.baseOffscreen = null;
+  }
+  if (app.detailOffscreen) {
+    app.detailOffscreen.width = 0;
+    app.detailOffscreen.height = 0;
+    app.detailOffscreen = null;
+  }
   app.els = {};
   app.cardEls.clear();
   app.selected = null;
@@ -1638,11 +1730,7 @@ async function startPlay(session) {
         <button type="button" class="bd-tool-btn bd-tool-primary" id="bd-pdf-btn" data-testid="bd-pdf-btn" title="現在の配置をPDFでダウンロード">⬇<span>PDF</span></button>
       </header>
       <div class="bd-stage" id="bd-stage" data-testid="bd-stage">
-        <div class="bd-world bd-board-world" id="bd-board-world">
-          <div class="bd-desk" style="left:${-DESK_MARGIN}px;top:${-DESK_MARGIN}px;"></div>
-          <canvas class="bd-sheet" id="bd-base-canvas"></canvas>
-        </div>
-        <canvas class="bd-detail-canvas" id="bd-detail-canvas"></canvas>
+        <canvas class="bd-viewport-canvas" id="bd-base-canvas"></canvas>
         <div class="bd-world bd-card-world" id="bd-card-world" data-testid="bd-card-world"></div>
         <div class="bd-cluster-layer" id="bd-cluster-layer"></div>
         <div class="bd-zoom-ctrl">
@@ -1670,10 +1758,8 @@ async function startPlay(session) {
   const $ = (id) => document.getElementById(id);
   app.els = {
     stage: $("bd-stage"),
-    boardWorld: $("bd-board-world"),
     cardWorld: $("bd-card-world"),
     baseCanvas: $("bd-base-canvas"),
-    detailCanvas: $("bd-detail-canvas"),
     clusterLayer: $("bd-cluster-layer"),
     selbar: $("bd-selbar"),
     hand: $("bd-hand"),
@@ -1694,11 +1780,6 @@ async function startPlay(session) {
     return;
   }
   app.geo = computeGeometry(app.boardInfo, session.sizeId);
-  const desk = els.boardWorld.querySelector(".bd-desk");
-  desk.style.width = `${app.geo.W + DESK_MARGIN * 2}px`;
-  desk.style.height = `${app.geo.H + DESK_MARGIN * 2}px`;
-  els.baseCanvas.style.width = `${app.geo.W}px`;
-  els.baseCanvas.style.height = `${app.geo.H}px`;
   els.baseCanvas.dataset.mmWidth = String(app.geo.W);
   els.baseCanvas.dataset.mmHeight = String(app.geo.H);
 
