@@ -316,10 +316,15 @@ async function renderDetail() {
   const vh = els.stage.clientHeight;
   if (!vw || !vh) return;
 
-  // PDF.js の内部キャンバス肥大化によるモバイルクラッシュを防ぐため、論理解像度上限を設ける
-  const maxPdfPx = coarse ? 32768 : 65536;
+  // PDF.js の内部キャンバス(/Group, /SMask等)肥大化によるモバイルクラッシュを防ぐため、安全な論理解像度上限を設ける
+  const maxPdfPx = coarse ? 4096 : 8192;
   const maxR = maxPdfPx / Math.max(geo.W, geo.H);
   const r = Math.min(v.s * dpr, maxR);
+  if (r <= app.baseRes * 1.15) {
+    detail.rendered = null;
+    drawViewportBoard();
+    return;
+  }
   const effScale = r / dpr;
   const canvasScale = r / (v.s * dpr);
   const offW = Math.max(1, Math.round(vw * dpr * canvasScale));
@@ -382,26 +387,25 @@ function drawViewportBoard() {
   const { s, tx, ty } = app.view;
   const k = s * dpr;
 
-  // デスク余白
-  const deskX = (tx - DESK_MARGIN * s) * dpr;
-  const deskY = (ty - DESK_MARGIN * s) * dpr;
-  const deskW = (geo.W + DESK_MARGIN * 2) * k;
-  const deskH = (geo.H + DESK_MARGIN * 2) * k;
-  ctx.fillStyle = "#cbd5e1";
-  ctx.fillRect(deskX, deskY, deskW, deskH);
+  // デスク余白（ビューポート内にクリップして描画）
+  const deskX0 = clamp((tx - DESK_MARGIN * s) * dpr, 0, cw);
+  const deskY0 = clamp((ty - DESK_MARGIN * s) * dpr, 0, ch);
+  const deskX1 = clamp((tx + (geo.W + DESK_MARGIN) * s) * dpr, 0, cw);
+  const deskY1 = clamp((ty + (geo.H + DESK_MARGIN) * s) * dpr, 0, ch);
+  if (deskX1 > deskX0 && deskY1 > deskY0) {
+    ctx.fillStyle = "#cbd5e1";
+    ctx.fillRect(deskX0, deskY0, deskX1 - deskX0, deskY1 - deskY0);
+  }
 
-  // 台紙の影と白地
-  const sx = tx * dpr;
-  const sy = ty * dpr;
-  const sw = geo.W * k;
-  const sh = geo.H * k;
-  ctx.save();
-  ctx.fillStyle = "#ffffff";
-  ctx.shadowColor = "rgba(15, 23, 42, 0.24)";
-  ctx.shadowBlur = 16 * dpr;
-  ctx.shadowOffsetY = 6 * dpr;
-  ctx.fillRect(sx, sy, sw, sh);
-  ctx.restore();
+  // 台紙の白地と枠線（shadowBlur は巨大座標でモバイルGPUメモリを圧迫するため使わない）
+  const sx0 = clamp(tx * dpr, 0, cw);
+  const sy0 = clamp(ty * dpr, 0, ch);
+  const sx1 = clamp((tx + geo.W * s) * dpr, 0, cw);
+  const sy1 = clamp((ty + geo.H * s) * dpr, 0, ch);
+  if (sx1 > sx0 && sy1 > sy0) {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(sx0, sy0, sx1 - sx0, sy1 - sy0);
+  }
 
   // ベース画像（可視領域のみ転送）
   const base = app.baseOffscreen;
