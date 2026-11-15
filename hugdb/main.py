@@ -191,7 +191,19 @@ def create_app(db_path: Path | str | None = None) -> FastAPI:
         response = await call_next(request)
         path = request.url.path
         if (
-            path in ("/", "/deck.html", "/web", "/training.html", "/training", "/training-simple.html", "/training-simple", "/data/cards_db.json")
+            path in (
+                "/",
+                "/deck.html",
+                "/web",
+                "/training.html",
+                "/training",
+                "/training-simple.html",
+                "/training-simple",
+                "/hug-game.html",
+                "/hug-game",
+                "/game",
+                "/data/cards_db.json",
+            )
             or path.startswith("/static/js/")
             or path.startswith("/static/css/")
         ):
@@ -237,6 +249,13 @@ def create_app(db_path: Path | str | None = None) -> FastAPI:
     async def serve_simple_training_page() -> FileResponse:
         simple_file = config.BASE_DIR / "training-simple.html"
         return FileResponse(str(simple_file), media_type="text/html; charset=utf-8")
+
+    @app.get("/hug-game.html", include_in_schema=False)
+    @app.get("/hug-game", include_in_schema=False)
+    @app.get("/game", include_in_schema=False)
+    async def serve_hug_game_page() -> FileResponse:
+        game_file = config.BASE_DIR / "hug-game.html"
+        return FileResponse(str(game_file), media_type="text/html; charset=utf-8")
 
     return app
 

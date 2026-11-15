@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <meta name="theme-color" content="#0f172a" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <title>スマホでHUG訓練 - 小平第五小学校 避難所運営シミュレーター</title>
+  <link rel="icon" href="./static/logo/official_logo.jpeg" />
+  <link rel="stylesheet" href="./static/css/hugGame.css?v=20261115c" />
+</head>
+<body class="hg-body is-setup" id="hg-body">
+  <main id="hg-main" class="hg-main" data-testid="hg-main">
+    <div class="hg-loading-screen" data-testid="hg-loading">
+      <div class="hg-loading-spinner"></div>
+      <div class="hg-loading-text">カードデータベースと保存済みデッキを読み込んでいます...</div>
+    </div>
+  </main>
+
+  <div id="hg-toast-container" class="hg-toast-container" data-testid="hg-toast-container"></div>
+
+  <script type="module" src="./static/js/hugGameApp.js?v=20261115c"></script>
+</body>
+</html>

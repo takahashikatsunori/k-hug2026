@@ -163,6 +163,9 @@ export async function renderDeckView(container) {
             <button type="button" class="btn btn-sm btn-primary" id="load-saved-deck-btn" data-testid="load-saved-deck-btn" disabled>
               呼び出し
             </button>
+            <button type="button" class="btn btn-sm btn-primary" id="play-saved-deck-btn" data-testid="play-saved-deck-btn" style="background:#0284c7;border-color:#0369a1;" disabled>
+              📱 スマホHUG訓練
+            </button>
             <button type="button" class="btn btn-sm btn-secondary" id="share-saved-deck-btn" data-testid="share-saved-deck-btn" disabled>
               🔗 URL・QR
             </button>
@@ -964,6 +967,7 @@ export async function renderDeckView(container) {
   // 保存済みデッキ操作（一覧取得・呼び出し・削除）
   const savedSelect = container.querySelector("#deck-saved-list-select");
   const loadSavedBtn = container.querySelector("#load-saved-deck-btn");
+  const playSavedBtn = container.querySelector("#play-saved-deck-btn");
   const shareSavedBtn = container.querySelector("#share-saved-deck-btn");
   const delSavedBtn = container.querySelector("#delete-saved-deck-btn");
   const shareBannerWrap = container.querySelector("#deck-share-banner-wrap");
@@ -973,6 +977,7 @@ export async function renderDeckView(container) {
   const syncSavedButtonsState = () => {
     const hasVal = Boolean(savedSelect && savedSelect.value);
     if (loadSavedBtn) loadSavedBtn.disabled = !hasVal;
+    if (playSavedBtn) playSavedBtn.disabled = !hasVal;
     if (shareSavedBtn) shareSavedBtn.disabled = !hasVal;
     if (delSavedBtn) delSavedBtn.disabled = !hasVal;
   };
@@ -1022,6 +1027,18 @@ export async function renderDeckView(container) {
       const deckName = opt?.dataset?.deckName || opt?.textContent || "";
       if (!deckName || !savedSelect.value) return;
       openDeckShareModal({ deckName });
+    });
+  }
+
+  if (playSavedBtn && savedSelect) {
+    playSavedBtn.addEventListener("click", () => {
+      const opt = savedSelect.options[savedSelect.selectedIndex];
+      const deckName = opt?.dataset?.deckName || "";
+      if (!savedSelect.value) return;
+      const targetUrl = deckName
+        ? `/hug-game.html?deck=${encodeURIComponent(deckName)}`
+        : `/hug-game.html?deck_id=${encodeURIComponent(savedSelect.value)}`;
+      window.open(targetUrl, "_blank", "noopener");
     });
   }
 

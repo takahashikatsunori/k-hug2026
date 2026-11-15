@@ -2375,6 +2375,18 @@ export async function openSimpleMenuModal() {
               ${appState.soundEnabled ? "🔊 効果音 ON" : "🔇 効果音 OFF"}
             </button>
           </div>
+
+          <div class="tr-simple-setting-block">
+            <div class="tr-simple-setting-label">スマホ見取り図配置訓練</div>
+            <a
+              href="./hug-game.html${appState.loadedDeckTitle ? `?deck=${encodeURIComponent(appState.loadedDeckTitle)}` : ""}"
+              class="tr-btn tr-btn-primary tr-simple-menu-full-btn"
+              data-testid="tr-menu-open-hug-game-link"
+              style="text-decoration:none;display:inline-flex;justify-content:center;background:#0284c7;border-color:#0369a1;"
+            >
+              📱 スマホHUG配置訓練シミュレーターを開く
+            </a>
+          </div>
         </section>
 
         ${

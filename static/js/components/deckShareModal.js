@@ -23,6 +23,16 @@ export function buildSimpleTrainingUrl(deckName, baseUrl = GITHUB_PAGES_BASE_URL
   return url.toString();
 }
 
+export function buildHugGameUrl(deckName, baseUrl = GITHUB_PAGES_BASE_URL) {
+  const url = new URL("hug-game.html", baseUrl);
+  url.search = "";
+  url.hash = "";
+  if (deckName) {
+    url.searchParams.set("deck", deckName);
+  }
+  return url.toString();
+}
+
 async function copyTextToClipboard(text) {
   if (navigator.clipboard && window.isSecureContext) {
     try {
@@ -56,6 +66,8 @@ async function copyTextToClipboard(text) {
  */
 export function renderDeckSharePanel(container, { deckName, showClose = false, onClose } = {}) {
   const initialUrl = buildSimpleTrainingUrl(deckName);
+  const localGameUrl = `/hug-game.html?deck=${encodeURIComponent(deckName || "")}`;
+  const ghGameUrl = buildHugGameUrl(deckName);
 
   container.innerHTML = `
     <div class="deck-share-panel" data-testid="deck-share-panel">
@@ -100,8 +112,24 @@ export function renderDeckSharePanel(container, { deckName, showClose = false, o
               📋 URLをコピー
             </button>
           </div>
+          <div style="display:flex;gap:0.4rem;flex-wrap:wrap;margin-top:0.25rem;">
+            <button
+              type="button"
+              class="btn btn-xs btn-secondary"
+              data-testid="switch-qr-simple-btn"
+            >
+              🎯 カードめくり版URLに切替
+            </button>
+            <button
+              type="button"
+              class="btn btn-xs btn-secondary"
+              data-testid="switch-qr-hug-game-btn"
+            >
+              📱 スマホHUG配置訓練URLに切替
+            </button>
+          </div>
           <p class="deck-share-hint">
-            ※ GitHub Pages 上の簡易訓練ページを開くURL・QRコードです（DBで新規作成・更新したデッキを反映するにはGitHubへプッシュしてください）。URL欄を編集するとQRコードも即時更新されます。
+            ※ GitHub Pages 上の訓練ページを開くURL・QRコードです（DBで新規作成・更新したデッキを反映するにはGitHubへプッシュしてください）。URL欄を編集するとQRコードも即時更新されます。
           </p>
           <div class="deck-share-action-row">
             <button
@@ -120,6 +148,16 @@ export function renderDeckSharePanel(container, { deckName, showClose = false, o
             >
               🚀 簡易訓練ページを開く
             </a>
+            <a
+              class="btn btn-sm btn-primary"
+              data-testid="open-hug-game-link"
+              href="${escapeHtml(localGameUrl)}"
+              target="_blank"
+              rel="noopener"
+              style="background:#0284c7;border-color:#0369a1;color:#fff;text-decoration:none;"
+            >
+              📱 スマホHUG訓練を開始
+            </a>
           </div>
         </div>
       </div>
@@ -132,6 +170,8 @@ export function renderDeckSharePanel(container, { deckName, showClose = false, o
   const dlBtn = container.querySelector('[data-testid="download-deck-qr-btn"]');
   const openLink = container.querySelector('[data-testid="open-simple-training-link"]');
   const closeBtn = container.querySelector('[data-testid="deck-share-close-btn"]');
+  const switchSimpleBtn = container.querySelector('[data-testid="switch-qr-simple-btn"]');
+  const switchGameBtn = container.querySelector('[data-testid="switch-qr-hug-game-btn"]');
 
   const redrawQr = () => {
     const curUrl = (urlInput?.value || "").trim() || initialUrl;
@@ -146,6 +186,19 @@ export function renderDeckSharePanel(container, { deckName, showClose = false, o
   };
 
   redrawQr();
+
+  if (switchSimpleBtn && urlInput) {
+    switchSimpleBtn.addEventListener("click", () => {
+      urlInput.value = initialUrl;
+      redrawQr();
+    });
+  }
+  if (switchGameBtn && urlInput) {
+    switchGameBtn.addEventListener("click", () => {
+      urlInput.value = ghGameUrl;
+      redrawQr();
+    });
+  }
 
   if (urlInput) {
     urlInput.addEventListener("input", redrawQr);

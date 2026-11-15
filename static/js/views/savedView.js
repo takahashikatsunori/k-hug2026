@@ -119,6 +119,14 @@ export async function renderSavedView(container, callbacks) {
                 data-id="${d.id}"
                 data-testid="open-saved-deck-${d.id}"
               >デッキを開く</button>
+              <a
+                href="/hug-game.html?deck=${encodeURIComponent(d.name || "")}"
+                target="_blank"
+                rel="noopener"
+                class="btn btn-sm btn-primary"
+                data-testid="play-saved-deck-${d.id}"
+                style="background:#0284c7;border-color:#0369a1;color:#fff;text-decoration:none;"
+              >📱 スマホHUG訓練</a>
               <button
                 type="button"
                 class="btn btn-sm btn-secondary share-saved-deck-btn"
