@@ -10,6 +10,7 @@ import { renderConflictPanel } from "./conflictPanel.js";
 import { openTrainingView } from "./trainingView.js";
 import { openDetailModal } from "../components/modal.js";
 import { showToast } from "../components/toast.js";
+import { openDeckShareModal, renderDeckSharePanel } from "../components/deckShareModal.js";
 import {
   PRINT_SIZES,
   toCardRenderModel,
@@ -162,6 +163,9 @@ export async function renderDeckView(container) {
             <button type="button" class="btn btn-sm btn-primary" id="load-saved-deck-btn" data-testid="load-saved-deck-btn" disabled>
               呼び出し
             </button>
+            <button type="button" class="btn btn-sm btn-secondary" id="share-saved-deck-btn" data-testid="share-saved-deck-btn" disabled>
+              🔗 URL・QR
+            </button>
             <button type="button" class="btn btn-sm btn-danger" id="delete-saved-deck-btn" data-testid="delete-saved-deck-btn" disabled>
               削除
             </button>
@@ -209,6 +213,8 @@ export async function renderDeckView(container) {
             </div>
           </div>
         </div>
+
+        <div id="deck-share-banner-wrap"></div>
 
         <div class="deck-toolbar deck-output-toolbar" data-testid="deck-output-toolbar">
           <div class="view-switcher">
@@ -958,9 +964,18 @@ export async function renderDeckView(container) {
   // 保存済みデッキ操作（一覧取得・呼び出し・削除）
   const savedSelect = container.querySelector("#deck-saved-list-select");
   const loadSavedBtn = container.querySelector("#load-saved-deck-btn");
+  const shareSavedBtn = container.querySelector("#share-saved-deck-btn");
   const delSavedBtn = container.querySelector("#delete-saved-deck-btn");
+  const shareBannerWrap = container.querySelector("#deck-share-banner-wrap");
   const importJsonBtn = container.querySelector("#import-deck-json-btn");
   const jsonFileInput = container.querySelector("#deck-json-file-input");
+
+  const syncSavedButtonsState = () => {
+    const hasVal = Boolean(savedSelect && savedSelect.value);
+    if (loadSavedBtn) loadSavedBtn.disabled = !hasVal;
+    if (shareSavedBtn) shareSavedBtn.disabled = !hasVal;
+    if (delSavedBtn) delSavedBtn.disabled = !hasVal;
+  };
 
   async function refreshSavedDecksList(selectedId = null) {
     if (!savedSelect) return;
@@ -973,14 +988,14 @@ export async function renderDeckView(container) {
         opt.disabled = true;
         opt.textContent = "（保存されたデッキはありません）";
         savedSelect.appendChild(opt);
-        if (loadSavedBtn) loadSavedBtn.disabled = true;
-        if (delSavedBtn) delSavedBtn.disabled = true;
+        syncSavedButtonsState();
         return;
       }
 
       list.forEach((d) => {
         const opt = document.createElement("option");
         opt.value = String(d.id);
+        opt.dataset.deckName = d.name || "";
         const updated = d.updated_at ? formatDateTime(d.updated_at) : "";
         opt.textContent = `${d.name} (${updated})`;
         if (selectedId && String(d.id) === String(selectedId)) {
@@ -989,9 +1004,7 @@ export async function renderDeckView(container) {
         savedSelect.appendChild(opt);
       });
 
-      const hasVal = Boolean(savedSelect.value);
-      if (loadSavedBtn) loadSavedBtn.disabled = !hasVal;
-      if (delSavedBtn) delSavedBtn.disabled = !hasVal;
+      syncSavedButtonsState();
     } catch (err) {
       console.error("保存済みデッキ一覧の取得に失敗しました", err);
     }
@@ -999,9 +1012,16 @@ export async function renderDeckView(container) {
 
   if (savedSelect) {
     savedSelect.addEventListener("change", () => {
-      const hasVal = Boolean(savedSelect.value);
-      if (loadSavedBtn) loadSavedBtn.disabled = !hasVal;
-      if (delSavedBtn) delSavedBtn.disabled = !hasVal;
+      syncSavedButtonsState();
+    });
+  }
+
+  if (shareSavedBtn && savedSelect) {
+    shareSavedBtn.addEventListener("click", () => {
+      const opt = savedSelect.options[savedSelect.selectedIndex];
+      const deckName = opt?.dataset?.deckName || opt?.textContent || "";
+      if (!deckName || !savedSelect.value) return;
+      openDeckShareModal({ deckName });
     });
   }
 
@@ -1252,6 +1272,15 @@ export async function renderDeckView(container) {
         nameInput.value = "";
         showToast(`デッキ条件「${name}」を保存しました`, "success");
         await refreshSavedDecksList(saved.id);
+        if (shareBannerWrap) {
+          renderDeckSharePanel(shareBannerWrap, {
+            deckName: saved.name || name,
+            showClose: true,
+            onClose: () => {
+              shareBannerWrap.innerHTML = "";
+            },
+          });
+        }
       } catch (err) {
         showToast(err.detail || "デッキ条件の保存に失敗しました", "error");
       }

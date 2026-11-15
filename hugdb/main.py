@@ -191,7 +191,7 @@ def create_app(db_path: Path | str | None = None) -> FastAPI:
         response = await call_next(request)
         path = request.url.path
         if (
-            path in ("/", "/deck.html", "/web", "/training.html", "/training", "/data/cards_db.json")
+            path in ("/", "/deck.html", "/web", "/training.html", "/training", "/training-simple.html", "/training-simple", "/data/cards_db.json")
             or path.startswith("/static/js/")
             or path.startswith("/static/css/")
         ):
@@ -231,6 +231,12 @@ def create_app(db_path: Path | str | None = None) -> FastAPI:
     async def serve_training_page() -> FileResponse:
         training_file = config.BASE_DIR / "training.html"
         return FileResponse(str(training_file), media_type="text/html; charset=utf-8")
+
+    @app.get("/training-simple.html", include_in_schema=False)
+    @app.get("/training-simple", include_in_schema=False)
+    async def serve_simple_training_page() -> FileResponse:
+        simple_file = config.BASE_DIR / "training-simple.html"
+        return FileResponse(str(simple_file), media_type="text/html; charset=utf-8")
 
     return app
 

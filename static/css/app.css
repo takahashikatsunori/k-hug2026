@@ -1956,5 +1956,105 @@ body {
   flex-wrap: wrap;
 }
 
+/* デッキ共有 (URLコピー / QRコードPNG) */
+.deck-share-panel {
+  background: #eff6ff;
+  border: 1px solid #93c5fd;
+  border-radius: 10px;
+  padding: 0.9rem 1rem;
+  margin-bottom: 0.85rem;
+}
+
+.modal-body .deck-share-panel {
+  margin-bottom: 0;
+  background: #f8fafc;
+  border-color: #e2e8f0;
+}
+
+.deck-share-panel-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.deck-share-panel-title {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  color: #1e3a8a;
+  font-size: 0.96rem;
+}
+
+.deck-share-panel-body {
+  display: flex;
+  align-items: center;
+  gap: 1.1rem;
+  flex-wrap: wrap;
+}
+
+.deck-share-qr-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.35rem;
+  flex-shrink: 0;
+}
+
+.deck-share-qr-canvas {
+  width: 170px;
+  height: 170px;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 4px;
+}
+
+.deck-share-info-col {
+  flex: 1;
+  min-width: 240px;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.deck-share-label {
+  font-size: 0.84rem;
+  font-weight: 700;
+  color: #334155;
+}
+
+.deck-share-url-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.deck-share-url-input {
+  flex: 1;
+  min-width: 210px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.84rem;
+  background: #ffffff;
+}
+
+.deck-share-hint {
+  margin: 0;
+  font-size: 0.78rem;
+  color: #475569;
+  line-height: 1.45;
+}
+
+.deck-share-action-row {
+  display: flex;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
 
 

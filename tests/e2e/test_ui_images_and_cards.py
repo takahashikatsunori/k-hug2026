@@ -453,14 +453,16 @@ def test_ui_im_04_deck_direct_card_preview_and_master_ledger(
     expect(page.get_by_test_id("deck-fixed-card-spec")).to_contain_text("名刺サイズ")
     expect(page.get_by_test_id("gen-card-img-1")).to_be_visible()
 
-    # ベース画像（番号なし）と連番合成済み画像、右下のDBカードID描画を検証
+    # ベース画像（番号なし）と連番合成済み画像、左下クレジット・右下のDBカードID描画を検証
     canvas_check = page.evaluate(
         """async () => {
             const { generateBaseCardCanvas, generateCardImageCanvas, FIXED_DESIGN_MODE, FIXED_PRINT_SIZE_ID } = await import('/static/js/cardCanvas.js');
             const sample = {
                 id: '1',
                 original_id: 'EV-001',
-                text: 'ペットの同行避難について相談があった。',
+                type: 'イベント',
+                name: 'テストイベント',
+                dialogue: 'ペットの同行避難について相談があった。',
                 is_event: true,
                 has_image: false,
             };
@@ -499,21 +501,38 @@ def test_ui_im_04_deck_direct_card_preview_and_master_ledger(
                 }
             }
 
-            // 右下隅(ID: EV-001 が描画される位置: x=420..580, y=948..981)に文字ピクセルが存在することを確認
-            const brData = bCtx.getImageData(420, 948, 160, 32).data;
-            let idInkPixels = 0;
-            for (let i = 0; i < brData.length; i += 4) {
-                // 背景は白(255,255,255)なので非白ピクセルをカウント
-                if (brData[i] < 220 || brData[i + 1] < 220 || brData[i + 2] < 220) {
-                    idInkPixels++;
+            // フッター白余白帯 (y=950..973, 外枠線 y=975..981 とセリフ枠 y<=948 を除外) の #64748b (100,116,139) 描画を検証
+            const countSlateInk = (imgData) => {
+                let ink = 0;
+                let exactSlate = 0;
+                for (let i = 0; i < imgData.length; i += 4) {
+                    const r = imgData[i], g = imgData[i + 1], b = imgData[i + 2];
+                    if (r < 220 || g < 220 || b < 220) {
+                        ink++;
+                        if (Math.abs(r - 100) <= 2 && Math.abs(g - 116) <= 2 && Math.abs(b - 139) <= 2) {
+                            exactSlate++;
+                        }
+                    }
                 }
-            }
+                return { ink, exactSlate };
+            };
+
+            // 右下隅(ID: EV-001 が描画される位置: x=420..576, y=950..973)
+            const brStats = countSlateInk(bCtx.getImageData(420, 950, 156, 24).data);
+            // 左下隅(「こだいらSVCs 2026」が描画される位置: x=24..230, y=950..973)
+            const blStats = countSlateInk(bCtx.getImageData(24, 950, 206, 24).data);
+            // 中央余白(x=250..400, y=950..973)は空白のまま重ならないこと
+            const centerStats = countSlateInk(bCtx.getImageData(250, 950, 150, 24).data);
 
             return {
                 fixedDesign: FIXED_DESIGN_MODE,
                 fixedPrintSize: FIXED_PRINT_SIZE_ID,
                 topLeftDiff,
-                idInkPixels,
+                idInkPixels: brStats.ink,
+                idExactSlatePixels: brStats.exactSlate,
+                creditInkPixels: blStats.ink,
+                creditExactSlatePixels: blStats.exactSlate,
+                centerInkPixels: centerStats.ink,
                 sameUnnumberedAsBase: baseEntry.dataUrl === unnumberedUrl,
             };
         }"""
@@ -522,6 +541,10 @@ def test_ui_im_04_deck_direct_card_preview_and_master_ledger(
     assert canvas_check["fixedPrintSize"] == "business"
     assert canvas_check["topLeftDiff"] > 50
     assert canvas_check["idInkPixels"] > 30
+    assert canvas_check["idExactSlatePixels"] > 20
+    assert canvas_check["creditInkPixels"] > 60
+    assert canvas_check["creditExactSlatePixels"] > 40
+    assert canvas_check["centerInkPixels"] == 0
     assert canvas_check["sameUnnumberedAsBase"] is True
 
     # 「避難者台帳」サブモードに切替

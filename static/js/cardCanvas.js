@@ -1023,7 +1023,7 @@ function drawGroupInfoBanner(ctx, card, width) {
 
 /**
  * ロード済みの HTMLImageElement を使って、番号部分以外のベースカード Canvas を同期描画する.
- * 右下隅にはデータベース上の一意のカードID (`original_id`) を小さく描画する.
+ * 左下隅には「こだいらSVCs 2026」、右下隅にはデータベース上の一意のカードID (`original_id`) を小さく描画する.
  * @param {Record<string, any>} card
  * @param {'standard' | 'largeText'} [designMode='standard']
  * @param {HTMLImageElement | null} [loadedImg=null]
@@ -1403,7 +1403,7 @@ function renderBaseCardCanvasSync(
     currentY += isLarge ? 80 : 50;
   }
 
-  // Dialogue Box (下部にデータベース一意ID用の余白を確保)
+  // Dialogue Box (下部にクレジット表記・データベース一意ID用の余白を確保)
   if (!isLarge) {
     const boxHeight = Math.max(60, height - currentY - 46);
     ctx.fillStyle = bgColor;
@@ -1467,17 +1467,23 @@ function renderBaseCardCanvasSync(
     }
   }
 
-  // カード画像の右下隅にデータベース上の一意のカードID (EV-xxx / M-xxxx 等) を小さく描画
+  // カード下部隅にクレジット表記（左下）とデータベース上の一意のカードID（右下）を小さく描画
+  ctx.save();
+  ctx.fillStyle = "#64748b";
+  ctx.textBaseline = "alphabetic";
+  const footerY = height - 23;
+
+  ctx.font = "bold 17px sans-serif";
+  ctx.textAlign = "left";
+  ctx.fillText("こだいらSVCs 2026", 26, footerY);
+
   const dbCardId = String(card.original_id || card.id || "").trim();
   if (dbCardId) {
-    ctx.save();
     ctx.font = "bold 17px monospace";
-    ctx.fillStyle = "#64748b";
     ctx.textAlign = "right";
-    ctx.textBaseline = "alphabetic";
-    ctx.fillText(`ID: ${dbCardId}`, width - 26, height - 23);
-    ctx.restore();
+    ctx.fillText(`ID: ${dbCardId}`, width - 26, footerY);
   }
+  ctx.restore();
 
   return canvas;
 }

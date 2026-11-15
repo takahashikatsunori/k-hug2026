@@ -5,6 +5,7 @@ import { escapeHtml, formatDateTime } from "../util.js";
 import { api } from "../api.js";
 import { store } from "../store.js";
 import { showToast } from "../components/toast.js";
+import { openDeckShareModal } from "../components/deckShareModal.js";
 
 /**
  * 保存済みビューを描画する.
@@ -120,6 +121,12 @@ export async function renderSavedView(container, callbacks) {
               >デッキを開く</button>
               <button
                 type="button"
+                class="btn btn-sm btn-secondary share-saved-deck-btn"
+                data-name="${escapeHtml(d.name)}"
+                data-testid="share-saved-deck-${d.id}"
+              >🔗 訓練URL・QR</button>
+              <button
+                type="button"
                 class="btn btn-sm btn-danger delete-saved-deck-btn"
                 data-id="${d.id}"
                 data-testid="delete-saved-deck-${d.id}"
@@ -170,6 +177,12 @@ export async function renderSavedView(container, callbacks) {
           } catch (err) {
             showToast(err.detail || "保存済みデッキの取得に失敗しました", "error");
           }
+        });
+      });
+
+      decksBox.querySelectorAll(".share-saved-deck-btn").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          openDeckShareModal({ deckName: btn.dataset.name || "" });
         });
       });
 

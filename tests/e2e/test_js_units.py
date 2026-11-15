@@ -144,3 +144,45 @@ def test_js_04_household_member_and_pet_counts(page, e2e_server):
     assert counts[0] == {"member_count": 2, "pet_count": 1, "total": 3}
     assert counts[1] == {"member_count": 1, "pet_count": 1, "total": 2}
     assert counts[2] == {"member_count": 1, "pet_count": 2, "total": 3}
+
+
+def test_js_05_qr_code_generation(page, e2e_server):
+    """JS-05: ピュアJS QRコード生成モジュールがASCII・日本語URL両方から正しいQRマトリクスとPNGを生成できる."""
+    page.goto(e2e_server["base_url"])
+    res = page.evaluate(
+        """async () => {
+            const { encodeQrMatrix, generateQrPngDataUrl } = await import('/static/js/qrCode.js');
+            const shortUrl = 'http://127.0.0.1:8000/training-simple.html?deck=A';
+            const jpUrl = 'http://127.0.0.1:8000/training-simple.html?deck=' + encodeURIComponent('地域防災訓練デッキA');
+            const q1 = encodeQrMatrix(shortUrl);
+            const q2 = encodeQrMatrix(jpUrl);
+            const png = generateQrPngDataUrl(jpUrl, { targetSize: 320, caption: 'HUG訓練: 地域防災訓練デッキA' });
+
+            // Finder pattern corners (top-left, top-right, bottom-left)
+            const hasFinderTL = q2.modules[0][0] === 1 && q2.modules[3][3] === 1 && q2.modules[7][0] === 0;
+            const hasFinderTR = q2.modules[0][q2.size - 1] === 1 && q2.modules[3][q2.size - 4] === 1;
+            const hasFinderBL = q2.modules[q2.size - 1][0] === 1 && q2.modules[q2.size - 4][3] === 1;
+            const darkModule = q2.modules[4 * q2.version + 9][8] === 1;
+
+            return {
+                q1Version: q1.version,
+                q2Version: q2.version,
+                q2Size: q2.size,
+                hasFinderTL,
+                hasFinderTR,
+                hasFinderBL,
+                darkModule,
+                pngPrefix: png.slice(0, 22),
+                pngLength: png.length,
+            };
+        }"""
+    )
+    assert res["q1Version"] >= 1
+    assert res["q2Version"] >= 5
+    assert res["q2Size"] == 4 * res["q2Version"] + 17
+    assert res["hasFinderTL"] is True
+    assert res["hasFinderTR"] is True
+    assert res["hasFinderBL"] is True
+    assert res["darkModule"] is True
+    assert res["pngPrefix"] == "data:image/png;base64,"
+    assert res["pngLength"] > 500

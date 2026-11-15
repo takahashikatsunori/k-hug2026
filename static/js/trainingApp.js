@@ -205,7 +205,19 @@ const appState = {
   // UI状態
   showPointsPopup: false,
   showGalleryModal: false,
+  simpleLoadError: "",
+  simpleLoading: false,
+  cachedServerDecks: [],
+  lightboxState: { slideIdx: -1, cardIdx: 0 },
 };
+
+/**
+ * URLやbody属性からシンプル訓練ページモードかどうかを判定する.
+ * @returns {boolean}
+ */
+export function isSimpleMode() {
+  return document.body?.dataset?.simpleTraining === "true";
+}
 
 // ============================================================================
 // データベース初期化＆イラスト情報セットアップ
@@ -275,7 +287,7 @@ function buildSlides(cards, groupByHousehold) {
         startNo: card.card_number,
         endNo: card.card_number,
         title: isHH
-          ? `${card.group_id || ""} ${card.group?.group_name || card.group_name || "世帯"} (${card.group?.evacuation_origin || "避難元不明"})`
+          ? `${card.group_id || ""} ${card.group?.group_name || card.group_name || "世帯"}`
           : (card.data?.event_name || card.title || "イベント"),
       });
     }
@@ -304,7 +316,7 @@ function annotateDeckGroupPositions(cards) {
   });
 }
 
-export function loadDeckFromJsonString(jsonString, sourceName = "JSONファイル") {
+export async function loadDeckFromJsonString(jsonString, sourceName = "JSONファイル") {
   try {
     let result;
     if (appState.db) {
@@ -341,13 +353,13 @@ export function loadDeckFromJsonString(jsonString, sourceName = "JSONファイ�
     appState.deckTitle = sourceName.replace(/\.json$/i, "");
     appState.deckSourceInfo = `JSONファイル読み込み (${result.deckCards.length}枚)`;
     appState.deckConditions = result.restoredConditions || {};
-    showSetupDeckLoaded();
+    await finalizeDeckLoaded();
   } catch (err) {
     alert(`デッキの読み込みに失敗しました: ${err.message}`);
   }
 }
 
-export function loadDeckFromLocalStorage() {
+export async function loadDeckFromLocalStorage() {
   const raw = localStorage.getItem("hug_web_deck_state_v1");
   if (!raw) {
     alert("現在ブラウザに保存されたデッキ情報はありません。Webツールでデッキを作成するか、JSONファイルを指定してください。");
@@ -395,7 +407,7 @@ export function loadDeckFromLocalStorage() {
     appState.deckTitle = "Webツール作成デッキ";
     appState.deckSourceInfo = `ブラウザ一時保存より読み込み (${appState.rawDeckCards.length}枚)`;
     appState.deckConditions = saved.conditions || {};
-    showSetupDeckLoaded();
+    await finalizeDeckLoaded();
     return true;
   } catch (err) {
     alert(`保存デッキの復元に失敗しました: ${err.message}`);
@@ -403,27 +415,57 @@ export function loadDeckFromLocalStorage() {
   }
 }
 
-export async function fetchServerSavedDecks() {
-  try {
-    const res = await fetch("/api/decks");
-    if (res.ok) {
-      const list = await res.json();
-      if (Array.isArray(list) && list.length > 0) return list;
-    }
-  } catch {
-    // GitHub Pages 等では静的 JSON 内の saved_decks にフォールバック
-  }
-  return Array.isArray(appState.db?.saved_decks) ? appState.db.saved_decks : [];
+function shouldQueryServerApi() {
+  const host = String(window.location?.hostname || "").toLowerCase();
+  return !host.endsWith(".github.io");
 }
 
-export async function loadDeckFromServerSavedDeck(deckId) {
+export async function fetchServerSavedDecks() {
+  if (shouldQueryServerApi()) {
+    try {
+      const res = await fetch("/api/decks", { cache: "no-cache" });
+      if (res.ok) {
+        const list = await res.json();
+        if (Array.isArray(list)) {
+          appState.cachedServerDecks = list;
+          return list;
+        }
+      }
+    } catch {
+      // GitHub Pages 等では静的 JSON 内の saved_decks にフォールバック
+    }
+  }
+  const fallback = Array.isArray(appState.db?.saved_decks) ? appState.db.saved_decks : [];
+  appState.cachedServerDecks = fallback;
+  return fallback;
+}
+
+async function finalizeDeckLoaded() {
+  appState.simpleLoadError = "";
+  appState.simpleLoading = false;
+  if (appState.phase !== "setup") {
+    cleanupTimers();
+    appState.phase = "setup";
+    document.body.classList.add("is-setup");
+    await initAppUI();
+  }
+  showSetupDeckLoaded();
+}
+
+export async function loadDeckFromServerSavedDeck(deckId, { silent = false } = {}) {
   try {
     let detail = null;
-    try {
-      const res = await fetch(`/api/decks/${deckId}`);
-      if (res.ok) detail = await res.json();
-    } catch {
-      // 静的環境フォールバック
+    let fetchedFromServer = false;
+    if (shouldQueryServerApi()) {
+      try {
+        const res = await fetch(`/api/decks/${deckId}`, { cache: "no-cache" });
+        if (res.ok) {
+          detail = await res.json();
+          fetchedFromServer = true;
+        }
+      } catch {
+        // 静的環境フォールバック
+      }
     }
     if (!detail && Array.isArray(appState.db?.saved_decks)) {
       detail = appState.db.saved_decks.find((d) => String(d.id) === String(deckId)) || null;
@@ -431,7 +473,50 @@ export async function loadDeckFromServerSavedDeck(deckId) {
     if (!detail) throw new Error("保存デッキ情報を取得できませんでした");
 
     const cond = detail.conditions || {};
-    if (appState.db) {
+    let builtOnServer = false;
+
+    if (fetchedFromServer) {
+      try {
+        const buildRes = await fetch("/api/deck/build", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            conditions: cond,
+            resolutions: detail.resolutions || {},
+            manual_order: detail.manual_order || null,
+            excluded_ids: Array.isArray(cond.excluded_ids) ? cond.excluded_ids : [],
+          }),
+        });
+        if (buildRes.ok) {
+          const built = await buildRes.json();
+          const cards = built.deck?.cards || built.cards || [];
+          appState.rawDeckCards = annotateDeckGroupPositions(
+            cards.map((c, i) => ({
+              card_number: c.card_number || i + 1,
+              original_id: c.original_id || c.card_id,
+              kind: c.kind,
+              data: c.data || c,
+              group: c.group
+                ? {
+                    ...c.group,
+                    group_id: c.new_group_id || c.group.group_id || c.group_id,
+                  }
+                : null,
+              group_id: c.new_group_id || c.group_id,
+              group_name: c.group_name,
+              group_index: c.group_index,
+              group_total: c.group_total,
+            }))
+          );
+          builtOnServer = true;
+        }
+      } catch {
+        // サーバー再構築不可時はクライアント側フォールバックへ
+      }
+    }
+
+    if (!builtOnServer) {
+      if (!appState.db) throw new Error("デッキの再構築に失敗しました");
       const built = buildInitialDeck(appState.db, cond, {
         phaseFirst: false,
         resolutions: detail.resolutions || {},
@@ -439,49 +524,126 @@ export async function loadDeckFromServerSavedDeck(deckId) {
         excludedIds: Array.isArray(cond.excluded_ids) ? cond.excluded_ids : [],
       });
       appState.rawDeckCards = built.cardEntries || [];
-    } else {
-      const buildRes = await fetch("/api/deck/build", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          conditions: cond,
-          resolutions: detail.resolutions || {},
-          manual_order: detail.manual_order || [],
-        }),
-      });
-      if (!buildRes.ok) throw new Error("デッキの再構築に失敗しました");
-      const built = await buildRes.json();
-      const cards = built.deck?.cards || built.cards || [];
-      appState.rawDeckCards = annotateDeckGroupPositions(
-        cards.map((c, i) => ({
-          card_number: c.card_number || i + 1,
-          original_id: c.original_id || c.card_id,
-          kind: c.kind,
-          data: c.data || c,
-          group: c.group || null,
-          group_id: c.group_id,
-          group_name: c.group_name,
-          group_index: c.group_index,
-          group_total: c.group_total,
-        }))
-      );
     }
 
     appState.deckTitle = detail.name || `保存デッキ #${deckId}`;
     appState.deckSourceInfo = `保存済みデッキより読み込み (${appState.rawDeckCards.length}枚)`;
     appState.deckConditions = cond;
-    showSetupDeckLoaded();
+    await finalizeDeckLoaded();
+    return true;
   } catch (err) {
+    if (silent) {
+      appState.simpleLoading = false;
+      appState.simpleLoadError = err.message || "保存デッキの読み込みに失敗しました";
+      if (isSimpleMode()) showSetupDeckLoaded();
+      return false;
+    }
     alert(`保存デッキの取得に失敗しました: ${err.message}`);
+    return false;
   }
+}
+
+export async function loadDeckFromServerSavedDeckByName(deckName, { silent = true } = {}) {
+  const targetName = String(deckName || "").trim();
+  if (!targetName) return false;
+
+  appState.simpleLoading = true;
+  appState.simpleLoadError = "";
+  if (isSimpleMode()) showSetupDeckLoaded();
+
+  const list = await fetchServerSavedDecks();
+  const matched =
+    list.find((d) => String(d.name || "") === targetName) ||
+    list.find((d) => String(d.name || "").trim() === targetName);
+  if (!matched) {
+    appState.simpleLoading = false;
+    appState.simpleLoadError = `サーバー上のデッキ「${targetName}」が見つかりませんでした。`;
+    if (isSimpleMode()) {
+      showSetupDeckLoaded();
+    } else if (!silent) {
+      alert(appState.simpleLoadError);
+    }
+    return false;
+  }
+  return loadDeckFromServerSavedDeck(matched.id, { silent });
 }
 
 // ============================================================================
 // セットアップ画面表示
 // ============================================================================
+function renderSimpleTitleLoadedDeck(container) {
+  const totalCards = appState.rawDeckCards.length;
+  const events = appState.rawDeckCards.filter((c) => c.kind === "event");
+  const households = new Set(
+    appState.rawDeckCards.filter((c) => c.kind !== "event" && c.group_id).map((c) => c.group_id)
+  );
+  const persons = appState.rawDeckCards.filter((c) => c.kind === "person");
+  const pets = appState.rawDeckCards.filter((c) => c.kind === "pet");
+
+  if (appState.simpleLoading) {
+    container.innerHTML = `
+      <div class="tr-simple-status" data-testid="tr-simple-loading">
+        <div class="tr-simple-status-text">⏳ デッキを読み込んでいます...</div>
+      </div>
+    `;
+    return;
+  }
+
+  const errorHtml = appState.simpleLoadError
+    ? `<div class="tr-simple-error" data-testid="tr-simple-error">${escapeHtml(appState.simpleLoadError)}</div>`
+    : "";
+
+  if (totalCards === 0) {
+    container.innerHTML = `
+      <div class="tr-simple-deck-box is-empty" data-testid="tr-simple-empty">
+        ${errorHtml}
+        <p class="tr-simple-guide">
+          右上の <strong>「☰ メニュー」</strong> からサーバーのデッキまたはJSONファイルを読み込んでください。
+        </p>
+        <button type="button" class="tr-btn tr-btn-primary" id="tr-simple-open-menu-inline-btn">
+          📂 メニューからデッキを読み込む
+        </button>
+      </div>
+    `;
+    container
+      .querySelector("#tr-simple-open-menu-inline-btn")
+      ?.addEventListener("click", () => openSimpleMenuModal());
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="tr-simple-deck-box" data-testid="tr-loaded-deck-section">
+      ${errorHtml}
+      <div class="tr-simple-deck-name" data-testid="tr-simple-deck-name">🃏 ${escapeHtml(appState.deckTitle)}</div>
+      <div class="tr-simple-deck-stats">
+        <span class="tr-badge tr-badge-main" data-testid="stat-total-cards">合計 <strong>${totalCards}</strong> 枚</span>
+        <span class="tr-badge tr-badge-event">⚡ イベント <strong>${events.length}</strong></span>
+        <span class="tr-badge tr-household">🏠 避難世帯 <strong>${households.size}</strong> 組 (👤 ${persons.length}名 🐾 ${pets.length}匹)</span>
+      </div>
+      <div class="tr-simple-start-wrap">
+        <button
+          type="button"
+          class="tr-btn tr-btn-lg tr-btn-success tr-simple-start-btn"
+          id="tr-start-training-btn"
+          data-testid="tr-start-training-btn"
+        >
+          🚀 訓練スタート
+        </button>
+      </div>
+    </div>
+  `;
+
+  container.querySelector("#tr-start-training-btn")?.addEventListener("click", startTraining);
+}
+
 function showSetupDeckLoaded() {
   const container = document.getElementById("tr-loaded-deck-container");
   if (!container) return;
+
+  if (isSimpleMode()) {
+    renderSimpleTitleLoadedDeck(container);
+    return;
+  }
 
   const totalCards = appState.rawDeckCards.length;
   const events = appState.rawDeckCards.filter((c) => c.kind === "event");
@@ -782,22 +944,16 @@ function setupCarouselArenaDOM() {
         </div>
 
         <div class="tr-arena-top-right">
-          ${
-            appState.mode === "auto"
-              ? `
-              <div class="tr-auto-timer-pill" id="tr-auto-timer-pill">
-                <span class="tr-hide-mobile" style="font-size:0.8rem;color:var(--tr-text-muted);">⏰ タイマー:</span>
-                <span class="tr-auto-timer-sec" id="tr-auto-sec-val">${appState.autoTimerRemaining}秒</span>
-                <button type="button" class="tr-btn tr-btn-sm" id="tr-timer-pause-btn" style="padding:0.2rem 0.45rem;">
-                  ⏸️
-                </button>
-                <button type="button" class="tr-btn tr-btn-sm" id="tr-timer-plus-btn" style="padding:0.2rem 0.45rem;" title="+30秒延長">
-                  +30秒
-                </button>
-              </div>
-            `
-              : ""
-          }
+          <div class="tr-auto-timer-pill" id="tr-auto-timer-pill" style="display:${appState.mode === "auto" ? "inline-flex" : "none"};">
+            <span class="tr-hide-mobile" style="font-size:0.8rem;color:var(--tr-text-muted);">⏰ タイマー:</span>
+            <span class="tr-auto-timer-sec" id="tr-auto-sec-val">${appState.autoTimerRemaining}秒</span>
+            <button type="button" class="tr-btn tr-btn-sm" id="tr-timer-pause-btn" style="padding:0.2rem 0.45rem;">
+              ⏸️
+            </button>
+            <button type="button" class="tr-btn tr-btn-sm" id="tr-timer-plus-btn" style="padding:0.2rem 0.45rem;" title="+30秒延長">
+              +30秒
+            </button>
+          </div>
 
           <button
             type="button"
@@ -827,6 +983,20 @@ function setupCarouselArenaDOM() {
           >
             ⛶ 全画面
           </button>
+
+          ${
+            isSimpleMode()
+              ? `<button
+            type="button"
+            class="tr-btn tr-btn-sm tr-simple-stage-menu-btn"
+            id="tr-simple-menu-btn"
+            data-testid="tr-simple-menu-btn"
+            title="メニュー（JSON・デッキ読込・設定変更）"
+          >
+            ☰ メニュー
+          </button>`
+              : ""
+          }
 
           <button
             type="button"
@@ -944,8 +1114,14 @@ function setupCarouselArenaDOM() {
 
       <!-- 6. 拡大ライトボックスモーダル -->
       <div class="tr-lightbox-overlay" id="tr-lightbox-overlay" style="display:none;">
-        <div class="tr-lightbox-card">
+        <div class="tr-lightbox-card" id="tr-lightbox-card">
+          <div class="tr-lightbox-topbar" id="tr-lightbox-topbar" style="display:none;">
+            <button type="button" class="tr-btn tr-btn-sm" id="tr-lightbox-prev-btn" data-testid="tr-lightbox-prev-btn">◀ 前のカード</button>
+            <span class="tr-lightbox-counter" id="tr-lightbox-counter" data-testid="tr-lightbox-counter">1 / 1</span>
+            <button type="button" class="tr-btn tr-btn-sm" id="tr-lightbox-next-btn" data-testid="tr-lightbox-next-btn">次のカード ▶</button>
+          </div>
           <img class="tr-lightbox-img" id="tr-lightbox-img" alt="拡大プレビュー" />
+          <div class="tr-lightbox-members" id="tr-lightbox-members" data-testid="tr-lightbox-members" style="display:none;"></div>
           <div class="tr-lightbox-actions">
             <button type="button" class="tr-btn tr-btn-primary tr-btn-lg" id="tr-lightbox-select-btn">
               🎯 このカードの位置に戻る
@@ -1032,7 +1208,6 @@ function updateCarouselSpotlight(scrollIntoView = true) {
 
   if (bannerWrap) {
     if (isHH && grp) {
-      const origin = grp.evacuation_origin || rec.evacuation_origin || "市外";
       const memberCount = grp.member_count ?? currentSlide.cards.filter((c) => c.kind !== "pet").length;
       const petCount = grp.pet_count ?? currentSlide.cards.filter((c) => c.kind === "pet").length;
       const stepBadgeHtml =
@@ -1047,14 +1222,19 @@ function updateCarouselSpotlight(scrollIntoView = true) {
             ${stepBadgeHtml}
           </div>
           <div class="tr-stage-banner-meta">
-            避難元: <strong>${escapeHtml(origin)}</strong> ｜ 👤 <strong>${memberCount}名</strong> 🐾 <strong>${petCount}匹</strong>
+            👤 <strong>${memberCount}名</strong> 🐾 <strong>${petCount}匹</strong>
           </div>
         </div>
       `;
     } else {
       const isEvent = firstCard.kind === "event";
       const title = isEvent ? rec.event_name || firstCard.title : rec.name || firstCard.title;
-      const timing = Array.isArray(rec.relative_timing) ? rec.relative_timing.join("・") : "";
+      const hhGroupId = grp?.group_id || firstCard.group_id || "";
+      const hhGroupName = grp?.group_name || firstCard.group_name || "";
+      const hhMetaHtml =
+        !isEvent && (hhGroupId || hhGroupName)
+          ? `<div class="tr-stage-banner-meta">🏠 ${escapeHtml(hhGroupId ? `${hhGroupId}: ` : "")}${escapeHtml(hhGroupName)}</div>`
+          : "";
       bannerWrap.innerHTML = `
         <div class="tr-stage-banner ${isEvent ? "is-event" : "is-household"}" data-testid="tr-event-header">
           <div class="tr-stage-banner-main">
@@ -1063,7 +1243,7 @@ function updateCarouselSpotlight(scrollIntoView = true) {
             </span>
             <span class="tr-stage-banner-title">No.${firstCard.card_number}: ${escapeHtml(title || "")}</span>
           </div>
-          ${timing ? `<div class="tr-stage-banner-meta">発生時期: <strong>${escapeHtml(timing)}</strong></div>` : ""}
+          ${hhMetaHtml}
         </div>
       `;
     }
@@ -1450,6 +1630,8 @@ function bindCarouselArenaEvents() {
   // 拡大ライトボックスモーダル
   const lightboxOverlay = document.getElementById("tr-lightbox-overlay");
   const lightboxCloseBtn = document.getElementById("tr-lightbox-close-btn");
+  const lightboxPrevBtn = document.getElementById("tr-lightbox-prev-btn");
+  const lightboxNextBtn = document.getElementById("tr-lightbox-next-btn");
   if (lightboxOverlay && lightboxCloseBtn) {
     lightboxCloseBtn.addEventListener("click", () => {
       lightboxOverlay.style.display = "none";
@@ -1458,20 +1640,32 @@ function bindCarouselArenaEvents() {
       if (e.target === lightboxOverlay) lightboxOverlay.style.display = "none";
     });
   }
+  if (lightboxPrevBtn) {
+    lightboxPrevBtn.addEventListener("click", () => stepLightboxCard(-1));
+  }
+  if (lightboxNextBtn) {
+    lightboxNextBtn.addEventListener("click", () => stepLightboxCard(1));
+  }
 
   // 全画面
   const fullBtn = document.getElementById("tr-toggle-fullscreen-btn");
   if (fullBtn) fullBtn.addEventListener("click", toggleFullscreen);
 
+  // シンプル版メニューボタン
+  const simpleMenuBtn = document.getElementById("tr-simple-menu-btn");
+  if (simpleMenuBtn) {
+    simpleMenuBtn.addEventListener("click", () => openSimpleMenuModal());
+  }
+
   // 終了
   const exitBtn = document.getElementById("tr-exit-training-btn");
   if (exitBtn) {
-    exitBtn.addEventListener("click", () => {
+    exitBtn.addEventListener("click", async () => {
       if (confirm("訓練モードを終了し、デッキ選択画面に戻りますか？")) {
         cleanupTimers();
         appState.phase = "setup";
         document.body.classList.add("is-setup");
-        initAppUI();
+        await initAppUI();
         showSetupDeckLoaded();
       }
     });
@@ -1662,7 +1856,9 @@ function renderGalleryModal() {
       >
         <div style="display:flex;justify-content:space-between;align-items:center;">
           <span class="tr-badge" style="background:#eff6ff;color:#1d4ed8;font-size:0.75rem;padding:0.15rem 0.4rem;">${noText}</span>
-          <span style="font-size:0.75rem;color:var(--tr-text-muted);">${isHH ? "🏠 世帯" : "⚡ イベント"}</span>
+          <span style="font-size:0.75rem;color:var(--tr-text-muted);">${
+            isHH ? (slide.cards.length > 1 ? `🏠 世帯 (${slide.cards.length}枚)` : "🏠 世帯") : "⚡ イベント"
+          }</span>
         </div>
         <img
           class="tr-gallery-thumb-img"
@@ -1696,36 +1892,99 @@ function renderGalleryModal() {
   });
 }
 
-function openLightboxForSlide(slideIdx) {
+function stepLightboxCard(delta) {
+  const { slideIdx, cardIdx } = appState.lightboxState;
   const slide = appState.slides[slideIdx];
-  if (!slide) return;
+  if (!slide || !slide.cards || slide.cards.length <= 1) return;
+  const len = slide.cards.length;
+  const nextIdx = (cardIdx + delta + len) % len;
+  renderLightboxCardAt(slideIdx, nextIdx);
+}
 
-  const overlay = document.getElementById("tr-lightbox-overlay");
+function renderLightboxCardAt(slideIdx, cardIdx = 0) {
+  const slide = appState.slides[slideIdx];
+  if (!slide || !slide.cards || slide.cards.length === 0) return;
+
+  const cards = slide.cards;
+  const safeIdx = Math.max(0, Math.min(cards.length - 1, Number(cardIdx) || 0));
+  appState.lightboxState = { slideIdx, cardIdx: safeIdx };
+
+  const cardEl = document.getElementById("tr-lightbox-card");
+  const topbar = document.getElementById("tr-lightbox-topbar");
+  const counterEl = document.getElementById("tr-lightbox-counter");
+  const membersEl = document.getElementById("tr-lightbox-members");
   const imgEl = document.getElementById("tr-lightbox-img");
   const selectBtn = document.getElementById("tr-lightbox-select-btn");
 
-  const firstCard = slide.cards[0];
+  const activeCard = cards[safeIdx];
   const posMap = computeGroupPositionMap(appState.rawDeckCards);
-  const pos = posMap.get(String(firstCard.original_id || ""));
-  const model = toCardRenderModel(firstCard, firstCard.group, {
-    cardNumber: firstCard.card_number,
+  const pos = posMap.get(String(activeCard.original_id || ""));
+  const model = toCardRenderModel(activeCard, activeCard.group, {
+    cardNumber: activeCard.card_number,
     imageIds: store.imageIds,
-    groupIndex: pos?.group_index ?? firstCard.group_index,
-    groupTotal: pos?.group_total ?? firstCard.group_total,
+    groupIndex: pos?.group_index ?? activeCard.group_index,
+    groupTotal: pos?.group_total ?? activeCard.group_total,
   });
-  if (model) {
+  if (model && imgEl) {
     bindCardCanvasImage(imgEl, model, { showNumber: true });
+  }
+
+  const isMulti = cards.length > 1;
+  if (cardEl) cardEl.classList.toggle("has-multi", isMulti);
+  if (topbar) topbar.style.display = isMulti ? "flex" : "none";
+  if (counterEl && isMulti) {
+    const labelPrefix = slide.isHousehold ? `${slide.groupId || ""} ` : "";
+    counterEl.textContent = `${labelPrefix}${safeIdx + 1} / ${cards.length} 枚目`;
+  }
+  if (membersEl) {
+    if (isMulti) {
+      membersEl.style.display = "flex";
+      membersEl.innerHTML = cards
+        .map((c, idx) => {
+          const rec = c.data || {};
+          const icon = c.kind === "pet" ? "🐾" : "👤";
+          const label = rec.name || c.title || `カード${idx + 1}`;
+          return `
+            <button
+              type="button"
+              class="tr-lightbox-member-pill ${idx === safeIdx ? "active" : ""}"
+              data-card-idx="${idx}"
+              data-testid="tr-lightbox-member-btn-${idx}"
+            >
+              ${icon} No.${c.card_number}: ${escapeHtml(label)}
+            </button>
+          `;
+        })
+        .join("");
+      membersEl.querySelectorAll(".tr-lightbox-member-pill").forEach((btn) => {
+        btn.addEventListener("click", () => {
+          renderLightboxCardAt(slideIdx, Number(btn.dataset.cardIdx));
+        });
+      });
+    } else {
+      membersEl.style.display = "none";
+      membersEl.innerHTML = "";
+    }
   }
 
   if (selectBtn) {
     selectBtn.onclick = () => {
-      overlay.style.display = "none";
+      const overlay = document.getElementById("tr-lightbox-overlay");
+      if (overlay) overlay.style.display = "none";
       const galleryModal = document.getElementById("tr-gallery-modal");
       if (galleryModal) galleryModal.style.display = "none";
       jumpToSlide(slideIdx);
+      highlightSingleCard(activeCard.card_number);
     };
   }
+}
 
+function openLightboxForSlide(slideIdx, cardIdx = 0) {
+  const slide = appState.slides[slideIdx];
+  if (!slide) return;
+
+  const overlay = document.getElementById("tr-lightbox-overlay");
+  renderLightboxCardAt(slideIdx, cardIdx);
   if (overlay) overlay.style.display = "flex";
 }
 
@@ -1847,11 +2106,11 @@ function completeTraining() {
     modal.remove();
     startTraining();
   });
-  modal.querySelector("#tr-modal-back-btn").addEventListener("click", () => {
+  modal.querySelector("#tr-modal-back-btn").addEventListener("click", async () => {
     modal.remove();
     appState.phase = "setup";
     document.body.classList.add("is-setup");
-    initAppUI();
+    await initAppUI();
     showSetupDeckLoaded();
   });
 }
@@ -1873,6 +2132,39 @@ function toggleFullscreen() {
 // キーボードショートカット
 // ============================================================================
 window.addEventListener("keydown", (e) => {
+  const menuOverlay = document.getElementById("tr-simple-menu-overlay");
+  if (menuOverlay && e.key === "Escape") {
+    e.preventDefault();
+    closeSimpleMenuModal();
+    return;
+  }
+
+  const lightboxOverlay = document.getElementById("tr-lightbox-overlay");
+  if (lightboxOverlay && lightboxOverlay.style.display === "flex") {
+    if (e.key === "Escape") {
+      e.preventDefault();
+      lightboxOverlay.style.display = "none";
+      return;
+    }
+    if (e.key === "ArrowLeft") {
+      e.preventDefault();
+      stepLightboxCard(-1);
+      return;
+    }
+    if (e.key === "ArrowRight") {
+      e.preventDefault();
+      stepLightboxCard(1);
+      return;
+    }
+  }
+
+  const openGallery = document.getElementById("tr-gallery-modal");
+  if (openGallery && openGallery.style.display === "flex" && e.key === "Escape") {
+    e.preventDefault();
+    openGallery.style.display = "none";
+    return;
+  }
+
   if (appState.phase !== "running") return;
   if (e.target.tagName === "INPUT" || e.target.tagName === "TEXTAREA" || e.target.tagName === "SELECT") {
     return;
@@ -1920,6 +2212,306 @@ window.addEventListener("keydown", (e) => {
 });
 
 // ============================================================================
+// シンプル版メニュー＆ライブ設定変更
+// ============================================================================
+function applyLiveGroupByHouseholdChange(useGroup) {
+  if (appState.groupByHousehold === useGroup) return;
+  appState.groupByHousehold = useGroup;
+
+  if (appState.phase === "running" && appState.rawDeckCards.length > 0) {
+    const curSlide = appState.currentSlideIdx >= 0 ? appState.slides[appState.currentSlideIdx] : null;
+    const focusNo = appState.activeCardNo || curSlide?.startNo || null;
+    const maxNo =
+      appState.maxOpenedSlideIdx >= 0 && appState.slides[appState.maxOpenedSlideIdx]
+        ? appState.slides[appState.maxOpenedSlideIdx].endNo
+        : 0;
+
+    appState.slides = buildSlides(appState.rawDeckCards, appState.groupByHousehold);
+
+    if (appState.currentSlideIdx >= 0 && appState.slides.length > 0) {
+      let nextIdx = focusNo
+        ? appState.slides.findIndex((s) => s.cards.some((c) => c.card_number === focusNo))
+        : 0;
+      if (nextIdx < 0) nextIdx = 0;
+
+      let nextMaxIdx = nextIdx;
+      for (let i = 0; i < appState.slides.length; i++) {
+        if (appState.slides[i].startNo <= maxNo) nextMaxIdx = i;
+      }
+      appState.currentSlideIdx = nextIdx;
+      appState.maxOpenedSlideIdx = Math.max(nextIdx, nextMaxIdx);
+      updateCarouselSpotlight(true);
+    }
+  }
+}
+
+function applyLiveModeChange(newMode, newSeconds = appState.timerSeconds) {
+  appState.mode = newMode === "auto" ? "auto" : "manual";
+  appState.timerSeconds = Number(newSeconds) || 45;
+  appState.autoTimerRemaining = appState.timerSeconds;
+
+  if (appState.phase === "running") {
+    if (appState.autoTimerId) {
+      clearInterval(appState.autoTimerId);
+      appState.autoTimerId = null;
+    }
+    const pill = document.getElementById("tr-auto-timer-pill");
+    if (pill) {
+      pill.style.display = appState.mode === "auto" ? "inline-flex" : "none";
+    }
+    if (appState.mode === "auto") {
+      updateAutoTimerDisplay();
+      startAutoTimer();
+    }
+  }
+}
+
+export function closeSimpleMenuModal() {
+  const existing = document.getElementById("tr-simple-menu-overlay");
+  if (existing && existing.parentNode) {
+    existing.parentNode.removeChild(existing);
+  }
+}
+
+export async function openSimpleMenuModal() {
+  closeSimpleMenuModal();
+
+  const serverDecks = await fetchServerSavedDecks();
+  const hasLocalDeck = Boolean(localStorage.getItem("hug_web_deck_state_v1"));
+  const isRunning = appState.phase === "running";
+
+  const overlay = document.createElement("div");
+  overlay.id = "tr-simple-menu-overlay";
+  overlay.className = "tr-simple-menu-overlay";
+  overlay.setAttribute("data-testid", "tr-simple-menu");
+
+  overlay.innerHTML = `
+    <div class="tr-simple-menu-dialog" role="dialog" aria-modal="true" aria-label="訓練メニュー">
+      <div class="tr-simple-menu-header">
+        <h2>☰ メニュー（読込・設定）</h2>
+        <button type="button" class="tr-btn tr-btn-sm" id="tr-simple-menu-close-btn" data-testid="tr-simple-menu-close-btn" aria-label="閉じる">✕</button>
+      </div>
+
+      <div class="tr-simple-menu-body">
+        <section class="tr-simple-menu-section">
+          <h3>📂 JSONファイルの読み込み</h3>
+          <p class="tr-simple-menu-desc">エクスポートしたデッキJSONや台帳ファイルを読み込みます。</p>
+          <input type="file" id="tr-menu-file-input" data-testid="tr-menu-file-input" accept=".json" style="display:none;" />
+          <button type="button" class="tr-btn tr-btn-primary tr-simple-menu-full-btn" id="tr-menu-load-json-btn" data-testid="tr-menu-load-json-btn">
+            📥 JSONファイルを選択 (.json)
+          </button>
+        </section>
+
+        <section class="tr-simple-menu-section">
+          <h3>💾 サーバー保存済みデッキの読み込み</h3>
+          <p class="tr-simple-menu-desc">サーバー上の保存済みデッキを選択して読み込みます。</p>
+          ${
+            serverDecks.length > 0
+              ? `
+                <div class="tr-simple-menu-row">
+                  <select id="tr-menu-server-select" data-testid="tr-menu-server-select" class="tr-simple-menu-select">
+                    <option value="">-- デッキを選択 --</option>
+                    ${serverDecks
+                      .map(
+                        (d) =>
+                          `<option value="${d.id}">${escapeHtml(d.name)} (${escapeHtml(d.conditions?.disaster_type || "未指定")})</option>`
+                      )
+                      .join("")}
+                  </select>
+                  <button type="button" class="tr-btn tr-btn-primary" id="tr-menu-load-server-btn" data-testid="tr-menu-load-server-btn" disabled>
+                    読み込む
+                  </button>
+                </div>
+              `
+              : `<div class="tr-simple-menu-empty">（サーバーに保存済みのデッキがありません）</div>`
+          }
+          ${
+            hasLocalDeck
+              ? `<button type="button" class="tr-btn tr-simple-menu-full-btn" id="tr-menu-load-local-btn" data-testid="tr-menu-load-local-btn" style="margin-top:0.5rem;">🌐 Webデッキツールの編集デッキを読み込む</button>`
+              : ""
+          }
+        </section>
+
+        <section class="tr-simple-menu-section">
+          <h3>⚙️ 訓練設定</h3>
+          <div class="tr-simple-setting-block">
+            <div class="tr-simple-setting-label">めくり単位</div>
+            <div class="tr-simple-pill-row">
+              <button type="button" class="tr-btn tr-simple-choice-btn ${appState.groupByHousehold ? "active" : ""}" id="tr-menu-unit-group" data-testid="tr-menu-unit-group">
+                🏠 世帯単位（まとめて）
+              </button>
+              <button type="button" class="tr-btn tr-simple-choice-btn ${!appState.groupByHousehold ? "active" : ""}" id="tr-menu-unit-single" data-testid="tr-menu-unit-single">
+                📄 1枚ずつ
+              </button>
+            </div>
+          </div>
+
+          <div class="tr-simple-setting-block">
+            <div class="tr-simple-setting-label">カード送り方式</div>
+            <div class="tr-simple-pill-row">
+              <button type="button" class="tr-btn tr-simple-choice-btn ${appState.mode === "manual" ? "active" : ""}" id="tr-menu-mode-manual" data-testid="tr-menu-mode-manual">
+                👆 手動で次へ
+              </button>
+              <button type="button" class="tr-btn tr-simple-choice-btn ${appState.mode === "auto" ? "active" : ""}" id="tr-menu-mode-auto" data-testid="tr-menu-mode-auto">
+                ⏱️ 自動タイマー
+              </button>
+            </div>
+            <div class="tr-simple-timer-row" id="tr-menu-timer-wrap" style="display:${appState.mode === "auto" ? "flex" : "none"};">
+              <span>切替秒数:</span>
+              <select id="tr-menu-timer-select" data-testid="tr-menu-timer-select" class="tr-simple-menu-select">
+                ${[10, 15, 20, 30, 45, 60, 90, 120]
+                  .map(
+                    (sec) =>
+                      `<option value="${sec}" ${appState.timerSeconds === sec ? "selected" : ""}>${sec} 秒</option>`
+                  )
+                  .join("")}
+              </select>
+            </div>
+          </div>
+
+          <div class="tr-simple-setting-block">
+            <div class="tr-simple-setting-label">効果音</div>
+            <button type="button" class="tr-btn ${appState.soundEnabled ? "tr-btn-primary" : ""}" id="tr-menu-sound-btn" data-testid="tr-menu-sound-btn">
+              ${appState.soundEnabled ? "🔊 効果音 ON" : "🔇 効果音 OFF"}
+            </button>
+          </div>
+        </section>
+
+        ${
+          isRunning
+            ? `
+          <section class="tr-simple-menu-section">
+            <h3>🎮 進行操作</h3>
+            <div class="tr-simple-pill-row">
+              <button type="button" class="tr-btn" id="tr-menu-open-gallery-btn" data-testid="tr-menu-open-gallery-btn">
+                📋 表示済み一覧
+              </button>
+              <button type="button" class="tr-btn tr-btn-danger" id="tr-menu-back-title-btn" data-testid="tr-menu-back-title-btn">
+                🏠 タイトルに戻る
+              </button>
+            </div>
+          </section>
+        `
+            : ""
+        }
+      </div>
+    </div>
+  `;
+
+  document.body.appendChild(overlay);
+
+  overlay.querySelector("#tr-simple-menu-close-btn")?.addEventListener("click", closeSimpleMenuModal);
+  overlay.addEventListener("click", (e) => {
+    if (e.target === overlay) closeSimpleMenuModal();
+  });
+
+  // JSON読込
+  const menuFileInput = overlay.querySelector("#tr-menu-file-input");
+  const menuJsonBtn = overlay.querySelector("#tr-menu-load-json-btn");
+  if (menuJsonBtn && menuFileInput) {
+    menuJsonBtn.addEventListener("click", () => menuFileInput.click());
+    menuFileInput.addEventListener("change", async (e) => {
+      const file = e.target.files && e.target.files[0];
+      if (!file) return;
+      closeSimpleMenuModal();
+      await loadDeckFromJsonFile(file);
+    });
+  }
+
+  // サーバーデッキ読込
+  const srvSelect = overlay.querySelector("#tr-menu-server-select");
+  const srvLoadBtn = overlay.querySelector("#tr-menu-load-server-btn");
+  if (srvSelect && srvLoadBtn) {
+    srvSelect.addEventListener("change", () => {
+      srvLoadBtn.disabled = !srvSelect.value;
+    });
+    srvLoadBtn.addEventListener("click", async () => {
+      const id = srvSelect.value;
+      if (!id) return;
+      closeSimpleMenuModal();
+      await loadDeckFromServerSavedDeck(id);
+    });
+  }
+
+  // ローカル一時保存読込
+  overlay.querySelector("#tr-menu-load-local-btn")?.addEventListener("click", async () => {
+    closeSimpleMenuModal();
+    await loadDeckFromLocalStorage();
+  });
+
+  // 設定変更: めくり単位
+  const unitGroupBtn = overlay.querySelector("#tr-menu-unit-group");
+  const unitSingleBtn = overlay.querySelector("#tr-menu-unit-single");
+  const syncUnitBtns = () => {
+    unitGroupBtn?.classList.toggle("active", appState.groupByHousehold);
+    unitSingleBtn?.classList.toggle("active", !appState.groupByHousehold);
+  };
+  unitGroupBtn?.addEventListener("click", () => {
+    applyLiveGroupByHouseholdChange(true);
+    syncUnitBtns();
+  });
+  unitSingleBtn?.addEventListener("click", () => {
+    applyLiveGroupByHouseholdChange(false);
+    syncUnitBtns();
+  });
+
+  // 設定変更: 進行方式・タイマー
+  const modeManualBtn = overlay.querySelector("#tr-menu-mode-manual");
+  const modeAutoBtn = overlay.querySelector("#tr-menu-mode-auto");
+  const timerWrap = overlay.querySelector("#tr-menu-timer-wrap");
+  const timerSel = overlay.querySelector("#tr-menu-timer-select");
+  const syncModeBtns = () => {
+    modeManualBtn?.classList.toggle("active", appState.mode === "manual");
+    modeAutoBtn?.classList.toggle("active", appState.mode === "auto");
+    if (timerWrap) timerWrap.style.display = appState.mode === "auto" ? "flex" : "none";
+  };
+  modeManualBtn?.addEventListener("click", () => {
+    applyLiveModeChange("manual", appState.timerSeconds);
+    syncModeBtns();
+  });
+  modeAutoBtn?.addEventListener("click", () => {
+    const sec = Number(timerSel?.value || appState.timerSeconds || 45);
+    applyLiveModeChange("auto", sec);
+    syncModeBtns();
+  });
+  timerSel?.addEventListener("change", () => {
+    applyLiveModeChange("auto", Number(timerSel.value));
+  });
+
+  // 効果音
+  const menuSoundBtn = overlay.querySelector("#tr-menu-sound-btn");
+  menuSoundBtn?.addEventListener("click", () => {
+    appState.soundEnabled = !appState.soundEnabled;
+    sfx.enabled = appState.soundEnabled;
+    menuSoundBtn.textContent = appState.soundEnabled ? "🔊 効果音 ON" : "🔇 効果音 OFF";
+    menuSoundBtn.classList.toggle("tr-btn-primary", appState.soundEnabled);
+    const stageSoundBtn = document.getElementById("tr-sound-btn");
+    if (stageSoundBtn) {
+      stageSoundBtn.innerHTML = appState.soundEnabled
+        ? "🔊<span class='tr-hide-mobile'> 音ON</span>"
+        : "🔇<span class='tr-hide-mobile'> 音OFF</span>";
+    }
+  });
+
+  // 実行中操作
+  overlay.querySelector("#tr-menu-open-gallery-btn")?.addEventListener("click", () => {
+    closeSimpleMenuModal();
+    renderGalleryModal();
+    const gModal = document.getElementById("tr-gallery-modal");
+    if (gModal) gModal.style.display = "flex";
+  });
+
+  overlay.querySelector("#tr-menu-back-title-btn")?.addEventListener("click", async () => {
+    closeSimpleMenuModal();
+    cleanupTimers();
+    appState.phase = "setup";
+    document.body.classList.add("is-setup");
+    await initAppUI();
+    showSetupDeckLoaded();
+  });
+}
+
+// ============================================================================
 // セットアップ画面の描画
 // ============================================================================
 export async function initAppUI() {
@@ -1927,6 +2519,34 @@ export async function initAppUI() {
   if (!main) return;
 
   document.body.classList.add("is-setup");
+
+  if (isSimpleMode()) {
+    main.innerHTML = `
+      <div class="tr-simple-setup-shell" data-testid="tr-simple-title-view">
+        <div class="tr-simple-top-actions">
+          <button
+            type="button"
+            class="tr-btn tr-simple-menu-trigger"
+            id="tr-simple-menu-btn"
+            data-testid="tr-simple-menu-btn"
+          >
+            ☰ メニュー
+          </button>
+        </div>
+
+        <div class="tr-simple-hero-card">
+          <div class="tr-setup-logo-wrap">
+            <img ${LOGO_IMG_ATTRS} alt="避難所運営ゲーム 正式ロゴ" class="tr-setup-logo-img" />
+          </div>
+          <h1 class="tr-simple-title">避難所運営ゲーム (HUG) 訓練</h1>
+          <div id="tr-loaded-deck-container"></div>
+        </div>
+      </div>
+    `;
+    main.querySelector("#tr-simple-menu-btn")?.addEventListener("click", () => openSimpleMenuModal());
+    renderSimpleTitleLoadedDeck(document.getElementById("tr-loaded-deck-container"));
+    return;
+  }
 
   const hasLocalDeck = Boolean(localStorage.getItem("hug_web_deck_state_v1"));
   const serverDecks = await fetchServerSavedDecks();
@@ -2056,12 +2676,24 @@ function bindSetupEventListeners(serverDecks) {
 // エントリポイント
 // ============================================================================
 async function main() {
+  if (isSimpleMode()) {
+    appState.groupByHousehold = true;
+    appState.mode = "manual";
+  }
+
   await loadCardDatabase();
   await initAppUI();
 
   const params = new URLSearchParams(window.location.search);
-  if (params.get("source") === "local") {
-    loadDeckFromLocalStorage();
+  const deckNameParam = params.get("deck");
+  const deckIdParam = params.get("deck_id");
+
+  if (deckNameParam) {
+    await loadDeckFromServerSavedDeckByName(deckNameParam, { silent: isSimpleMode() });
+  } else if (deckIdParam) {
+    await loadDeckFromServerSavedDeck(deckIdParam, { silent: isSimpleMode() });
+  } else if (params.get("source") === "local") {
+    await loadDeckFromLocalStorage();
   }
 }
 
