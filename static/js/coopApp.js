@@ -4,11 +4,12 @@
  */
 import { loadBoardManifest, loadCardDatabase } from "./boardDeckLoader.js";
 import { renderQrToCanvas, downloadQrPng } from "./qrCode.js";
-import { createSyncAdapter } from "./syncAdapter.js";
+import { createSyncAdapter, roundCoord } from "./syncAdapter.js";
 import { t, LANG_MODES } from "./coopI18n.js";
 import {
   CARD_W,
   CARD_H,
+  DESK_MARGIN,
   clamp,
   cardSummary,
   escapeHtml,
@@ -43,7 +44,8 @@ const app = {
   unsub: null,
   stage: null,
   imageCache: new CardImageCache(),
-  prevHandLen: null,
+  prevHandSet: null,
+  prevPlacedSet: null,
   timerInterval: 0,
   joined: false,
 };
@@ -321,13 +323,19 @@ async function renderPdfTakeHomeView() {
 
 function startPlaySession() {
   app.joined = true;
+  app.prevHandSet = null;
+  app.prevPlacedSet = null;
   if (app.unsub) app.unsub();
   renderPlayShell();
-  app.unsub = app.sync.subscribeRoom(app.roomId, (room) => {
-    if (!room) return;
-    app.room = room;
-    syncPlayState();
-  });
+  app.unsub = app.sync.subscribeRoom(
+    app.roomId,
+    (room) => {
+      if (!room) return;
+      app.room = room;
+      syncPlayState();
+    },
+    { groupId: app.groupId }
+  );
 }
 
 function renderPlayShell() {
@@ -343,13 +351,13 @@ function renderPlayShell() {
     <div class="co-play" data-testid="coop-play-view">
       <header class="co-topbar">
         ${LOGO_HTML}
-        <div style="min-width:0;">
+        <div class="co-topbar-group">
           <div class="co-topbar-title" data-testid="coop-group-title">${escapeHtml(g.name)}</div>
-          <div style="font-size:0.75rem;color:var(--co-muted);" id="co-online-info"></div>
+          <span class="co-online-pill" id="co-online-info"></span>
         </div>
         <div class="co-topbar-spacer"></div>
         <span class="co-timer-badge" id="co-timer-badge" hidden></span>
-        <span style="font-size:0.82rem;font-weight:800;color:var(--co-primary);" id="co-progress-text" data-testid="coop-progress"></span>
+        <span class="co-progress-pill" id="co-progress-text" data-testid="coop-progress"></span>
         ${renderLangToggleBtn()}
         <button type="button" class="co-btn co-btn-sm" id="co-menu-btn" data-testid="coop-menu-btn">☰</button>
       </header>
@@ -359,7 +367,6 @@ function renderPlayShell() {
         <div class="bd-world bd-card-world" id="co-card-world"></div>
         <div class="bd-cluster-layer" id="co-cluster-layer"></div>
         <div class="bd-selbar" id="co-selbar" hidden>
-          <span class="bd-selbar-label" id="co-sel-label"></span>
           <button type="button" class="co-btn co-btn-sm" id="co-sel-zoom">🔍 ${escapeHtml(L("zoomDetail"))}</button>
           <button type="button" class="co-btn co-btn-sm" id="co-sel-return">↩ ${escapeHtml(L("returnToHand"))}</button>
           <button type="button" class="co-btn co-btn-sm" id="co-sel-close">✕</button>
@@ -395,13 +402,7 @@ function renderPlayShell() {
     readOnly: false,
     onSelectCard: (idx) => {
       const selbar = document.getElementById("co-selbar");
-      if (idx == null) {
-        selbar.hidden = true;
-        return;
-      }
-      const info = cardSummary(app.room.cards[idx], idx);
-      document.getElementById("co-sel-label").textContent = `No.${info.no} ${info.title}`;
-      selbar.hidden = false;
+      if (selbar) selbar.hidden = idx == null;
     },
     onDragState: (idx, dragging) => {
       app.sync.setCardLock(
@@ -412,13 +413,14 @@ function renderPlayShell() {
       );
     },
     onMoveCard: async (idx, x, y) => {
-      const latest = await app.sync.getRoom(app.roomId);
-      const grp = latest?.groups?.[app.groupId];
+      const grp = app.room?.groups?.[app.groupId];
       if (!grp) return;
       const nextZ = (grp.z || 1) + 1;
-      const placed = { ...(grp.placed || {}) };
-      placed[String(idx)] = { x, y, z: nextZ, by: app.nickname };
-      await app.sync.updateGroupBoard(app.roomId, app.groupId, { placed, z: nextZ });
+      const posObj = { x: roundCoord(x), y: roundCoord(y), z: nextZ, by: app.nickname };
+      grp.placed = grp.placed || {};
+      grp.placed[String(idx)] = posObj;
+      grp.z = nextZ;
+      await app.sync.placeOrMoveCard(app.roomId, app.groupId, idx, posObj, null, nextZ);
     },
     getBadgeText: (idx, p, lock) => {
       if (lock && lock.memberId !== app.memberId) {
@@ -468,7 +470,7 @@ function syncPlayState() {
 
   const memberCount = Object.keys(g.members || {}).length;
   const onlineEl = document.getElementById("co-online-info");
-  if (onlineEl) onlineEl.textContent = `${app.nickname}（${L("membersOnline", { n: memberCount })}）`;
+  if (onlineEl) onlineEl.textContent = `👤${L("membersOnline", { n: memberCount })}`;
 
   const placedCount = Object.keys(g.placed || {}).length;
   const progEl = document.getElementById("co-progress-text");
@@ -481,6 +483,7 @@ function syncPlayState() {
       banner.textContent = `📢 ${msg}`;
       banner.hidden = false;
     } else {
+      banner.textContent = "";
       banner.hidden = true;
     }
   }
@@ -490,62 +493,150 @@ function syncPlayState() {
     app.stage.syncCards(room.cards, g.placed, g.locks);
   }
 
-  // 手札トレイ更新
+  // 手札トレイ更新（新規配布と台紙からの返却を区別して通知）
   const hand = g.hand || [];
-  if (app.prevHandLen !== null && hand.length > app.prevHandLen) {
-    toast(L("newCardToast", { n: hand.length - app.prevHandLen }), "info");
+  const curHandSet = new Set(hand);
+  const curPlacedSet = new Set(Object.keys(g.placed || {}).map(Number));
+  if (app.prevHandSet !== null) {
+    const added = hand.filter((i) => !app.prevHandSet.has(i));
+    if (added.length > 0) {
+      const returnedCount = added.filter((i) => app.prevPlacedSet?.has(i)).length;
+      const dealtCount = added.length - returnedCount;
+      if (dealtCount > 0) toast(L("newCardToast", { n: dealtCount }), "info");
+      if (returnedCount > 0) toast(L("returnedCardToast"), "info");
+    }
   }
-  app.prevHandLen = hand.length;
+  app.prevHandSet = curHandSet;
+  app.prevPlacedSet = curPlacedSet;
 
   const hc = document.getElementById("co-hand-count");
   if (hc) hc.textContent = String(hand.length);
 
   const handEl = document.getElementById("co-hand");
   if (handEl) {
-    if (hand.length === 0) {
-      handEl.innerHTML = `<div class="co-hand-empty">${escapeHtml(L("waitingCards"))}</div>`;
-    } else {
-      handEl.innerHTML = "";
-      hand.forEach((idx) => {
-        const card = room.cards[idx];
-        const info = cardSummary(card, idx);
-        const btn = document.createElement("button");
-        btn.type = "button";
-        btn.className = `co-hand-card ${info.isEvent ? "is-event" : ""}`;
-        btn.dataset.testid = `coop-hand-card-${idx}`;
-        btn.innerHTML = `<img alt="No.${info.no}" />`;
-        app.imageCache.ensure(idx, card).then((m) => {
-          const img = btn.querySelector("img");
-          if (img) img.src = m.url;
+    const handSig = `${app.langMode}:${hand.join(",")}`;
+    if (handEl.dataset.handSig !== handSig) {
+      handEl.dataset.handSig = handSig;
+      if (hand.length === 0) {
+        handEl.innerHTML = `<div class="co-hand-empty">${escapeHtml(L("waitingCards"))}</div>`;
+      } else {
+        handEl.innerHTML = "";
+        hand.forEach((idx) => {
+          const card = room.cards[idx];
+          const info = cardSummary(card, idx);
+          const btn = document.createElement("button");
+          btn.type = "button";
+          btn.className = `co-hand-card ${info.isEvent ? "is-event" : ""}`;
+          btn.dataset.idx = String(idx);
+          btn.dataset.testid = `coop-hand-card-${idx}`;
+          btn.innerHTML = `<img alt="No.${info.no}" draggable="false" />`;
+          app.imageCache.ensure(idx, card).then((m) => {
+            const img = btn.querySelector("img");
+            if (img) img.src = m.url;
+          });
+          attachHandCardDrag(btn, idx);
+          handEl.appendChild(btn);
         });
-        btn.addEventListener("click", () => openCardPreviewModal(idx, "hand"));
-        handEl.appendChild(btn);
-      });
+      }
     }
   }
 }
 
-async function placeHandCard(idx, x, y) {
-  const latest = await app.sync.getRoom(app.roomId);
-  const g = latest?.groups?.[app.groupId];
+function attachHandCardDrag(btn, idx) {
+  let drag = null;
+
+  const cleanup = () => {
+    if (!drag) return;
+    window.removeEventListener("pointermove", onMove);
+    window.removeEventListener("pointerup", onUp);
+    window.removeEventListener("pointercancel", onCancel);
+    btn.classList.remove("is-dragging");
+    if (drag.ghost) drag.ghost.remove();
+    drag = null;
+  };
+
+  const onMove = (e) => {
+    if (!drag || e.pointerId !== drag.pid) return;
+    const d = Math.hypot(e.clientX - drag.sx, e.clientY - drag.sy);
+    if (!drag.moved && d > 6) {
+      drag.moved = true;
+      btn.classList.add("is-dragging");
+      const ghost = document.createElement("div");
+      ghost.className = "co-drag-ghost";
+      const srcImg = btn.querySelector("img")?.src || "";
+      ghost.innerHTML = `<img src="${srcImg}" alt="" />`;
+      document.body.appendChild(ghost);
+      drag.ghost = ghost;
+    }
+    if (drag.moved && drag.ghost) {
+      drag.ghost.style.left = `${e.clientX}px`;
+      drag.ghost.style.top = `${e.clientY}px`;
+    }
+  };
+
+  const onUp = async (e) => {
+    if (!drag || e.pointerId !== drag.pid) return;
+    const moved = drag.moved;
+    const cx = e.clientX;
+    const cy = e.clientY;
+    cleanup();
+    if (!moved) {
+      openCardPreviewModal(idx, "hand");
+      return;
+    }
+    const stageEl = document.getElementById("co-stage");
+    const geo = app.stage?.state?.geo;
+    if (!stageEl || !geo) return;
+    const rect = stageEl.getBoundingClientRect();
+    if (cx >= rect.left && cx <= rect.right && cy >= rect.top && cy <= rect.bottom) {
+      const w = app.stage.screenToWorld(cx - rect.left, cy - rect.top);
+      const wx = clamp(w.x, -DESK_MARGIN + CARD_W / 2, geo.W + DESK_MARGIN - CARD_W / 2);
+      const wy = clamp(w.y, -DESK_MARGIN + CARD_H / 2, geo.H + DESK_MARGIN - CARD_H / 2);
+      await placeHandCard(idx, wx, wy, { autoZoom: false });
+    }
+  };
+
+  const onCancel = (e) => {
+    if (drag && e.pointerId === drag.pid) cleanup();
+  };
+
+  btn.addEventListener("pointerdown", (e) => {
+    if (e.button && e.button !== 0) return;
+    cleanup();
+    drag = { pid: e.pointerId, sx: e.clientX, sy: e.clientY, moved: false, ghost: null };
+    window.addEventListener("pointermove", onMove);
+    window.addEventListener("pointerup", onUp);
+    window.addEventListener("pointercancel", onCancel);
+  });
+}
+
+async function placeHandCard(idx, x, y, { autoZoom = true } = {}) {
+  const g = app.room?.groups?.[app.groupId];
   if (!g) return;
   const hand = (g.hand || []).filter((i) => i !== idx);
-  const placed = { ...(g.placed || {}) };
   const nextZ = (g.z || 1) + 1;
-  placed[String(idx)] = { x, y, z: nextZ, by: app.nickname };
-  await app.sync.updateGroupBoard(app.roomId, app.groupId, { hand, placed, z: nextZ });
-  app.stage?.zoomToCards([{ x, y }], 80);
+  const posObj = { x: roundCoord(x), y: roundCoord(y), z: nextZ, by: app.nickname };
+  g.placed = { ...(g.placed || {}), [String(idx)]: posObj };
+  g.hand = hand;
+  g.z = nextZ;
+  if (app.prevHandSet) app.prevHandSet = new Set(hand);
+  if (app.prevPlacedSet) app.prevPlacedSet.add(idx);
+  syncPlayState();
+  await app.sync.placeOrMoveCard(app.roomId, app.groupId, idx, posObj, hand, nextZ);
+  if (autoZoom) app.stage?.zoomToCards([{ x: posObj.x, y: posObj.y }], 80);
 }
 
 async function returnCardToHand(idx) {
-  const latest = await app.sync.getRoom(app.roomId);
-  const g = latest?.groups?.[app.groupId];
+  const g = app.room?.groups?.[app.groupId];
   if (!g) return;
   const placed = { ...(g.placed || {}) };
   delete placed[String(idx)];
   const hand = [...(g.hand || [])];
   if (!hand.includes(idx)) hand.push(idx);
-  await app.sync.updateGroupBoard(app.roomId, app.groupId, { hand, placed });
+  g.placed = placed;
+  g.hand = hand;
+  syncPlayState();
+  await app.sync.returnCard(app.roomId, app.groupId, idx, hand);
 }
 
 function openCardPreviewModal(idx, source) {
@@ -555,9 +646,8 @@ function openCardPreviewModal(idx, source) {
   const back = document.createElement("div");
   back.className = "co-modal-backdrop";
   back.innerHTML = `
-    <div class="co-modal-dialog" role="dialog" aria-modal="true">
-      <div class="co-modal-head">
-        <span class="co-modal-title">No.${info.no} ${escapeHtml(info.title)}</span>
+    <div class="co-modal-dialog" role="dialog" aria-modal="true" data-testid="coop-preview-dialog">
+      <div class="co-modal-head" style="justify-content:flex-end;margin-bottom:8px;">
         <button type="button" class="co-btn co-btn-sm" data-act="close">✕</button>
       </div>
       <img class="co-preview-img" id="co-prev-img" alt="No.${info.no}" />

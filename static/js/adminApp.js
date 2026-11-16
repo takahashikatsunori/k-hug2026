@@ -318,34 +318,131 @@ function renderSetup() {
   loadRecentRoomsList();
 }
 
+function formatHistoryDate(ts) {
+  if (!ts) return "";
+  const d = new Date(ts);
+  const pad2 = (n) => String(n).padStart(2, "0");
+  return `${d.getFullYear()}/${pad2(d.getMonth() + 1)}/${pad2(d.getDate())} ${pad2(d.getHours())}:${pad2(d.getMinutes())}`;
+}
+
+function renderHistoryItemsHtml(rooms) {
+  return rooms
+    .map(
+      (r) => `
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:10px 12px;border:1px solid var(--co-border);border-radius:12px;" data-testid="ad-history-item-${escapeHtml(r.id)}">
+        <div style="min-width:0;">
+          <b style="display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${escapeHtml(r.title || r.id)}</b>
+          <div style="font-size:0.8rem;color:var(--co-muted);">ID: ${escapeHtml(r.id)} ／ ${escapeHtml(r.deckTitle || "")}${r.createdAt ? ` ／ ${formatHistoryDate(r.createdAt)}` : ""}</div>
+        </div>
+        <div style="display:flex;gap:6px;flex-shrink:0;">
+          <button type="button" class="co-btn co-btn-sm co-btn-primary" data-open-room="${escapeHtml(r.id)}" data-testid="ad-open-room-${escapeHtml(r.id)}">開く</button>
+          <button type="button" class="co-btn co-btn-sm" data-del-room="${escapeHtml(r.id)}" data-testid="ad-del-room-${escapeHtml(r.id)}" style="color:var(--co-danger);">🗑️ 削除</button>
+        </div>
+      </div>`
+    )
+    .join("");
+}
+
+function bindHistoryActions(container, onReload) {
+  container.querySelectorAll("[data-open-room]").forEach((b) =>
+    b.addEventListener("click", () => {
+      onReload?.("open", b.dataset.openRoom);
+      openRoom(b.dataset.openRoom);
+    })
+  );
+  container.querySelectorAll("[data-del-room]").forEach((b) =>
+    b.addEventListener("click", async () => {
+      const rid = b.dataset.delRoom;
+      await app.sync.deleteRoom(rid);
+      toast(`訓練ルーム ${rid} を削除しました`);
+      if (rid === app.roomId) {
+        leaveRoomToSetup();
+      } else {
+        onReload?.("deleted", rid);
+      }
+    })
+  );
+  container.querySelector('[data-act="clear-all-history"]')?.addEventListener("click", async () => {
+    await app.sync.clearRoomHistory();
+    toast("訓練履歴をすべて削除しました");
+    if (app.roomId) {
+      leaveRoomToSetup();
+    } else {
+      onReload?.("cleared");
+    }
+  });
+}
+
 async function loadRecentRoomsList() {
   const wrap = document.getElementById("ad-recent-rooms");
   if (!wrap || !app.sync) return;
   const rooms = await app.sync.listRooms();
-  if (!rooms.length) return;
+  if (!rooms.length) {
+    wrap.innerHTML = "";
+    return;
+  }
   wrap.innerHTML = `
-    <div class="co-card">
-      <h2>📂 作成済みの訓練ルーム（このブラウザ内）</h2>
+    <div class="co-card" data-testid="ad-history-card">
+      <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
+        <h2 style="margin:0;">📂 作成済みの訓練ルーム（履歴）</h2>
+        <button type="button" class="co-btn co-btn-sm" data-act="clear-all-history" data-testid="ad-clear-history-btn" style="color:var(--co-danger);">🗑️ 履歴をすべて削除</button>
+      </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
-        ${rooms
-          .slice(0, 5)
-          .map(
-            (r) => `
-          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;padding:8px 12px;border:1px solid var(--co-border);border-radius:12px;">
-            <div>
-              <b>${escapeHtml(r.meta.title || r.id)}</b>
-              <div style="font-size:0.8rem;color:var(--co-muted);">ID: ${escapeHtml(r.id)} ／ ${escapeHtml(r.meta.deckTitle || "")}</div>
-            </div>
-            <button type="button" class="co-btn co-btn-sm co-btn-primary" data-open-room="${escapeHtml(r.id)}">開く</button>
-          </div>`
-          )
-          .join("")}
+        ${renderHistoryItemsHtml(rooms)}
       </div>
     </div>
   `;
-  wrap.querySelectorAll("[data-open-room]").forEach((b) =>
-    b.addEventListener("click", () => openRoom(b.dataset.openRoom))
-  );
+  bindHistoryActions(wrap, () => loadRecentRoomsList());
+}
+
+async function openHistoryModal() {
+  const rooms = await app.sync.listRooms();
+  const back = document.createElement("div");
+  back.className = "co-modal-backdrop";
+  const renderModalContent = (list) => {
+    back.innerHTML = `
+      <div class="co-modal-dialog" role="dialog" aria-modal="true" style="max-width:560px;" data-testid="ad-history-modal">
+        <div class="co-modal-head">
+          <span class="co-modal-title">📂 訓練履歴（切替・削除）</span>
+          <button type="button" class="co-btn co-btn-sm" data-act="close">✕</button>
+        </div>
+        ${
+          list.length
+            ? `<div style="display:flex;flex-direction:column;gap:8px;margin-bottom:12px;">${renderHistoryItemsHtml(list)}</div>
+               <div style="display:flex;justify-content:flex-end;">
+                 <button type="button" class="co-btn co-btn-sm" data-act="clear-all-history" style="color:var(--co-danger);">🗑️ 履歴をすべて削除</button>
+               </div>`
+            : `<p style="color:var(--co-muted);margin:8px 0;">保存されている訓練履歴はありません。</p>`
+        }
+      </div>
+    `;
+    bindHistoryActions(back, async (kind) => {
+      if (kind === "open") {
+        back.remove();
+      } else {
+        const next = await app.sync.listRooms();
+        renderModalContent(next);
+      }
+    });
+  };
+  renderModalContent(rooms);
+  back.addEventListener("click", (e) => {
+    if (e.target === back || e.target.closest('[data-act="close"]')) back.remove();
+  });
+  document.body.appendChild(back);
+}
+
+function leaveRoomToSetup() {
+  clearInterval(app.timerInterval);
+  if (app.unsub) app.unsub();
+  if (app.stage) app.stage.destroy();
+  app.stage = null;
+  app.room = null;
+  app.roomId = "";
+  const url = new URL(window.location.href);
+  url.searchParams.delete("room");
+  window.history.replaceState({}, "", url.toString());
+  renderSetup();
 }
 
 async function createTrainingRoom() {
@@ -394,11 +491,15 @@ async function createTrainingRoom() {
 }
 
 function openRoom(roomId) {
+  clearInterval(app.timerInterval);
+  if (app.unsub) app.unsub();
+  if (app.stage) app.stage.destroy();
+  app.stage = null;
+  app.room = null;
   app.roomId = roomId;
   const url = new URL(window.location.href);
   url.searchParams.set("room", roomId);
   window.history.replaceState({}, "", url.toString());
-  if (app.unsub) app.unsub();
   app.monitoredGroupId = "";
   app.unsub = app.sync.subscribeRoom(roomId, (room) => {
     if (!room) return;
@@ -453,7 +554,7 @@ async function handleDeal(mode) {
     return;
   }
   const nextCount = batch[batch.length - 1] + 1;
-  await app.sync.dealCardsToAllGroups(app.roomId, batch, nextCount);
+  await app.sync.dealCardsToAllGroups(app.roomId, batch, nextCount, app.room);
   toast(`${batch.length}枚のカードを全グループへ配布しました`, "info");
 }
 
@@ -554,7 +655,8 @@ function renderConsole() {
       </div>
       <div class="co-header-actions">
         ${syncModePill()}
-        <button type="button" class="co-btn co-btn-sm" id="ad-new-room-btn">＋ 新しい訓練</button>
+        <button type="button" class="co-btn co-btn-sm" id="ad-history-btn" data-testid="ad-history-btn">📂 訓練履歴</button>
+        <button type="button" class="co-btn co-btn-sm" id="ad-new-room-btn" data-testid="ad-new-room-btn">＋ 新しい訓練</button>
       </div>
     </header>
     <main class="co-container">
@@ -613,17 +715,8 @@ function renderConsole() {
     </main>
   `;
 
-  document.getElementById("ad-new-room-btn").addEventListener("click", () => {
-    if (app.unsub) app.unsub();
-    if (app.stage) app.stage.destroy();
-    app.stage = null;
-    app.room = null;
-    app.roomId = "";
-    const url = new URL(window.location.href);
-    url.searchParams.delete("room");
-    window.history.replaceState({}, "", url.toString());
-    renderSetup();
-  });
+  document.getElementById("ad-history-btn").addEventListener("click", openHistoryModal);
+  document.getElementById("ad-new-room-btn").addEventListener("click", leaveRoomToSetup);
   document.getElementById("ad-deal-one").addEventListener("click", () => handleDeal("one"));
   document.getElementById("ad-deal-household").addEventListener("click", () => handleDeal("household"));
   document.getElementById("ad-deal-three").addEventListener("click", () => handleDeal("three"));
@@ -650,7 +743,10 @@ function renderConsole() {
     clusterLayerEl: document.getElementById("ad-mon-clusters"),
     imageCache: app.imageCache,
     readOnly: true,
-    getBadgeText: (idx, p) => (p.by ? `${p.by}` : ""),
+    getBadgeText: (idx, p, lock) => {
+      if (lock && lock.name) return `${lock.name}さんが移動中`;
+      return p.by ? `${p.by}さん` : "";
+    },
   });
   document.getElementById("ad-mon-fit").addEventListener("click", () => app.stage?.zoomFit());
   document.getElementById("ad-mon-zin").addEventListener("click", () => app.stage?.zoomIn());
