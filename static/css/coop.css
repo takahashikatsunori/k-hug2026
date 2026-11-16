@@ -801,10 +801,21 @@ body.is-playing {
   flex-direction: column;
   align-items: center;
   gap: 10px;
-  padding: 12px;
+  padding: 16px;
   border-radius: 14px;
   background: var(--co-surface-soft);
   border: 2px solid var(--co-border);
+}
+
+.co-qr-box canvas {
+  display: block;
+  width: min(200px, 64vw);
+  height: auto;
+  aspect-ratio: 1 / 1;
+  padding: 10px;
+  background: #ffffff;
+  border-radius: 12px;
+  border: 1px solid var(--co-border);
 }
 
 .co-toast-wrap {
@@ -844,8 +855,35 @@ body.is-playing {
 }
 
 /* 管理者モニターステージ */
+.co-mon-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  align-items: center;
+}
+
 .co-monitor-stage {
   height: 460px;
   border-radius: 14px;
   border: 2px solid var(--co-border);
+}
+
+.co-mon-card.is-fullscreen {
+  position: fixed;
+  inset: 0;
+  z-index: 45;
+  margin: 0;
+  border-radius: 0;
+  border: none;
+  width: 100vw;
+  height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  padding: 12px 14px;
+}
+
+.co-mon-card.is-fullscreen .co-monitor-stage {
+  flex: 1 1 auto;
+  height: auto;
+  min-height: 200px;
 }

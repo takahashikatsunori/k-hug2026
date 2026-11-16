@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from pathlib import Path
 from playwright.sync_api import expect
 
@@ -103,6 +104,19 @@ def test_coop_admin_and_multi_member_realtime_sync_and_qr_pdf(context, e2e_serve
     expect(mon_card).to_be_visible(timeout=10000)
     expect(mon_card.locator(".coop-card-badge")).to_have_text("たろうさん")
 
+    # メンバー2（はなこ）が配置済みカードを移動させると、メンバー2自身の画面でも名前バッジが「はなこさん」に変わること
+    m2.get_by_test_id("bd-cluster").first.click()
+    m2.wait_for_timeout(450)
+    m2_card = m2.get_by_test_id("coop-placed-card-0")
+    expect(m2_card.locator(".coop-card-badge")).to_have_text("たろうさん")
+    c2_box = m2_card.bounding_box()
+    assert c2_box is not None
+    m2.mouse.move(c2_box["x"] + c2_box["width"] / 2, c2_box["y"] + c2_box["height"] / 2)
+    m2.mouse.down()
+    m2.mouse.move(c2_box["x"] + c2_box["width"] / 2 + 40, c2_box["y"] + c2_box["height"] / 2 + 30, steps=6)
+    m2.mouse.up()
+    expect(m2_card.locator(".coop-card-badge")).to_have_text("はなこさん", timeout=5000)
+
     # クラスタ丸ボタン(1)をタップしてカード周辺へ拡大し、「おおきくみる」時にカードNoや名前のテキスト表示がないこと
     m1.get_by_test_id("bd-cluster").first.click()
     m1.wait_for_timeout(450)
@@ -115,6 +129,17 @@ def test_coop_admin_and_multi_member_realtime_sync_and_qr_pdf(context, e2e_serve
     expect(preview.locator(".co-modal-title")).to_have_count(0)
     preview.locator("[data-act='close']").click()
 
+    # スマホでメニューの持ち帰りQRコードを開くと余白付きのサイズで収まっていること
+    m1.get_by_test_id("coop-menu-btn").click()
+    qr_canvas = m1.locator("#co-takehome-qr")
+    expect(qr_canvas).to_be_visible()
+    qr_box = qr_canvas.bounding_box()
+    qr_wrap_box = m1.locator(".co-qr-box").bounding_box()
+    assert qr_box is not None and qr_wrap_box is not None
+    assert qr_box["width"] <= 220
+    assert qr_box["width"] < qr_wrap_box["width"] - 20
+    m1.locator(".co-modal-backdrop [data-act='close']").click()
+
     # カードを手札に戻すと「てふだにもどされたよ」トーストが表示され（新規配布トーストではないこと）、同期される
     m1.locator("#co-sel-return").click()
     expect(m1.locator("#co-toast-wrap")).to_contain_text("てふだに もどされたよ")
@@ -125,6 +150,18 @@ def test_coop_admin_and_multi_member_realtime_sync_and_qr_pdf(context, e2e_serve
     m1.get_by_test_id("coop-hand-card-0").click()
     m1.get_by_test_id("coop-place-center").click()
     expect(m1.get_by_test_id("coop-placed-card-0")).to_be_visible(timeout=10000)
+
+    # 管理者ライブモニターの全画面表示＆班切り替えができること
+    admin_page.get_by_test_id("ad-mon-fullscreen").click()
+    expect(admin_page.get_by_test_id("ad-mon-section")).to_have_class(re.compile(r"\bis-fullscreen\b"))
+    fs_stage_box = admin_page.locator("#ad-mon-stage").bounding_box()
+    assert fs_stage_box is not None and fs_stage_box["height"] > 650
+    admin_page.get_by_test_id("ad-mon-tab-g2").click()
+    expect(admin_page.get_by_test_id("ad-mon-name")).to_have_text("2はん")
+    admin_page.get_by_test_id("ad-mon-tab-g1").click()
+    expect(admin_page.get_by_test_id("ad-mon-name")).to_have_text("1はん")
+    admin_page.get_by_test_id("ad-mon-fullscreen").click()
+    expect(admin_page.get_by_test_id("ad-mon-section")).not_to_have_class(re.compile(r"\bis-fullscreen\b"))
 
     # 持ち帰りPDF QRのURLを開いてPDFダウンロードが成功すること
     admin_page.get_by_test_id("ad-qr-pdf-g1").click()

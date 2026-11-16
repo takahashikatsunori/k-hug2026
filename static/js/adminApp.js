@@ -637,7 +637,7 @@ function openQrModal(title, url, desc) {
   `;
   document.body.appendChild(back);
   const canvas = back.querySelector("#ad-qr-canvas");
-  renderQrToCanvas(canvas, url, { size: 220 });
+  renderQrToCanvas(canvas, url, { targetSize: 220, quietModules: 5 });
   back.addEventListener("click", (e) => {
     if (e.target === back || e.target.closest('[data-act="close"]')) back.remove();
   });
@@ -711,11 +711,15 @@ function renderConsole() {
         <div class="co-group-grid" id="ad-group-grid"></div>
       </section>
 
-      <section class="co-card">
+      <section class="co-card co-mon-card" id="ad-mon-section" data-testid="ad-mon-section">
         <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;flex-wrap:wrap;margin-bottom:10px;">
-          <h2 style="margin:0;">👀 グループ台紙ライブモニター：<span id="ad-mon-name"></span></h2>
-          <div style="display:flex;gap:8px;">
+          <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+            <h2 style="margin:0;">👀 グループ台紙ライブモニター：<span id="ad-mon-name" data-testid="ad-mon-name"></span></h2>
+            <div class="co-mon-tabs" id="ad-mon-tabs" data-testid="ad-mon-tabs"></div>
+          </div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button type="button" class="co-btn co-btn-sm" id="ad-mon-fit">⤢ 全体表示</button>
+            <button type="button" class="co-btn co-btn-sm" id="ad-mon-fullscreen" data-testid="ad-mon-fullscreen">⛶ 全画面表示</button>
             <button type="button" class="co-btn co-btn-sm co-btn-primary" id="ad-mon-pdf">⬇ このグループのPDF保存</button>
           </div>
         </div>
@@ -766,6 +770,17 @@ function renderConsole() {
     },
   });
   document.getElementById("ad-mon-fit").addEventListener("click", () => app.stage?.zoomFit());
+  const monSection = document.getElementById("ad-mon-section");
+  const fsBtn = document.getElementById("ad-mon-fullscreen");
+  const setMonitorFullscreen = (active) => {
+    monSection.classList.toggle("is-fullscreen", active);
+    fsBtn.textContent = active ? "✕ 全画面を閉じる" : "⛶ 全画面表示";
+    requestAnimationFrame(() => {
+      window.dispatchEvent(new Event("resize"));
+      setTimeout(() => app.stage?.zoomFit(), 140);
+    });
+  };
+  fsBtn.addEventListener("click", () => setMonitorFullscreen(!monSection.classList.contains("is-fullscreen")));
   document.getElementById("ad-mon-zin").addEventListener("click", () => app.stage?.zoomIn());
   document.getElementById("ad-mon-zout").addEventListener("click", () => app.stage?.zoomOut());
   document.getElementById("ad-mon-pdf").addEventListener("click", async () => {
@@ -861,6 +876,26 @@ function updateConsoleLive() {
         const g = room.groups[b.dataset.qrPdf];
         const url = buildMemberUrl(app.roomId, g.id, "pdf");
         openQrModal(`${g.name} 持ち帰りPDF QRコード`, url, "訓練の終わりに読み取ると、このグループの現在の台紙をPDFでダウンロードできます。");
+      })
+    );
+  }
+
+  const monTabsEl = document.getElementById("ad-mon-tabs");
+  if (monTabsEl) {
+    monTabsEl.innerHTML = Object.values(room.groups)
+      .map(
+        (g) =>
+          `<button type="button" class="co-btn co-btn-sm ${
+            g.id === app.monitoredGroupId ? "co-btn-primary" : ""
+          }" data-mon-tab="${escapeHtml(g.id)}" data-testid="ad-mon-tab-${escapeHtml(g.id)}">${escapeHtml(
+            g.name
+          )}</button>`
+      )
+      .join("");
+    monTabsEl.querySelectorAll("[data-mon-tab]").forEach((b) =>
+      b.addEventListener("click", () => {
+        app.monitoredGroupId = b.dataset.monTab;
+        updateConsoleLive();
       })
     );
   }

@@ -774,13 +774,17 @@ export function createBoardStage({
 
     if (state.ptr.mode === "card" && state.ptr.card) {
       const c = state.ptr.card;
+      const moved = c.moved;
+      const idx = c.idx;
+      const cx = c.x;
+      const cy = c.y;
       c.el.classList.remove("is-dragging");
-      if (c.moved) {
-        if (onDragState) onDragState(c.idx, false);
-        if (onMoveCard) onMoveCard(c.idx, c.x, c.y);
-      }
       state.ptr.card = null;
       state.ptr.mode = null;
+      if (moved) {
+        if (onDragState) onDragState(idx, false);
+        if (onMoveCard) onMoveCard(idx, cx, cy);
+      }
       return;
     }
 

@@ -420,6 +420,7 @@ function renderPlayShell() {
       grp.placed = grp.placed || {};
       grp.placed[String(idx)] = posObj;
       grp.z = nextZ;
+      syncPlayState();
       await app.sync.placeOrMoveCard(app.roomId, app.groupId, idx, posObj, null, nextZ);
     },
     getBadgeText: (idx, p, lock) => {
@@ -726,7 +727,7 @@ function openMenuModal() {
     </div>
   `;
   document.body.appendChild(back);
-  renderQrToCanvas(back.querySelector("#co-takehome-qr"), pdfUrl, { size: 180 });
+  renderQrToCanvas(back.querySelector("#co-takehome-qr"), pdfUrl, { targetSize: 220, quietModules: 5 });
   back.addEventListener("click", async (e) => {
     if (e.target === back || e.target.closest('[data-act="close"]')) {
       back.remove();
