@@ -353,22 +353,30 @@ function bindHistoryActions(container, onReload) {
   container.querySelectorAll("[data-del-room]").forEach((b) =>
     b.addEventListener("click", async () => {
       const rid = b.dataset.delRoom;
-      await app.sync.deleteRoom(rid);
-      toast(`訓練ルーム ${rid} を削除しました`);
-      if (rid === app.roomId) {
-        leaveRoomToSetup();
-      } else {
-        onReload?.("deleted", rid);
+      try {
+        await app.sync.deleteRoom(rid);
+        toast(`訓練ルーム ${rid} を削除しました`);
+        if (rid === app.roomId) {
+          leaveRoomToSetup();
+        } else {
+          onReload?.("deleted", rid);
+        }
+      } catch (err) {
+        toast(`削除に失敗しました: ${err.message}`, "error", 5000);
       }
     })
   );
   container.querySelector('[data-act="clear-all-history"]')?.addEventListener("click", async () => {
-    await app.sync.clearRoomHistory();
-    toast("訓練履歴をすべて削除しました");
-    if (app.roomId) {
-      leaveRoomToSetup();
-    } else {
-      onReload?.("cleared");
+    try {
+      await app.sync.clearRoomHistory();
+      toast("訓練履歴をすべて削除しました");
+      if (app.roomId) {
+        leaveRoomToSetup();
+      } else {
+        onReload?.("cleared");
+      }
+    } catch (err) {
+      toast(`履歴削除に失敗しました: ${err.message}`, "error", 5000);
     }
   });
 }
@@ -486,8 +494,13 @@ async function createTrainingRoom() {
     groups,
   };
 
-  await app.sync.createRoom(roomId, payload);
-  openRoom(roomId);
+  try {
+    await app.sync.createRoom(roomId, payload);
+    openRoom(roomId);
+  } catch (err) {
+    toast(`訓練ルームの作成に失敗しました: ${err.message}`, "error", 6000);
+    loadRecentRoomsList();
+  }
 }
 
 function openRoom(roomId) {
@@ -502,7 +515,11 @@ function openRoom(roomId) {
   window.history.replaceState({}, "", url.toString());
   app.monitoredGroupId = "";
   app.unsub = app.sync.subscribeRoom(roomId, (room) => {
-    if (!room) return;
+    if (!room || Object.keys(room.groups || {}).length === 0) {
+      toast("訓練ルームのデータが見つからなかったため一覧へ戻ります", "warn", 4000);
+      leaveRoomToSetup();
+      return;
+    }
     const firstLoad = !app.room;
     app.room = room;
     if (!app.monitoredGroupId) {

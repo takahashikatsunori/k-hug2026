@@ -305,21 +305,24 @@ class FirebaseSyncAdapter {
   }
 
   _ref(path) {
-    return this.m.ref(this.db, path);
+    return path ? this.m.ref(this.db, path) : this.m.ref(this.db);
   }
 
   async createRoom(roomId, data) {
-    const payload = { ...data, id: roomId };
+    // Firebase は undefined 値を含むオブジェクトを拒否するため JSON ラウンドトリップで除去する
+    const payload = JSON.parse(JSON.stringify({ ...data, id: roomId }));
     const summary = buildSummaryFromRoom(roomId, payload);
+    await this.m.set(this._ref(`rooms/${roomId}`), payload);
+    try {
+      await this.m.set(this._ref(`roomIndex/${roomId}`), summary);
+    } catch {
+      // roomIndex 権限が制限されていても本体とローカル履歴で運用継続する
+    }
     this.roomStaticCache.set(roomId, {
       meta: payload.meta,
       cards: toArray(payload.cards),
     });
     upsertLocalHistoryEntry(summary);
-    await this.m.update(this._ref(""), {
-      [`rooms/${roomId}`]: payload,
-      [`roomIndex/${roomId}`]: summary,
-    });
     return normalizeRoom(payload);
   }
 
@@ -330,7 +333,10 @@ class FirebaseSyncAdapter {
         this.m.get(this._ref(`rooms/${roomId}/facilitator`)),
         this.m.get(this._ref(`rooms/${roomId}/groups`)),
       ]);
-      if (!facSnap.exists() && !grpSnap.exists()) return null;
+      if (!grpSnap.exists()) {
+        this.roomStaticCache.delete(roomId);
+        return null;
+      }
       return normalizeRoom({
         id: roomId,
         meta: cached.meta,
@@ -340,11 +346,16 @@ class FirebaseSyncAdapter {
       });
     }
     const snap = await this.m.get(this._ref(`rooms/${roomId}`));
-    if (!snap.exists()) return null;
-    const room = normalizeRoom({ ...snap.val(), id: roomId });
-    if (room) {
-      this.roomStaticCache.set(roomId, { meta: room.meta, cards: room.cards });
+    if (!snap.exists()) {
+      removeLocalHistoryEntry(roomId);
+      return null;
     }
+    const room = normalizeRoom({ ...snap.val(), id: roomId });
+    if (!room || Object.keys(room.groups || {}).length === 0) {
+      removeLocalHistoryEntry(roomId);
+      return null;
+    }
+    this.roomStaticCache.set(roomId, { meta: room.meta, cards: room.cards });
     return room;
   }
 
@@ -370,24 +381,24 @@ class FirebaseSyncAdapter {
   async deleteRoom(roomId) {
     this.roomStaticCache.delete(roomId);
     removeLocalHistoryEntry(roomId);
-    await this.m.update(this._ref(""), {
-      [`rooms/${roomId}`]: null,
-      [`roomIndex/${roomId}`]: null,
-    });
+    await Promise.all([
+      this.m.set(this._ref(`rooms/${roomId}`), null),
+      this.m.set(this._ref(`roomIndex/${roomId}`), null).catch(() => {}),
+    ]);
   }
 
   async clearRoomHistory() {
     const entries = await this.listRooms();
-    const updates = {};
-    for (const e of entries) {
-      this.roomStaticCache.delete(e.id);
-      updates[`rooms/${e.id}`] = null;
-      updates[`roomIndex/${e.id}`] = null;
-    }
     saveLocalHistory([]);
-    if (Object.keys(updates).length > 0) {
-      await this.m.update(this._ref(""), updates);
-    }
+    await Promise.all(
+      entries.map((e) => {
+        this.roomStaticCache.delete(e.id);
+        return Promise.all([
+          this.m.set(this._ref(`rooms/${e.id}`), null).catch(() => {}),
+          this.m.set(this._ref(`roomIndex/${e.id}`), null).catch(() => {}),
+        ]);
+      })
+    );
   }
 
   subscribeRoom(roomId, fn, opts = {}) {
@@ -402,7 +413,13 @@ class FirebaseSyncAdapter {
           this.m.get(this._ref(`rooms/${roomId}/meta`)),
           this.m.get(this._ref(`rooms/${roomId}/cards`)),
         ]);
-        if (cancelled || !metaSnap.exists()) return;
+        if (cancelled) return;
+        if (!metaSnap.exists()) {
+          removeLocalHistoryEntry(roomId);
+          this.roomStaticCache.delete(roomId);
+          fn(null);
+          return;
+        }
         cached = { meta: metaSnap.val() || {}, cards: toArray(cardsSnap.val()) };
         this.roomStaticCache.set(roomId, cached);
       }
@@ -413,6 +430,12 @@ class FirebaseSyncAdapter {
 
       const emit = () => {
         if (cancelled || latestFac === null || latestGroups === null) return;
+        if (Object.keys(latestGroups).length === 0) {
+          removeLocalHistoryEntry(roomId);
+          this.roomStaticCache.delete(roomId);
+          fn(null);
+          return;
+        }
         fn(
           normalizeRoom({
             id: roomId,
