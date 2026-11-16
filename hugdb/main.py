@@ -263,6 +263,18 @@ def create_app(db_path: Path | str | None = None) -> FastAPI:
         board_file = config.BASE_DIR / "board.html"
         return FileResponse(str(board_file), media_type="text/html; charset=utf-8")
 
+    @app.get("/admin.html", include_in_schema=False)
+    @app.get("/admin", include_in_schema=False)
+    async def serve_admin_page() -> FileResponse:
+        admin_file = config.BASE_DIR / "admin.html"
+        return FileResponse(str(admin_file), media_type="text/html; charset=utf-8")
+
+    @app.get("/coop.html", include_in_schema=False)
+    @app.get("/coop", include_in_schema=False)
+    async def serve_coop_page() -> FileResponse:
+        coop_file = config.BASE_DIR / "coop.html"
+        return FileResponse(str(coop_file), media_type="text/html; charset=utf-8")
+
     return app
 
 
