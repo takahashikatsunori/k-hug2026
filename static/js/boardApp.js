@@ -36,15 +36,36 @@ const MM_PER_PT = 25.4 / 72;
 const PT_PER_MM = 72 / 25.4;
 const DESK_MARGIN = 150; // 台紙の外側に置ける余白 (mm)
 const CLUSTER_CARD_PX = 28; // 画面上のカード幅がこれ未満になったら枚数バブル表示
-const MAX_SCALE = 8; // px/mm (55×91mm カードで最大 440×728px)
+const MAX_SCALE = 12; // px/mm (55×91mm カードで最大 660×1092px)
 const SESSION_KEY = "hug_board_session_v1";
 const SETTINGS_KEY = "hug_board_settings_v1";
 
 export const SHEET_SIZES = {
-  "4x": { id: "4x", label: "A0の縦横4倍", short: 841 * 4, long: 1189 * 4 },
-  "8x": { id: "8x", label: "A0の縦横8倍（規定）", short: 841 * 8, long: 1189 * 8 },
-  "16x": { id: "16x", label: "A0の縦横16倍", short: 841 * 16, long: 1189 * 16 },
+  "4x": { id: "4x", label: "A0の縦横4倍", mult: 4, short: 841 * 4, long: 1189 * 4 },
+  "8x": { id: "8x", label: "A0の縦横8倍（規定）", mult: 8, short: 841 * 8, long: 1189 * 8 },
+  "16x": { id: "16x", label: "A0の縦横16倍", mult: 16, short: 841 * 16, long: 1189 * 16 },
+  "32x": { id: "32x", label: "A0の縦横32倍", mult: 32, short: 841 * 32, long: 1189 * 32 },
 };
+
+export function resolveSheetSize(sizeSpec) {
+  if (typeof sizeSpec === "string" && SHEET_SIZES[sizeSpec]) {
+    return SHEET_SIZES[sizeSpec];
+  }
+  const raw = String(sizeSpec || "8x").trim();
+  const mMatch = raw.match(/^(?:custom:)?(\d+(?:\.\d+)?)x?$/i);
+  if (mMatch) {
+    const mult = Math.max(1, Math.min(64, Number(mMatch[1]) || 8));
+    if (SHEET_SIZES[`${mult}x`]) return SHEET_SIZES[`${mult}x`];
+    return {
+      id: `custom:${mult}`,
+      label: `A0の縦横${mult}倍`,
+      mult,
+      short: Math.round(841 * mult),
+      long: Math.round(1189 * mult),
+    };
+  }
+  return SHEET_SIZES["8x"];
+}
 
 const LOGO_IMG_ATTRS = `src="./static/logo/正式ロゴ.jpeg" onerror="if(!this.dataset.fb1){this.dataset.fb1='1';this.src='./static/logo/official_logo.jpeg';}else if(!this.dataset.fb2){this.dataset.fb2='1';this.src='./logo/正式ロゴ.jpeg';}"`;
 
@@ -73,6 +94,7 @@ const app = {
     error: "",
     boardId: "",
     sizeId: "8x",
+    customMult: 24,
   },
   settings: { autoPreview: true },
 
@@ -230,7 +252,7 @@ async function loadBoardInfo(board) {
 }
 
 function computeGeometry(info, sizeId) {
-  const s = SHEET_SIZES[sizeId] || SHEET_SIZES["8x"];
+  const s = resolveSheetSize(sizeId);
   const landscape = info.wPt >= info.hPt;
   const W = landscape ? s.long : s.short;
   const H = landscape ? s.short : s.long;
@@ -288,7 +310,7 @@ const detail = { timer: 0, task: null, rendered: null, token: 0 };
 
 function scheduleDetailRender() {
   clearTimeout(detail.timer);
-  detail.timer = setTimeout(renderDetail, 160);
+  detail.timer = setTimeout(renderDetail, 90);
 }
 
 async function renderDetail() {
@@ -297,8 +319,8 @@ async function renderDetail() {
   const coarse = window.matchMedia?.("(pointer: coarse)")?.matches;
   const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 2 : 2.5);
   const v = { ...app.view };
-  const needed = v.s * dpr > app.baseRes * 1.15;
-  if (!needed) {
+  const r = v.s * dpr;
+  if (r <= app.baseRes * 1.15) {
     detail.rendered = null;
     drawViewportBoard();
     return;
@@ -316,19 +338,9 @@ async function renderDetail() {
   const vh = els.stage.clientHeight;
   if (!vw || !vh) return;
 
-  // PDF.js の内部キャンバス(/Group, /SMask等)肥大化によるモバイルクラッシュを防ぐため、安全な論理解像度上限を設ける
-  const maxPdfPx = coarse ? 4096 : 8192;
-  const maxR = maxPdfPx / Math.max(geo.W, geo.H);
-  const r = Math.min(v.s * dpr, maxR);
-  if (r <= app.baseRes * 1.15) {
-    detail.rendered = null;
-    drawViewportBoard();
-    return;
-  }
-  const effScale = r / dpr;
-  const canvasScale = r / (v.s * dpr);
-  const offW = Math.max(1, Math.round(vw * dpr * canvasScale));
-  const offH = Math.max(1, Math.round(vh * dpr * canvasScale));
+  // ビューポートサイズのオフスクリーンへベクターPDFを実画面ネイティブ解像度で直接描画する
+  const offW = Math.max(1, Math.round(vw * dpr));
+  const offH = Math.max(1, Math.round(vh * dpr));
 
   const off = app.detailOffscreen || document.createElement("canvas");
   app.detailOffscreen = off;
@@ -340,10 +352,16 @@ async function renderDetail() {
   ctx.setTransform(1, 0, 0, 1, 0, 0);
   ctx.clearRect(0, 0, offW, offH);
 
-  const sx = v.tx * dpr * canvasScale;
-  const sy = v.ty * dpr * canvasScale;
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(sx, sy, geo.W * r, geo.H * r);
+  const sx = v.tx * dpr;
+  const sy = v.ty * dpr;
+  const sx0 = clamp(sx, 0, offW);
+  const sy0 = clamp(sy, 0, offH);
+  const sx1 = clamp(sx + geo.W * r, 0, offW);
+  const sy1 = clamp(sy + geo.H * r, 0, offH);
+  if (sx1 > sx0 && sy1 > sy0) {
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(sx0, sy0, sx1 - sx0, sy1 - sy0);
+  }
 
   try {
     const viewport = boardInfo.page.getViewport({ scale: r * geo.pdf.ptToMm });
@@ -360,7 +378,7 @@ async function renderDetail() {
   }
   if (token !== detail.token) return;
   detail.task = null;
-  detail.rendered = { s: v.s, tx: v.tx, ty: v.ty, vw, vh, effScale };
+  detail.rendered = { s: v.s, tx: v.tx, ty: v.ty, vw, vh };
   drawViewportBoard();
 }
 
@@ -1396,7 +1414,7 @@ function openPreview(idx, context) {
 
 function openMenu() {
   const s = app.session;
-  const size = SHEET_SIZES[s.sizeId] || SHEET_SIZES["8x"];
+  const size = resolveSheetSize(s.sizeId);
   const ov = openModal(
     `<div class="bd-menu-dialog" role="dialog" aria-modal="true" aria-label="メニュー">
        <div class="bd-preview-head">
@@ -1588,7 +1606,7 @@ async function exportPdf() {
       page.drawRectangle({ ...b, borderColor: rgb(0.35, 0.35, 0.35), borderWidth: 0.6 });
     }
 
-    const size = SHEET_SIZES[s.sizeId] || SHEET_SIZES["8x"];
+    const size = resolveSheetSize(s.sizeId);
     const stamp = `${now.getFullYear()}/${pad2(now.getMonth() + 1)}/${pad2(now.getDate())} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
     const caption = `HUG 台紙配置シミュレーション　デッキ：${s.deckTitle}　台紙：${app.board?.name || ""}（${size.label} ${geo.W}×${geo.H}mm・カード55×91mm）　配置 ${placedEntries.length}/${s.cards.length}枚　出力 ${stamp}`;
     const cap = captionPng(caption);
@@ -1720,7 +1738,7 @@ async function startPlay(session) {
   const main = document.getElementById("bd-main");
   document.body.classList.remove("is-setup");
   document.body.classList.add("is-playing");
-  const size = SHEET_SIZES[session.sizeId] || SHEET_SIZES["8x"];
+  const size = resolveSheetSize(session.sizeId);
   main.innerHTML = `
     <div class="bd-app" data-testid="bd-play-view">
       <header class="bd-topbar">
@@ -1908,7 +1926,7 @@ function renderSetup() {
       <section class="bd-resume" data-testid="bd-resume">
         <div class="bd-resume-text">
           <div class="bd-resume-title">前回の続きがあります</div>
-          <div>🃏 ${escapeHtml(saved.deckTitle)}／🗺️ ${escapeHtml(board?.name || saved.boardId)}・${escapeHtml(SHEET_SIZES[saved.sizeId]?.label || "")}</div>
+          <div>🃏 ${escapeHtml(saved.deckTitle)}／🗺️ ${escapeHtml(board?.name || saved.boardId)}・${escapeHtml(resolveSheetSize(saved.sizeId).label)}</div>
           <div>配置 <b>${placedN}</b> / ${saved.cards.length} 枚 ${dtStr ? `（${dtStr} 保存）` : ""}</div>
         </div>
         <div class="bd-resume-actions">
@@ -1966,7 +1984,20 @@ function renderSetup() {
             </button>`
             )
             .join("")}
+          <button type="button" class="bd-size-opt ${String(st.sizeId).startsWith("custom:") ? "active" : ""}" data-size="custom" data-testid="bd-size-custom" role="radio" aria-checked="${String(st.sizeId).startsWith("custom:")}">
+            <b>任意倍率</b>
+            <span>${String(st.sizeId).startsWith("custom:") ? `${resolveSheetSize(st.sizeId).long}×${resolveSheetSize(st.sizeId).short}mm` : "1〜64倍を指定"}</span>
+          </button>
         </div>
+        ${
+          String(st.sizeId).startsWith("custom:")
+            ? `<div class="bd-custom-size-row">
+                 <label for="bd-custom-mult">A0の縦横</label>
+                 <input type="number" class="bd-custom-size-input" id="bd-custom-mult" data-testid="bd-custom-mult" min="1" max="64" step="1" value="${st.customMult}" />
+                 <span>倍（${resolveSheetSize(st.sizeId).long}×${resolveSheetSize(st.sizeId).short}mm）</span>
+               </div>`
+            : ""
+        }
         <p class="bd-note">カードは名刺サイズ（55×91mm）。台紙との大きさの比率は実物どおりに表示されます。</p>
       </section>
       <div class="bd-start-wrap">
@@ -2032,13 +2063,26 @@ function renderSetup() {
   });
   main.querySelectorAll(".bd-size-opt").forEach((btn) =>
     btn.addEventListener("click", () => {
-      st.sizeId = btn.dataset.size;
-      main.querySelectorAll(".bd-size-opt").forEach((x) => {
-        x.classList.toggle("active", x === btn);
-        x.setAttribute("aria-checked", String(x === btn));
-      });
+      if (btn.dataset.size === "custom") {
+        const m = Math.max(1, Math.min(64, Number(st.customMult) || 24));
+        st.customMult = m;
+        st.sizeId = `custom:${m}`;
+        renderSetup();
+      } else {
+        st.sizeId = btn.dataset.size;
+        renderSetup();
+      }
     })
   );
+  const customMultInput = document.getElementById("bd-custom-mult");
+  if (customMultInput) {
+    customMultInput.addEventListener("change", () => {
+      const m = Math.max(1, Math.min(64, Number(customMultInput.value) || 24));
+      st.customMult = m;
+      st.sizeId = `custom:${m}`;
+      renderSetup();
+    });
+  }
   document.getElementById("bd-start-btn").addEventListener("click", () => {
     if (!st.deck) return;
     if (readSavedSession() && !confirm("前回の配置データは新しい配置で上書きされます。よろしいですか？")) return;
@@ -2111,7 +2155,11 @@ async function main() {
   const boardParam = params.get("board");
   if (boardParam && boards.some((b) => b.id === boardParam)) app.setup.boardId = boardParam;
   const sizeParam = params.get("size");
-  if (sizeParam && SHEET_SIZES[sizeParam]) app.setup.sizeId = sizeParam;
+  if (sizeParam) {
+    const resolved = resolveSheetSize(sizeParam);
+    app.setup.sizeId = resolved.id;
+    if (resolved.id.startsWith("custom:")) app.setup.customMult = resolved.mult;
+  }
 
   let initialKey = "";
   const deckParam = params.get("deck");

@@ -13,16 +13,17 @@ export const MM_PER_PT = 25.4 / 72;
 export const PT_PER_MM = 72 / 25.4;
 export const DESK_MARGIN = 150; // mm
 export const CLUSTER_CARD_PX = 28;
-export const MAX_SCALE = 8; // px/mm
+export const MAX_SCALE = 12; // px/mm
 
 export const SHEET_PRESETS = {
   "4x": { id: "4x", label: "A0の縦横4倍", mult: 4, short: 841 * 4, long: 1189 * 4 },
   "8x": { id: "8x", label: "A0の縦横8倍（規定）", mult: 8, short: 841 * 8, long: 1189 * 8 },
   "16x": { id: "16x", label: "A0の縦横16倍", mult: 16, short: 841 * 16, long: 1189 * 16 },
+  "32x": { id: "32x", label: "A0の縦横32倍", mult: 32, short: 841 * 32, long: 1189 * 32 },
 };
 
 /**
- * サイズ指定（"4x" / "8x" / "16x" / "custom:N" / 数値倍率）を寸法へ解決する.
+ * サイズ指定（"4x" / "8x" / "16x" / "32x" / "custom:N" / 数値倍率）を寸法へ解決する.
  * @param {string|number} sizeSpec
  */
 export function resolveSheetSize(sizeSpec) {
@@ -32,7 +33,7 @@ export function resolveSheetSize(sizeSpec) {
   const raw = String(sizeSpec || "8x").trim();
   const mMatch = raw.match(/^(?:custom:)?(\d+(?:\.\d+)?)x?$/i);
   if (mMatch) {
-    const mult = Math.max(1, Math.min(32, Number(mMatch[1]) || 8));
+    const mult = Math.max(1, Math.min(64, Number(mMatch[1]) || 8));
     return {
       id: `custom:${mult}`,
       label: `A0の縦横${mult}倍`,
@@ -212,7 +213,7 @@ export function createBoardStage({
     if (!state.geo) return;
     const { w, h } = stageSize();
     const fit = Math.min(w / (state.geo.W + DESK_MARGIN * 2), h / (state.geo.H + DESK_MARGIN * 2));
-    state.minScale = Math.max(0.015, fit * 0.65);
+    state.minScale = Math.max(0.002, fit * 0.5);
   }
 
   function fitView() {
@@ -334,7 +335,7 @@ export function createBoardStage({
 
   function scheduleDetailRender() {
     clearTimeout(state.detail.timer);
-    state.detail.timer = setTimeout(renderDetail, 160);
+    state.detail.timer = setTimeout(renderDetail, 90);
   }
 
   async function renderDetail() {
@@ -342,14 +343,7 @@ export function createBoardStage({
     const coarse = window.matchMedia?.("(pointer: coarse)")?.matches;
     const dpr = Math.min(window.devicePixelRatio || 1, coarse ? 2 : 2.5);
     const v = { ...state.view };
-    if (v.s * dpr <= state.baseRes * 1.15) {
-      state.detail.rendered = null;
-      drawViewportBoard();
-      return;
-    }
-    const maxPdfPx = coarse ? 4096 : 8192;
-    const maxR = maxPdfPx / Math.max(state.geo.W, state.geo.H);
-    const r = Math.min(v.s * dpr, maxR);
+    const r = v.s * dpr;
     if (r <= state.baseRes * 1.15) {
       state.detail.rendered = null;
       drawViewportBoard();
@@ -368,9 +362,11 @@ export function createBoardStage({
     const vw = stageEl.clientWidth;
     const vh = stageEl.clientHeight;
     if (!vw || !vh) return;
-    const canvasScale = r / (v.s * dpr);
-    const offW = Math.max(1, Math.round(vw * dpr * canvasScale));
-    const offH = Math.max(1, Math.round(vh * dpr * canvasScale));
+
+    // ビューポートサイズのオフスクリーンへベクターPDFを実画面ネイティブ解像度で直接描画する
+    // （PDF.js内部のbeginGroup等もオフスクリーン境界でクリップされるため巨大バッファは発生しない）
+    const offW = Math.max(1, Math.round(vw * dpr));
+    const offH = Math.max(1, Math.round(vh * dpr));
     const off = state.detailOffscreen || document.createElement("canvas");
     state.detailOffscreen = off;
     if (off.width !== offW || off.height !== offH) {
@@ -380,10 +376,16 @@ export function createBoardStage({
     const ctx = off.getContext("2d");
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.clearRect(0, 0, offW, offH);
-    const sx = v.tx * dpr * canvasScale;
-    const sy = v.ty * dpr * canvasScale;
-    ctx.fillStyle = "#ffffff";
-    ctx.fillRect(sx, sy, state.geo.W * r, state.geo.H * r);
+    const sx = v.tx * dpr;
+    const sy = v.ty * dpr;
+    const sx0 = clamp(sx, 0, offW);
+    const sy0 = clamp(sy, 0, offH);
+    const sx1 = clamp(sx + state.geo.W * r, 0, offW);
+    const sy1 = clamp(sy + state.geo.H * r, 0, offH);
+    if (sx1 > sx0 && sy1 > sy0) {
+      ctx.fillStyle = "#ffffff";
+      ctx.fillRect(sx0, sy0, sx1 - sx0, sy1 - sy0);
+    }
     try {
       const viewport = state.boardInfo.page.getViewport({ scale: r * state.geo.pdf.ptToMm });
       const task = state.boardInfo.page.render({

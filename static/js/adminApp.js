@@ -103,7 +103,7 @@ async function selectDeck(deckId) {
 
 function getEffectiveSizeSpec() {
   if (app.setup.sizeMode === "custom") {
-    const m = Math.max(1, Math.min(32, Number(app.setup.customMult) || 8));
+    const m = Math.max(1, Math.min(64, Number(app.setup.customMult) || 8));
     return `custom:${m}`;
   }
   return app.setup.sizeMode;
@@ -213,7 +213,7 @@ function renderSetup() {
             st.sizeMode === "custom"
               ? `<div style="margin-top:10px;display:flex;align-items:center;gap:10px;">
                    <label for="ad-custom-mult" style="font-weight:700;font-size:0.9rem;">A0の縦横</label>
-                   <input type="number" class="co-input" id="ad-custom-mult" data-testid="ad-custom-mult" min="1" max="32" step="1" value="${st.customMult}" style="width:110px;" />
+                   <input type="number" class="co-input" id="ad-custom-mult" data-testid="ad-custom-mult" min="1" max="64" step="1" value="${st.customMult}" style="width:110px;" />
                    <span style="font-weight:700;">倍（${sizeObj.long}×${sizeObj.short}mm）</span>
                  </div>`
               : ""
@@ -292,7 +292,7 @@ function renderSetup() {
   const multInput = document.getElementById("ad-custom-mult");
   if (multInput) {
     multInput.addEventListener("input", () => {
-      st.customMult = Math.max(1, Math.min(32, Number(multInput.value) || 8));
+      st.customMult = Math.max(1, Math.min(64, Number(multInput.value) || 8));
     });
     multInput.addEventListener("change", () => renderSetup());
   }

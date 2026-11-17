@@ -521,8 +521,27 @@ body.bd-body.is-playing .bd-main {
 
 .bd-size-row {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(125px, 1fr));
   gap: 0.55rem;
+}
+
+.bd-custom-size-row {
+  margin-top: 0.65rem;
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+  flex-wrap: wrap;
+  font-size: 0.88rem;
+  font-weight: 600;
+}
+
+.bd-custom-size-input {
+  width: 96px;
+  padding: 0.45rem 0.6rem;
+  border: 2px solid var(--bd-border-light);
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 700;
 }
 
 .bd-size-opt {
@@ -1240,7 +1259,7 @@ body.bd-body.is-playing .bd-main {
 /* モバイル調整 */
 @media (max-width: 600px) {
   .bd-size-row {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .bd-tool-btn span {

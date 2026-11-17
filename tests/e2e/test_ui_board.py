@@ -97,9 +97,9 @@ def test_board_setup_smartphone_and_url_params_with_relative_scale(page, e2e_ser
 
     _assert_no_horizontal_overflow(page)
 
-    # 縦横16倍 に切り替えて開始し、台紙(19024x13456mm)とカード(55x91mm)の実寸比を検証
-    page.get_by_test_id("bd-size-16x").click()
-    expect(page.get_by_test_id("bd-size-16x")).to_have_class(re.compile(r"\bactive\b"))
+    # 縦横32倍 に切り替えて開始し、台紙(38048x26912mm)とカード(55x91mm)の実寸比を検証
+    page.get_by_test_id("bd-size-32x").click()
+    expect(page.get_by_test_id("bd-size-32x")).to_have_class(re.compile(r"\bactive\b"))
     page.get_by_test_id("bd-start-btn").click()
 
     play_view = page.get_by_test_id("bd-play-view")
@@ -110,8 +110,8 @@ def test_board_setup_smartphone_and_url_params_with_relative_scale(page, e2e_ser
     expect(page.locator("#bd-board-loading")).to_have_count(0, timeout=15000)
 
     sheet = page.locator("#bd-base-canvas")
-    assert sheet.get_attribute("data-mm-width") == "19024"
-    assert sheet.get_attribute("data-mm-height") == "13456"
+    assert sheet.get_attribute("data-mm-width") == "38048"
+    assert sheet.get_attribute("data-mm-height") == "26912"
 
     # スマホ幅で1枚引いてプレビューから配置（配置時は自動でカード周辺にフォーカスズームされる）
     page.get_by_test_id("bd-draw-btn").click()
@@ -132,7 +132,7 @@ def test_board_setup_smartphone_and_url_params_with_relative_scale(page, e2e_ser
     assert card_mm["w"] == 55
     assert card_mm["h"] == 91
 
-    # 全体表示(⤢)へズームアウトするとスマホ画面(縦横16倍全体)では枚数丸ボタン(1)になり、タップで再びズームインする
+    # 全体表示(⤢)へズームアウトするとスマホ画面(縦横32倍全体)では枚数丸ボタン(1)になり、タップで再びズームインする
     page.get_by_test_id("bd-zoom-fit").click()
     page.wait_for_timeout(420)
     expect(stage).to_have_class(re.compile(r"\bis-cluster\b"))
