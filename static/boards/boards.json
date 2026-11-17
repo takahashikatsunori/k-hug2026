@@ -7,6 +7,18 @@
       "file": "goshou_triage_20260716.pdf",
       "fallbackUrl": "./docs/20260716修正　5小トリアージ図.pdf",
       "page": 1
+    },
+    {
+      "id": "kodaira_dai5_es_1sheet",
+      "name": "小平第五小学校 全階統合盤面（1:200・1枚）",
+      "file": "kodaira_dai5_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_gakuenhigashi_es_1sheet",
+      "name": "学園東小学校 全階統合盤面（1:200・1枚）",
+      "file": "kodaira_gakuenhigashi_es_floorplan_hug_1sheet.pdf",
+      "page": 1
     }
   ]
 }
