@@ -10,13 +10,13 @@
     },
     {
       "id": "kodaira_dai5_es_1sheet",
-      "name": "小平第五小学校 全階統合盤面（1:200・1枚）",
+      "name": "小平第五小学校 見取り図・凡例（1:200・1枚）",
       "file": "kodaira_dai5_es_floorplan_hug_1sheet.pdf",
       "page": 1
     },
     {
       "id": "kodaira_gakuenhigashi_es_1sheet",
-      "name": "学園東小学校 全階統合盤面（1:200・1枚）",
+      "name": "学園東小学校 見取り図・凡例（1:200・1枚）",
       "file": "kodaira_gakuenhigashi_es_floorplan_hug_1sheet.pdf",
       "page": 1
     }
