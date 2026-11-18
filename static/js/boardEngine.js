@@ -22,6 +22,197 @@ export const SHEET_PRESETS = {
   "32x": { id: "32x", label: "A0の縦横32倍", mult: 32, short: 841 * 32, long: 1189 * 32 },
 };
 
+export function isIosBrowser() {
+  const ua = navigator.userAgent || "";
+  return /iPhone|iPad|iPod/i.test(ua) || (navigator.platform === "MacIntel" && navigator.maxTouchPoints > 1);
+}
+
+/**
+ * PDF 1.6 UserUnit を算出し、MediaBox が 14,400pt (200inch) を超えて
+ * iOS Safari / Edge (PDFKit) や Acrobat で切り詰め・エラーにならないようにする.
+ */
+export function calcPdfUserUnit(rawWidthPt, rawHeightPt) {
+  const maxDim = Math.max(rawWidthPt || 0, rawHeightPt || 0);
+  if (maxDim <= 14400) return 1;
+  return Math.min(75, Math.ceil(maxDim / 14000));
+}
+
+export async function canvasToJpegBytes(canvas, quality = 0.88) {
+  const blob = await new Promise((resolve) => {
+    try {
+      canvas.toBlob(resolve, "image/jpeg", quality);
+    } catch {
+      resolve(null);
+    }
+  });
+  if (blob) return new Uint8Array(await blob.arrayBuffer());
+  const dataUrl = canvas.toDataURL("image/jpeg", quality);
+  const base64 = dataUrl.split(",")[1] || "";
+  const bin = atob(base64);
+  const out = new Uint8Array(bin.length);
+  for (let i = 0; i < bin.length; i++) out[i] = bin.charCodeAt(i);
+  return out;
+}
+
+export async function imageUrlToJpegBytes(
+  url,
+  scratchCanvas = null,
+  { maxWidth = 540, quality = 0.86 } = {}
+) {
+  const img = await new Promise((resolve, reject) => {
+    const el = new Image();
+    el.onload = () => resolve(el);
+    el.onerror = () => reject(new Error("カード画像の読み込みに失敗しました"));
+    el.src = url;
+  });
+  const srcW = img.naturalWidth || 600;
+  const srcH = img.naturalHeight || 993;
+  const scale = maxWidth > 0 && srcW > maxWidth ? maxWidth / srcW : 1;
+  const w = Math.max(1, Math.round(srcW * scale));
+  const h = Math.max(1, Math.round(srcH * scale));
+  const ownCanvas = !scratchCanvas;
+  const c = scratchCanvas || document.createElement("canvas");
+  try {
+    if (c.width !== w) c.width = w;
+    if (c.height !== h) c.height = h;
+    const ctx = c.getContext("2d");
+    ctx.fillStyle = "#ffffff";
+    ctx.fillRect(0, 0, w, h);
+    ctx.drawImage(img, 0, 0, w, h);
+    return await canvasToJpegBytes(c, quality);
+  } finally {
+    img.src = "";
+    if (ownCanvas) {
+      c.width = 0;
+      c.height = 0;
+    }
+  }
+}
+
+function escapePdfModalHtml(s) {
+  return String(s ?? "")
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
+}
+
+function formatPdfSize(bytes) {
+  if (!Number.isFinite(bytes) || bytes <= 0) return "";
+  if (bytes < 1024 * 1024) return `${Math.max(1, Math.round(bytes / 1024))} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+function ensurePdfReadyStyles() {
+  if (document.getElementById("hug-pdf-ready-style")) return;
+  const st = document.createElement("style");
+  st.id = "hug-pdf-ready-style";
+  st.textContent = `
+    .hug-pdf-ready-overlay {
+      position: fixed; inset: 0; z-index: 9999;
+      background: rgba(15, 23, 42, 0.56);
+      display: flex; align-items: center; justify-content: center;
+      padding: 1rem;
+    }
+    .hug-pdf-ready-card {
+      background: #ffffff; color: #0f172a;
+      border-radius: 16px; padding: 1.25rem;
+      width: 100%; max-width: 390px;
+      box-shadow: 0 24px 60px rgba(15, 23, 42, 0.35);
+      display: flex; flex-direction: column; gap: 0.75rem;
+      font-family: -apple-system, BlinkMacSystemFont, "Hiragino Kaku Gothic ProN", "Yu Gothic UI", sans-serif;
+    }
+    .hug-pdf-ready-head { display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; }
+    .hug-pdf-ready-title { font-size: 1.05rem; font-weight: 800; }
+    .hug-pdf-ready-close {
+      border: 1px solid #cbd5e1; background: #f8fafc; color: #334155;
+      border-radius: 8px; width: 34px; height: 34px; font-size: 1rem; cursor: pointer;
+    }
+    .hug-pdf-ready-meta {
+      background: #f1f5f9; border-radius: 10px; padding: 0.65rem 0.8rem;
+      font-size: 0.82rem; color: #334155; word-break: break-all; line-height: 1.45;
+    }
+    .hug-pdf-ready-btn {
+      display: flex; align-items: center; justify-content: center; gap: 0.4rem;
+      width: 100%; min-height: 46px; padding: 0.65rem 1rem;
+      border-radius: 10px; border: 1px solid #cbd5e1;
+      background: #ffffff; color: #0f172a; text-decoration: none;
+      font-size: 0.94rem; font-weight: 700; cursor: pointer; box-sizing: border-box;
+    }
+    .hug-pdf-ready-btn.is-primary {
+      background: #2563eb; border-color: #1d4ed8; color: #ffffff;
+    }
+    .hug-pdf-ready-hint { font-size: 0.78rem; color: #475569; margin: 0; line-height: 1.45; }
+  `;
+  document.head.appendChild(st);
+}
+
+/**
+ * PDF Blob をブラウザ仕様に合わせて安全に保存・共有する.
+ * iOS Safari / Edge (WKWebView) は <a download href="blob:..."> で「リソースエラー」になるため、
+ * ユーザー操作起点の navigator.share({ files }) および別タブ表示ダイアログを提供する.
+ */
+export async function deliverPdfBlob(blob, fname, { subtitle = "" } = {}) {
+  const url = URL.createObjectURL(blob);
+  if (!isIosBrowser()) {
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fname;
+    a.style.display = "none";
+    document.body.appendChild(a);
+    a.click();
+    setTimeout(() => {
+      URL.revokeObjectURL(url);
+      a.remove();
+    }, 120000);
+    return { mode: "download", url };
+  }
+
+  // iOS (Edge/Safari/Chrome): ネイティブダウンロードの blob リソースエラーを回避するため長寿命保持
+  setTimeout(() => URL.revokeObjectURL(url), 300000);
+  ensurePdfReadyStyles();
+  document.querySelectorAll('[data-testid="bd-pdf-ready-modal"]').forEach((el) => el.remove());
+
+  const ov = document.createElement("div");
+  ov.className = "hug-pdf-ready-overlay";
+  ov.setAttribute("data-testid", "bd-pdf-ready-modal");
+  const sizeText = formatPdfSize(blob.size);
+  ov.innerHTML = `
+    <div class="hug-pdf-ready-card" role="dialog" aria-modal="true" aria-label="PDFの準備ができました">
+      <div class="hug-pdf-ready-head">
+        <span class="hug-pdf-ready-title">📄 PDFの準備ができました</span>
+        <button type="button" class="hug-pdf-ready-close" data-testid="bd-pdf-ready-close" aria-label="閉じる">✕</button>
+      </div>
+      <div class="hug-pdf-ready-meta">
+        <div><b>${escapePdfModalHtml(fname)}</b></div>
+        <div>${[sizeText, subtitle].filter(Boolean).map(escapePdfModalHtml).join(" ・ ")}</div>
+      </div>
+      <button type="button" class="hug-pdf-ready-btn is-primary" data-testid="bd-pdf-share-btn">📤 ファイルに保存・共有する</button>
+      <a class="hug-pdf-ready-btn" href="${url}" target="_blank" rel="noopener" data-testid="bd-pdf-open-btn">👁️ 別タブでPDFを開く</a>
+      <p class="hug-pdf-ready-hint">iPhone / iPad では「ファイルに保存・共有する」から「“ファイル”に保存」を選ぶか、「別タブでPDFを開く」から共有ボタンで保存できます。</p>
+    </div>
+  `;
+  const close = () => ov.remove();
+  ov.addEventListener("click", (e) => {
+    if (e.target === ov) close();
+  });
+  ov.querySelector('[data-testid="bd-pdf-ready-close"]').addEventListener("click", close);
+  ov.querySelector('[data-testid="bd-pdf-share-btn"]').addEventListener("click", async () => {
+    try {
+      const file = new File([blob], fname, { type: "application/pdf" });
+      if (navigator.canShare?.({ files: [file] }) || typeof navigator.share === "function") {
+        await navigator.share({ files: [file], title: fname });
+        return;
+      }
+    } catch (err) {
+      if (err?.name === "AbortError") return;
+    }
+    window.open(url, "_blank", "noopener");
+  });
+  document.body.appendChild(ov);
+  return { mode: "modal", url };
+}
+
 /**
  * サイズ指定（"4x" / "8x" / "16x" / "32x" / "custom:N" / 数値倍率）を寸法へ解決する.
  * @param {string|number} sizeSpec
@@ -142,18 +333,7 @@ export class CardImageCache {
         groupTotal: card?.group_total,
       });
       const url = await generateCardImageCanvas(model, FIXED_DESIGN_MODE, { showNumber: true });
-      const img = await new Promise((res, rej) => {
-        const im = new Image();
-        im.onload = () => res(im);
-        im.onerror = rej;
-        im.src = url;
-      });
-      const c = document.createElement("canvas");
-      c.width = img.naturalWidth || 600;
-      c.height = img.naturalHeight || 993;
-      c.getContext("2d").drawImage(img, 0, 0);
-      const jpgBlob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.92));
-      const jpgBytes = new Uint8Array(await jpgBlob.arrayBuffer());
+      const jpgBytes = await imageUrlToJpegBytes(url, null, { maxWidth: 540, quality: 0.88 });
       return { url, jpgBytes };
     })();
     this.cache.set(idx, p);
@@ -936,9 +1116,12 @@ export async function exportBoardToPdf({
 }) {
   const PDFLib = window.PDFLib;
   if (!PDFLib) throw new Error("PDF出力ライブラリが読み込まれていません。");
-  const { PDFDocument, rgb } = PDFLib;
-  const K = PT_PER_MM;
+  const { PDFDocument, PDFName, PDFNumber, rgb } = PDFLib;
   const capH = 14;
+  const rawW = geo.W * PT_PER_MM;
+  const rawH = (geo.H + capH) * PT_PER_MM;
+  const userUnit = calcPdfUserUnit(rawW, rawH);
+  const K = PT_PER_MM / userUnit;
   const pageW = geo.W * K;
   const pageH = (geo.H + capH) * K;
   const box = (x, yTop, w, h) => ({ x: x * K, y: (geo.H + capH - (yTop + h)) * K, width: w * K, height: h * K });
@@ -946,6 +1129,9 @@ export async function exportBoardToPdf({
   if (onProgress) onProgress("台紙を埋め込んでいます…");
   const doc = await PDFDocument.create();
   const page = doc.addPage([pageW, pageH]);
+  if (userUnit > 1 && PDFName && PDFNumber) {
+    page.node.set(PDFName.of("UserUnit"), PDFNumber.of(userUnit));
+  }
   page.drawRectangle({ ...box(0, 0, geo.W, geo.H), color: rgb(1, 1, 1) });
 
   try {
@@ -953,12 +1139,11 @@ export async function exportBoardToPdf({
     page.drawPage(embedded, box(geo.pdf.x, geo.pdf.y, geo.pdf.w, geo.pdf.h));
   } catch {
     if (baseOffscreen) {
-      const blob = await new Promise((r) => baseOffscreen.toBlob(r, "image/jpeg", 0.92));
-      const jpg = await doc.embedJpg(new Uint8Array(await blob.arrayBuffer()));
+      const jpg = await doc.embedJpg(await canvasToJpegBytes(baseOffscreen, 0.88));
       page.drawImage(jpg, box(0, 0, geo.W, geo.H));
     }
   }
-  page.drawRectangle({ ...box(0, 0, geo.W, geo.H), borderColor: rgb(0.6, 0.6, 0.6), borderWidth: 0.8 });
+  page.drawRectangle({ ...box(0, 0, geo.W, geo.H), borderColor: rgb(0.6, 0.6, 0.6), borderWidth: Math.max(0.2, 0.8 / userUnit) });
 
   const entries = Object.entries(placed || {})
     .map(([k, p]) => ({ idx: Number(k), ...p }))
@@ -972,7 +1157,7 @@ export async function exportBoardToPdf({
     const img = await doc.embedJpg(media.jpgBytes);
     const b = box(p.x - CARD_W / 2, p.y - CARD_H / 2, CARD_W, CARD_H);
     page.drawImage(img, b);
-    page.drawRectangle({ ...b, borderColor: rgb(0.35, 0.35, 0.35), borderWidth: 0.6 });
+    page.drawRectangle({ ...b, borderColor: rgb(0.35, 0.35, 0.35), borderWidth: Math.max(0.15, 0.6 / userUnit) });
   }
 
   const now = new Date();
@@ -989,19 +1174,16 @@ export async function exportBoardToPdf({
   ctx.fillText(caption, 12, 34);
   const capBlob = await new Promise((r) => c.toBlob(r, "image/png"));
   const capImg = await doc.embedPng(new Uint8Array(await capBlob.arrayBuffer()));
+  c.width = 0;
+  c.height = 0;
   const capDrawH = capH * 0.5 * K;
-  const capDrawW = Math.min((c.width / c.height) * capDrawH, pageW - 16 * K);
-  page.drawImage(capImg, { x: 8 * K, y: capH * 0.25 * K, width: capDrawW, height: (capDrawW / c.width) * c.height });
+  const capDrawW = Math.min((2400 / 68) * capDrawH, pageW - 16 * K);
+  page.drawImage(capImg, { x: 8 * K, y: capH * 0.25 * K, width: capDrawW, height: (capDrawW / 2400) * 68 });
 
   const outBytes = await doc.save();
   const blob = new Blob([outBytes], { type: "application/pdf" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
   const safeName = `${groupName || deckTitle || "hug"}_${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}_${pad2(now.getHours())}${pad2(now.getMinutes())}`.replace(/[\\/:*?"<>|]/g, "_");
-  a.href = url;
-  a.download = `${safeName}.pdf`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 10000);
+  await deliverPdfBlob(blob, `${safeName}.pdf`, {
+    subtitle: `${entries.length}/${cards.length}枚配置`,
+  });
 }

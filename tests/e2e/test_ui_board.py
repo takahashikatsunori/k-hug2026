@@ -351,3 +351,145 @@ def test_board_static_github_pages_fallback_and_index_link(page, e2e_server):
     expect(preview).to_be_visible()
     preview.locator('[data-testid="bd-place-empty-btn"], [data-testid="bd-place-center-btn"]').first.click()
     expect(page.get_by_test_id("bd-progress")).to_contain_text("1/")
+
+
+def test_board_household_draw_prefetch_and_32x_floorplan_pdf(page, e2e_server, tmp_path):
+    """世帯単位カード引き(先頭自動拡大→背景タップ→手札他カード確認)・先読み・第五小32倍PDF出力(/UserUnit)が動作する."""
+    page.set_viewport_size({"width": 1280, "height": 800})
+    encoded_deck = urllib.parse.quote("五小rev5")
+    page.goto(
+        f"{e2e_server['base_url']}/board.html?deck={encoded_deck}&board=kodaira_dai5_es_1sheet&size=32x"
+    )
+    expect(page.get_by_test_id("bd-setup-view")).to_be_visible()
+    page.get_by_test_id("bd-start-btn").click()
+    expect(page.get_by_test_id("bd-play-view")).to_be_visible()
+    expect(page.locator("#bd-board-loading")).to_have_count(0, timeout=20000)
+
+    canvas = page.locator("#bd-base-canvas")
+    assert canvas.get_attribute("data-mm-width") == "38048"
+    assert canvas.get_attribute("data-mm-height") == "26912"
+
+    initial_total = int(page.get_by_test_id("bd-deck-count").inner_text())
+    # 先読みワーカーが先頭数枚を描画する時間を少し待つ
+    page.wait_for_timeout(1200)
+
+    # 世帯単位でカードを引くと、GRP-655の4枚がまとめて手札に入り、先頭(No.1)だけ自動拡大される
+    page.get_by_test_id("bd-draw-btn").click()
+    preview = page.get_by_test_id("bd-preview")
+    expect(preview).to_be_visible()
+    expect(preview).to_contain_text("No.1")
+    preview_img = preview.locator(".bd-preview-img")
+    expect(preview_img).to_have_attribute("src", re.compile(r"^data:image/"))
+    assert preview_img.evaluate("img => img.complete && img.naturalWidth > 0")
+
+    hand_cards = page.locator("#bd-hand .bd-hand-card")
+    expect(hand_cards).to_have_count(4)
+    hand_testids = [hand_cards.nth(i).get_attribute("data-testid") for i in range(4)]
+    assert hand_testids == ["bd-hand-card-1", "bd-hand-card-2", "bd-hand-card-3", "bd-hand-card-4"]
+    expect(page.get_by_test_id("bd-deck-count")).to_have_text(str(initial_total - 4))
+
+    # 背景タップで先頭カードの拡大を閉じ、手札の2枚目(No.2)をタップして拡大→配置する
+    preview.click(position={"x": 8, "y": 8})
+    expect(preview).to_have_count(0)
+    page.get_by_test_id("bd-hand-card-2").click()
+    expect(preview).to_be_visible()
+    expect(preview).to_contain_text("No.2")
+    page.get_by_test_id("bd-place-center-btn").click()
+    expect(page.get_by_test_id("bd-progress")).to_contain_text(f"1/{initial_total}")
+
+    # メニューで「世帯ごとにまとめてカードを引く」をOFFにすると1枚ずつ引ける
+    page.get_by_test_id("bd-menu-btn").click()
+    menu = page.get_by_test_id("bd-menu")
+    expect(menu).to_be_visible()
+    toggle = menu.get_by_test_id("bd-menu-drawhousehold")
+    expect(toggle).to_be_checked()
+    toggle.uncheck()
+    menu.locator('[data-act="close"]').click()
+
+    page.get_by_test_id("bd-draw-btn").click()
+    expect(preview).to_be_visible()
+    expect(preview).to_contain_text("No.5")
+    preview.click(position={"x": 8, "y": 8})
+    expect(page.get_by_test_id("bd-hand-card-5")).to_be_visible()
+    expect(page.get_by_test_id("bd-hand-card-6")).to_have_count(0)
+
+    # 32倍台紙の第五小PDFへ配置後、UserUnit付きPDFとして正しく出力・再読込できること
+    with page.expect_download() as dl_info:
+        page.get_by_test_id("bd-pdf-btn").click()
+    dl = dl_info.value
+    pdf_path = tmp_path / dl.suggested_filename
+    dl.save_as(str(pdf_path))
+    pdf_bytes = pdf_path.read_bytes()
+    assert pdf_bytes.startswith(b"%PDF-")
+
+    verify_info = page.evaluate(
+        """async (bytes) => {
+          const u8 = new Uint8Array(bytes);
+          const doc = await pdfjsLib.getDocument({ data: u8 }).promise;
+          const p1 = await doc.getPage(1);
+          const vp1 = p1.getViewport({ scale: 1 });
+          const vpSmall = p1.getViewport({ scale: 0.02 });
+          const c = document.createElement("canvas");
+          c.width = Math.ceil(vpSmall.width);
+          c.height = Math.ceil(vpSmall.height);
+          await p1.render({ canvasContext: c.getContext("2d"), viewport: vpSmall }).promise;
+          return {
+            userUnit: p1.userUnit || 1,
+            vp1W: vp1.width,
+            vp1H: vp1.height,
+            physW: Math.round(vp1.width * (p1.userUnit || 1)),
+            cW: c.width,
+            cH: c.height,
+          };
+        }""",
+        list(pdf_bytes),
+    )
+    assert verify_info["userUnit"] >= 8
+    assert verify_info["vp1W"] <= 14400
+    assert verify_info["physW"] > 100000
+    assert verify_info["cW"] > 100 and verify_info["cH"] > 100
+
+
+def test_board_ios_edge_pdf_ready_modal_without_blob_download_error(browser, e2e_server):
+    """iPhone Edge (WKWebView) 環境では <a download> でなく共有/別タブ表示モーダルが開く."""
+    ios_ua = (
+        "Mozilla/5.0 (iPhone; CPU iPhone OS 17_5 like Mac OS X) "
+        "AppleWebKit/605.1.15 (KHTML, like Gecko) Version/17.0 "
+        "EdgiOS/125.0.2535.60 Mobile/15E148 Safari/605.1.15"
+    )
+    ctx = browser.new_context(
+        viewport={"width": 390, "height": 844},
+        user_agent=ios_ua,
+        has_touch=True,
+        is_mobile=True,
+    )
+    page = ctx.new_page()
+    js_errors = []
+    page.on("pageerror", lambda e: js_errors.append(str(e)))
+    page.on("console", lambda m: js_errors.append(m.text) if m.type == "error" else None)
+    try:
+        encoded_deck = urllib.parse.quote("五小rev5")
+        page.goto(
+            f"{e2e_server['base_url']}/board.html?deck={encoded_deck}&board=kodaira_dai5_es_1sheet&size=32x"
+        )
+        expect(page.get_by_test_id("bd-start-btn")).to_be_enabled()
+        page.get_by_test_id("bd-start-btn").click()
+        expect(page.locator("#bd-board-loading")).to_have_count(0, timeout=20000)
+
+        page.get_by_test_id("bd-draw-btn").click()
+        expect(page.get_by_test_id("bd-preview")).to_be_visible()
+        page.get_by_test_id("bd-place-center-btn").click()
+
+        page.get_by_test_id("bd-pdf-btn").click()
+        ready_modal = page.get_by_test_id("bd-pdf-ready-modal")
+        expect(ready_modal).to_be_visible(timeout=15000)
+        expect(ready_modal.get_by_test_id("bd-pdf-share-btn")).to_be_visible()
+        open_btn = ready_modal.get_by_test_id("bd-pdf-open-btn")
+        expect(open_btn).to_be_visible()
+        assert (open_btn.get_attribute("href") or "").startswith("blob:")
+        assert open_btn.get_attribute("download") is None
+        ready_modal.get_by_test_id("bd-pdf-ready-close").click()
+        expect(ready_modal).to_have_count(0)
+        assert js_errors == []
+    finally:
+        ctx.close()

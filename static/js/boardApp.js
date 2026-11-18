@@ -11,11 +11,17 @@ import { escapeHtml } from "./util.js";
 import { store } from "./store.js";
 import {
   toCardRenderModel,
-  bindCardCanvasImage,
   computeGroupPositionMap,
   generateCardImageCanvas,
+  resolveCardGroupId,
   FIXED_DESIGN_MODE,
 } from "./cardCanvas.js";
+import {
+  calcPdfUserUnit,
+  canvasToJpegBytes,
+  imageUrlToJpegBytes,
+  deliverPdfBlob,
+} from "./boardEngine.js";
 import {
   loadCardDatabase,
   loadBoardManifest,
@@ -96,7 +102,7 @@ const app = {
     sizeId: "8x",
     customMult: 24,
   },
-  settings: { autoPreview: true },
+  settings: { autoPreview: true, drawByHousehold: true },
 
   /** @type {null | { v:number, deckTitle:string, cards:any[], boardId:string, sizeId:string, next:number, hand:number[], placed:Record<string,{x:number,y:number,z:number}>, z:number, view?:any, savedAt?:number }} */
   session: null,
@@ -115,6 +121,10 @@ const app = {
   models: new Map(),
   posMap: new Map(),
   cardEls: new Map(),
+  renderedUrls: new Map(),
+  renderPromises: new Map(),
+  prefetchTimer: 0,
+  prefetchToken: 0,
   els: {},
   exporting: false,
 };
@@ -143,6 +153,7 @@ function loadSettings() {
   try {
     const s = JSON.parse(localStorage.getItem(SETTINGS_KEY) || "{}");
     if (typeof s.autoPreview === "boolean") app.settings.autoPreview = s.autoPreview;
+    if (typeof s.drawByHousehold === "boolean") app.settings.drawByHousehold = s.drawByHousehold;
   } catch {
     // ignore
   }
@@ -212,9 +223,100 @@ function getModel(idx) {
   return model;
 }
 
-function bindCardImg(img, idx) {
+const PREFETCH_AHEAD = 18;
+
+function getExistingCardDataUrl(idx) {
+  const cached = app.renderedUrls.get(idx);
+  if (cached) return cached;
+  const src = app.cardEls.get(idx)?.querySelector("img")?.getAttribute("src");
+  return src && src.startsWith("data:") ? src : "";
+}
+
+function ensureCardUrl(idx) {
+  const existing = getExistingCardDataUrl(idx);
+  if (existing) return Promise.resolve(existing);
+  if (app.renderPromises.has(idx)) return app.renderPromises.get(idx);
   const m = getModel(idx);
-  if (m) bindCardCanvasImage(img, m, { showNumber: true });
+  if (!m) return Promise.resolve("");
+  const p = generateCardImageCanvas(m, FIXED_DESIGN_MODE, { showNumber: true })
+    .then((url) => {
+      if (app.session && url) app.renderedUrls.set(idx, url);
+      return url;
+    })
+    .catch(() => "")
+    .finally(() => {
+      app.renderPromises.delete(idx);
+    });
+  app.renderPromises.set(idx, p);
+  return p;
+}
+
+function prunePrefetchCache() {
+  const s = app.session;
+  if (!s || app.renderedUrls.size <= 40) return;
+  const handSet = new Set(s.hand);
+  for (const idx of app.renderedUrls.keys()) {
+    if (idx < s.next && !handSet.has(idx)) {
+      app.renderedUrls.delete(idx);
+    }
+  }
+}
+
+function stopPrefetch() {
+  app.prefetchToken++;
+  clearTimeout(app.prefetchTimer);
+  app.prefetchTimer = 0;
+}
+
+function schedulePrefetch(delayMs = 20) {
+  stopPrefetch();
+  if (!app.session) return;
+  prunePrefetchCache();
+  const token = app.prefetchToken;
+  const step = async () => {
+    if (token !== app.prefetchToken || !app.session) return;
+    if (app.exporting) {
+      app.prefetchTimer = setTimeout(step, 200);
+      return;
+    }
+    const s = app.session;
+    let nextTarget = null;
+    for (const idx of s.hand) {
+      if (!getExistingCardDataUrl(idx)) {
+        nextTarget = idx;
+        break;
+      }
+    }
+    if (nextTarget == null) {
+      const end = Math.min(s.cards.length, s.next + PREFETCH_AHEAD);
+      for (let i = s.next; i < end; i++) {
+        if (!getExistingCardDataUrl(i)) {
+          nextTarget = i;
+          break;
+        }
+      }
+    }
+    if (nextTarget == null) return;
+    await ensureCardUrl(nextTarget);
+    if (token !== app.prefetchToken || !app.session) return;
+    app.prefetchTimer = setTimeout(step, 16);
+  };
+  app.prefetchTimer = setTimeout(step, delayMs);
+}
+
+function bindCardImg(img, idx) {
+  if (!img) return;
+  img.dataset.renderIdx = String(idx);
+  const existing = getExistingCardDataUrl(idx);
+  if (existing) {
+    img.src = existing;
+    return;
+  }
+  const m = getModel(idx);
+  if (!m) return;
+  ensureCardUrl(idx).then((url) => {
+    if (url && img.dataset.renderIdx === String(idx)) img.src = url;
+  });
 }
 
 // ============================================================================
@@ -818,20 +920,53 @@ function clampCardPos(x, y) {
   };
 }
 
+function cardHouseholdKey(idx) {
+  const c = app.session?.cards?.[idx];
+  if (!c || c.kind === "event" || c.type === "イベント") return "";
+  return resolveCardGroupId(c, c.group);
+}
+
+function collectNextDrawIndices() {
+  const s = app.session;
+  if (!s || s.next >= s.cards.length) return [];
+  const first = s.next;
+  if (!app.settings.drawByHousehold) return [first];
+  const gid = cardHouseholdKey(first);
+  if (!gid) return [first];
+  const batch = [first];
+  let cursor = first + 1;
+  while (cursor < s.cards.length && cardHouseholdKey(cursor) === gid) {
+    batch.push(cursor);
+    cursor++;
+  }
+  return batch;
+}
+
 function drawCard() {
   const s = app.session;
-  if (s.next >= s.cards.length) {
+  const batch = collectNextDrawIndices();
+  if (batch.length === 0) {
     toast("山札のカードはすべて引きました", "info");
     return;
   }
   pushUndo();
-  const idx = s.next;
-  s.next++;
-  s.hand.push(idx);
-  renderHand(idx);
+  s.next += batch.length;
+  // renderHand() は [...s.hand].reverse() で先頭ほど左に並べるため、逆順で積んで世帯の先頭を左端へ出す
+  for (let i = batch.length - 1; i >= 0; i--) {
+    s.hand.push(batch[i]);
+  }
+  renderHand(batch);
   updateToolbar();
   saveSession();
-  if (app.settings.autoPreview) openPreview(idx, "hand");
+  schedulePrefetch(15);
+  if (app.settings.autoPreview) {
+    openPreview(batch[0], "hand");
+    if (batch.length > 1) {
+      toast(`同じ世帯の${batch.length}枚を手札に引きました（背景をタップして他のカードも見られます）`, "info", 3200);
+    }
+  } else if (batch.length > 1) {
+    toast(`同じ世帯の${batch.length}枚を手札に引きました`, "info", 2600);
+  }
 }
 
 function placeCard(idx, x, y, { focus = false } = {}) {
@@ -854,6 +989,7 @@ function placeCard(idx, x, y, { focus = false } = {}) {
   }
   selectCard(idx);
   if (focus) focusCard(idx);
+  schedulePrefetch(20);
   if (s.next >= s.cards.length && s.hand.length === 0) {
     toast("🎉 すべてのカードを配置しました。右上の「PDF」で保存できます", "success", 4200);
   }
@@ -886,6 +1022,7 @@ function resetAll() {
   updateToolbar();
   requestView();
   saveSession();
+  schedulePrefetch(20);
   toast("すべてのカードを山札に戻しました（↩で取り消せます）");
 }
 
@@ -969,12 +1106,17 @@ function renderHand(highlightIdx = null) {
   const hand = app.els.hand;
   if (!hand) return;
   const s = app.session;
+  const hiSet = new Set(
+    Array.isArray(highlightIdx) ? highlightIdx : highlightIdx != null ? [highlightIdx] : []
+  );
   hand.innerHTML = "";
   if (s.hand.length === 0) {
     const remaining = s.cards.length - s.next;
     hand.innerHTML = `<div class="bd-hand-empty">${
       remaining > 0
-        ? "「カードを引く」で山札から1枚引きます。<br />引いたカードはここに並び、<b>ドラッグで台紙へ</b>置けます。"
+        ? app.settings.drawByHousehold
+          ? "「カードを引く」で山札から世帯ごとに引きます。<br />引いたカードはここに並び、<b>ドラッグで台紙へ</b>置けます。"
+          : "「カードを引く」で山札から1枚引きます。<br />引いたカードはここに並び、<b>ドラッグで台紙へ</b>置けます。"
         : "山札も手札も空です。配置が終わったら <b>PDF</b> で保存できます。"
     }</div>`;
     return;
@@ -983,7 +1125,7 @@ function renderHand(highlightIdx = null) {
   for (const idx of order) {
     const info = cardInfo(idx);
     const item = document.createElement("div");
-    item.className = `bd-hand-card${idx === highlightIdx ? " is-new" : ""}`;
+    item.className = `bd-hand-card${hiSet.has(idx) ? " is-new" : ""}`;
     item.dataset.idx = String(idx);
     item.setAttribute("data-testid", `bd-hand-card-${info.no}`);
     item.setAttribute("role", "button");
@@ -1429,6 +1571,10 @@ function openMenu() {
          <button type="button" class="bd-btn" data-act="pdf">⬇ 配置をPDFでダウンロード</button>
          <button type="button" class="bd-btn" data-act="fit">⤢ 台紙全体を表示</button>
          <label class="bd-toggle-row">
+           <input type="checkbox" id="bd-menu-drawhousehold" data-testid="bd-menu-drawhousehold" ${app.settings.drawByHousehold ? "checked" : ""} />
+           <span>世帯ごとにまとめてカードを引く</span>
+         </label>
+         <label class="bd-toggle-row">
            <input type="checkbox" id="bd-menu-autopreview" data-testid="bd-menu-autopreview" ${app.settings.autoPreview ? "checked" : ""} />
            <span>引いたカードを大きく表示する</span>
          </label>
@@ -1443,6 +1589,11 @@ function openMenu() {
      </div>`,
     "bd-menu"
   );
+  ov.querySelector("#bd-menu-drawhousehold").addEventListener("change", (e) => {
+    app.settings.drawByHousehold = e.target.checked;
+    saveSettings();
+    renderHand();
+  });
   ov.querySelector("#bd-menu-autopreview").addEventListener("change", (e) => {
     app.settings.autoPreview = e.target.checked;
     saveSettings();
@@ -1466,7 +1617,7 @@ function openMenu() {
 
 const HOWTO_HTML = `
   <ul class="bd-howto-list">
-    <li><b>カードを引く</b>：左下の山札をタップ。引いたカードは手札に入ります。</li>
+    <li><b>カードを引く</b>：左下の山札をタップ。既定では世帯単位でまとめて手札に入り、先頭のカードが大きく表示されます（背景をタップすると手札の他のカードも確認できます）。</li>
     <li><b>台紙に置く</b>：手札のカードを台紙へドラッグ（スマホは上方向へ引き出す）。手札をタップして「中央に置く／空いている場所に置く」も可能です。</li>
     <li><b>動かす</b>：置いたカードをドラッグ。重ねて置いてもOK。タップで最前面へ、ダブルタップで拡大表示。</li>
     <li><b>拡大・縮小</b>：PCはマウスホイール、スマホは2本指ピンチ。空いた所をダブルタップでも拡大。</li>
@@ -1496,21 +1647,6 @@ function loadImage(url) {
     img.onerror = () => reject(new Error("画像の読み込みに失敗しました"));
     img.src = url;
   });
-}
-
-async function cardJpegBytes(idx) {
-  const model = getModel(idx);
-  const url = await generateCardImageCanvas(model, FIXED_DESIGN_MODE, { showNumber: true });
-  const img = await loadImage(url);
-  const c = document.createElement("canvas");
-  c.width = img.naturalWidth || 600;
-  c.height = img.naturalHeight || 993;
-  const ctx = c.getContext("2d");
-  ctx.fillStyle = "#ffffff";
-  ctx.fillRect(0, 0, c.width, c.height);
-  ctx.drawImage(img, 0, 0, c.width, c.height);
-  const blob = await new Promise((r) => c.toBlob(r, "image/jpeg", 0.9));
-  return new Uint8Array(await blob.arrayBuffer());
 }
 
 function captionPng(text) {
@@ -1569,10 +1705,16 @@ async function exportPdf() {
       maxY = Math.max(maxY, p.y + CARD_H / 2 + 10);
     }
     const capH = Math.max(14, geo.W * 0.012); // 下部の説明帯 (mm)
-    const K = PT_PER_MM;
+    const rawW = (maxX - minX) * PT_PER_MM;
+    const rawH = (maxY - minY + capH) * PT_PER_MM;
+    const userUnit = calcPdfUserUnit(rawW, rawH);
+    const K = PT_PER_MM / userUnit;
     const pageW = (maxX - minX) * K;
     const pageH = (maxY - minY + capH) * K;
     const page = doc.addPage([pageW, pageH]);
+    if (userUnit > 1 && window.PDFLib?.PDFName && window.PDFLib?.PDFNumber) {
+      page.node.set(window.PDFLib.PDFName.of("UserUnit"), window.PDFLib.PDFNumber.of(userUnit));
+    }
     const box = (x, y, w, h) => ({ x: (x - minX) * K, y: (maxY - (y + h) + capH) * K, width: w * K, height: h * K });
 
     page.drawRectangle({ x: 0, y: 0, width: pageW, height: pageH, color: rgb(1, 1, 1) });
@@ -1583,55 +1725,68 @@ async function exportPdf() {
 
     progText.textContent = "台紙を埋め込んでいます…";
     try {
+      if (!app.boardInfo?.bytes?.byteLength) throw new Error("PDFバイトが空です");
       const pageIndex = clamp((app.board.page || 1) - 1, 0, app.boardInfo.doc.numPages - 1);
       const [embedded] = await doc.embedPdf(app.boardInfo.bytes, [pageIndex]);
       page.drawPage(embedded, box(geo.pdf.x, geo.pdf.y, geo.pdf.w, geo.pdf.h));
     } catch {
       // 埋め込めないPDFは画像で代替
       const imgSource = app.baseOffscreen || app.els.baseCanvas;
-      const blob = await new Promise((r) => imgSource.toBlob(r, "image/jpeg", 0.92));
-      const jpg = await doc.embedJpg(new Uint8Array(await blob.arrayBuffer()));
+      const jpg = await doc.embedJpg(await canvasToJpegBytes(imgSource, 0.88));
       page.drawImage(jpg, box(0, 0, geo.W, geo.H));
     }
-    page.drawRectangle({ ...box(0, 0, geo.W, geo.H), borderColor: rgb(0.6, 0.6, 0.6), borderWidth: 0.8 });
+    page.drawRectangle({ ...box(0, 0, geo.W, geo.H), borderColor: rgb(0.6, 0.6, 0.6), borderWidth: Math.max(0.2, 0.8 / userUnit) });
 
+    const scratchCanvas = document.createElement("canvas");
+    const cardMaxWidth = placedEntries.length > 25 ? 420 : 540;
     let i = 0;
-    for (const p of placedEntries) {
-      i++;
-      progText.textContent = `カードを配置しています… ${i} / ${placedEntries.length}`;
-      const bytes = await cardJpegBytes(p.idx);
-      const img = await doc.embedJpg(bytes);
-      const b = box(p.x - CARD_W / 2, p.y - CARD_H / 2, CARD_W, CARD_H);
-      page.drawImage(img, b);
-      page.drawRectangle({ ...b, borderColor: rgb(0.35, 0.35, 0.35), borderWidth: 0.6 });
+    try {
+      for (const p of placedEntries) {
+        i++;
+        progText.textContent = `カードを配置しています… ${i} / ${placedEntries.length}`;
+        const url = await ensureCardUrl(p.idx);
+        const bytes = await imageUrlToJpegBytes(url, scratchCanvas, {
+          maxWidth: cardMaxWidth,
+          quality: 0.86,
+        });
+        const img = await doc.embedJpg(bytes);
+        const b = box(p.x - CARD_W / 2, p.y - CARD_H / 2, CARD_W, CARD_H);
+        page.drawImage(img, b);
+        page.drawRectangle({ ...b, borderColor: rgb(0.35, 0.35, 0.35), borderWidth: Math.max(0.15, 0.6 / userUnit) });
+      }
+    } finally {
+      scratchCanvas.width = 0;
+      scratchCanvas.height = 0;
     }
 
     const size = resolveSheetSize(s.sizeId);
     const stamp = `${now.getFullYear()}/${pad2(now.getMonth() + 1)}/${pad2(now.getDate())} ${pad2(now.getHours())}:${pad2(now.getMinutes())}`;
     const caption = `HUG 台紙配置シミュレーション　デッキ：${s.deckTitle}　台紙：${app.board?.name || ""}（${size.label} ${geo.W}×${geo.H}mm・カード55×91mm）　配置 ${placedEntries.length}/${s.cards.length}枚　出力 ${stamp}`;
     const cap = captionPng(caption);
+    const capW = cap.width || 2400;
+    const capHpx = cap.height || 68;
     const capBlob = await new Promise((r) => cap.toBlob(r, "image/png"));
     const capImg = await doc.embedPng(new Uint8Array(await capBlob.arrayBuffer()));
+    cap.width = 0;
+    cap.height = 0;
     const capDrawH = capH * 0.5 * K;
-    const capDrawW = Math.min((cap.width / cap.height) * capDrawH, pageW - 16 * K);
-    page.drawImage(capImg, { x: 8 * K, y: capH * 0.25 * K, width: capDrawW, height: (capDrawW / cap.width) * cap.height });
+    const capDrawW = Math.min((capW / capHpx) * capDrawH, pageW - 16 * K);
+    page.drawImage(capImg, { x: 8 * K, y: capH * 0.25 * K, width: capDrawW, height: (capDrawW / capW) * capHpx });
 
     progText.textContent = "ファイルを保存しています…";
     const out = await doc.save();
     const blob = new Blob([out], { type: "application/pdf" });
     const safeTitle = String(s.deckTitle).replace(/[\\/:*?"<>|\s]+/g, "_");
     const fname = `HUG台紙配置_${safeTitle}_${now.getFullYear()}${pad2(now.getMonth() + 1)}${pad2(now.getDate())}_${pad2(now.getHours())}${pad2(now.getMinutes())}.pdf`;
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = fname;
-    document.body.appendChild(a);
-    a.click();
-    setTimeout(() => {
-      URL.revokeObjectURL(a.href);
-      a.remove();
-    }, 4000);
     closeModal();
-    toast(`PDFを保存しました（${placedEntries.length}枚配置）`, "success");
+    const delivery = await deliverPdfBlob(blob, fname, {
+      subtitle: `${placedEntries.length}/${s.cards.length}枚配置`,
+    });
+    if (delivery.mode === "download") {
+      toast(`PDFを保存しました（${placedEntries.length}枚配置）`, "success");
+    } else {
+      toast(`PDFの準備ができました（保存ボタンをタップしてください）`, "success", 3200);
+    }
   } catch (err) {
     closeModal();
     toast(`PDFの作成に失敗しました: ${err?.message || err}`, "error", 5000);
@@ -1648,6 +1803,7 @@ function onResizeCaptureCenter() {
 }
 
 function leavePlay() {
+  stopPrefetch();
   closeModal();
   clearTimeout(detail.timer);
   detail.token++;
@@ -1673,6 +1829,9 @@ function leavePlay() {
   }
   app.els = {};
   app.cardEls.clear();
+  app.models.clear();
+  app.renderedUrls.clear();
+  app.renderPromises.clear();
   app.selected = null;
   document.body.classList.remove("is-playing");
   document.body.classList.add("is-setup");
@@ -1871,6 +2030,7 @@ async function startPlay(session) {
   }
   document.getElementById("bd-board-loading")?.remove();
   scheduleDetailRender();
+  schedulePrefetch(20);
   saveSession();
   if (Object.keys(session.placed).length === 0 && session.hand.length === 0) {
     toast("左下の山札をタップしてカードを引きましょう", "info", 3200);
