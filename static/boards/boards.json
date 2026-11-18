@@ -169,6 +169,12 @@
       "name": "花小金井南中学校 見取り図・凡例（1:200・1枚）",
       "file": "kodaira_hanakoganeiminami_jhs_floorplan_hug_1sheet.pdf",
       "page": 1
+    },
+    {
+      "id": "kodaira_sogo_gym_1sheet",
+      "name": "小平市民総合体育館 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_sogo_gym_floorplan_hug_1sheet.pdf",
+      "page": 1
     }
   ]
 }
