@@ -9,15 +9,165 @@
       "page": 1
     },
     {
+      "id": "kodaira_dai1_es_1sheet",
+      "name": "小平第一小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai1_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai2_es_1sheet",
+      "name": "小平第二小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai2_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai3_es_1sheet",
+      "name": "小平第三小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai3_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai4_es_1sheet",
+      "name": "小平第四小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai4_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
       "id": "kodaira_dai5_es_1sheet",
       "name": "小平第五小学校 見取り図・凡例（1:200・1枚）",
       "file": "kodaira_dai5_es_floorplan_hug_1sheet.pdf",
       "page": 1
     },
     {
+      "id": "kodaira_dai6_es_1sheet",
+      "name": "小平第六小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai6_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai7_es_1sheet",
+      "name": "小平第七小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai7_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai8_es_1sheet",
+      "name": "小平第八小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai8_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai9_es_1sheet",
+      "name": "小平第九小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai9_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai10_es_1sheet",
+      "name": "小平第十小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai10_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai11_es_1sheet",
+      "name": "小平第十一小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai11_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai12_es_1sheet",
+      "name": "小平第十二小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai12_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai13_es_1sheet",
+      "name": "小平第十三小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai13_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai14_es_1sheet",
+      "name": "小平第十四小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai14_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai15_es_1sheet",
+      "name": "小平第十五小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai15_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_hanakoganei_es_1sheet",
+      "name": "花小金井小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_hanakoganei_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_suzuki_es_1sheet",
+      "name": "鈴木小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_suzuki_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
       "id": "kodaira_gakuenhigashi_es_1sheet",
       "name": "学園東小学校 見取り図・凡例（1:200・1枚）",
       "file": "kodaira_gakuenhigashi_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_kamijuku_es_1sheet",
+      "name": "上宿小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_kamijuku_es_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai1_jhs_1sheet",
+      "name": "小平第一中学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai1_jhs_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai2_jhs_1sheet",
+      "name": "小平第二中学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai2_jhs_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai3_jhs_1sheet",
+      "name": "小平第三中学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai3_jhs_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai4_jhs_1sheet",
+      "name": "小平第四中学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai4_jhs_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai5_jhs_1sheet",
+      "name": "小平第五中学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai5_jhs_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_dai6_jhs_1sheet",
+      "name": "小平第六中学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai6_jhs_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_josui_jhs_1sheet",
+      "name": "上水中学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_josui_jhs_floorplan_hug_1sheet.pdf",
+      "page": 1
+    },
+    {
+      "id": "kodaira_hanakoganeiminami_jhs_1sheet",
+      "name": "花小金井南中学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_hanakoganeiminami_jhs_floorplan_hug_1sheet.pdf",
       "page": 1
     }
   ]
