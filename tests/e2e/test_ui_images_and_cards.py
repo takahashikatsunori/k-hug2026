@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import base64
 from pathlib import Path
+import struct
 
 from playwright.sync_api import expect
 import pytest
@@ -1123,6 +1124,98 @@ def test_event_fixed_two_line_title_and_catalog_fit(page, e2e_server) -> None:
         if len(lines) == 2:
             assert not lines[0].endswith(("（", "(")), f"{cid} dangling (: {lines}"
             assert not lines[1].startswith(("）", ")", "・")), f"{cid} bad line2 start: {lines}"
+
+
+def _assert_valid_you_card_png(png_path: Path) -> None:
+    raw = png_path.read_bytes()
+    assert raw[:8] == b"\x89PNG\r\n\x1a\n"
+    assert raw[12:16] == b"IHDR"
+    width, height = struct.unpack(">II", raw[16:24])
+    assert (width, height) == (600, 993)
+
+
+def test_cv_12_you_card_canvas_and_downloads(page, e2e_server, tmp_path: Path) -> None:
+    """CV-12: 「あなた」カードはDB/デッキ非依存で600×993 PNGを描画し、各管理画面・Web版からダウンロードできる."""
+    page.goto(e2e_server["base_url"])
+
+    canvas_info = page.evaluate(
+        """async () => {
+            const { generateYouCardImageCanvas } = await import('/static/js/cardCanvas.js');
+            const dataUrl = generateYouCardImageCanvas();
+            return new Promise((resolve, reject) => {
+                const img = new Image();
+                img.onload = () => {
+                    const c = document.createElement('canvas');
+                    c.width = img.width;
+                    c.height = img.height;
+                    const ctx = c.getContext('2d');
+                    ctx.drawImage(img, 0, 0);
+                    resolve({
+                        isPngDataUrl: dataUrl.startsWith('data:image/png;base64,'),
+                        width: img.width,
+                        height: img.height,
+                        borderPx: Array.from(ctx.getImageData(15, 400, 1, 1).data),
+                        topLeftBlankPx: Array.from(ctx.getImageData(40, 40, 1, 1).data),
+                        skillBgPx: Array.from(ctx.getImageData(400, 700, 1, 1).data),
+                    });
+                };
+                img.onerror = reject;
+                img.src = dataUrl;
+            });
+        }"""
+    )
+    assert canvas_info["isPngDataUrl"] is True
+    assert canvas_info["width"] == 600 and canvas_info["height"] == 993
+    assert canvas_info["borderPx"][:3] == [59, 130, 246]
+    assert canvas_info["topLeftBlankPx"][:3] == [255, 255, 255]
+    assert canvas_info["skillBgPx"][:3] == [240, 253, 244]
+
+    # DB が空の状態で「イラスト管理」タブからダウンロードしてもDB件数は0のまま
+    page.get_by_test_id("tab-images").click()
+    expect(page.get_by_test_id("download-you-card-btn")).to_be_visible()
+    with page.expect_download() as dl_img_info:
+        page.get_by_test_id("download-you-card-btn").click()
+    dl_img = dl_img_info.value
+    assert dl_img.suggested_filename == "hug-card-you.png"
+    img_tab_png = tmp_path / "you_images_tab.png"
+    dl_img.save_as(str(img_tab_png))
+    _assert_valid_you_card_png(img_tab_png)
+
+    for test_id in ("hdr-count-events", "hdr-count-households", "hdr-count-persons", "hdr-count-pets"):
+        expect(page.get_by_test_id(test_id)).to_have_text("0")
+
+    # DB・デッキが空 (0枚) の状態で「デッキ構築」タブからダウンロードできること
+    page.get_by_test_id("tab-deck").click()
+    expect(page.get_by_test_id("deck-stat-total-cards")).to_have_text("0枚")
+    expect(page.get_by_test_id("export-you-card-png-btn")).to_be_visible()
+    with page.expect_download() as dl_deck_info:
+        page.get_by_test_id("export-you-card-png-btn").click()
+    dl_deck = dl_deck_info.value
+    assert dl_deck.suggested_filename == "hug-card-you.png"
+    deck_tab_png = tmp_path / "you_deck_tab.png"
+    dl_deck.save_as(str(deck_tab_png))
+    _assert_valid_you_card_png(deck_tab_png)
+    expect(page.get_by_test_id("deck-stat-total-cards")).to_have_text("0枚")
+
+    # Web版 (/deck.html) でもデッキ0枚から単独で「あなたカード画像 PNG 保存」できること
+    page.set_viewport_size({"width": 1280, "height": 800})
+    page.goto(f"{e2e_server['base_url']}/deck.html")
+    page.evaluate("localStorage.clear()")
+    page.reload()
+    page.wait_for_selector("[data-testid='wd-workspace-toolbar']")
+    page.get_by_test_id("wd-clear-deck-btn").click()
+    expect(page.get_by_test_id("wd-hdr-total")).to_have_text("0枚")
+
+    page.get_by_test_id("wd-step-export").click()
+    expect(page.get_by_test_id("wd-dl-you-card-png-btn")).to_be_visible()
+    with page.expect_download() as dl_web_info:
+        page.get_by_test_id("wd-dl-you-card-png-btn").click()
+    dl_web = dl_web_info.value
+    assert dl_web.suggested_filename == "hug-card-you.png"
+    web_png = tmp_path / "you_web_deck.png"
+    dl_web.save_as(str(web_png))
+    _assert_valid_you_card_png(web_png)
+    expect(page.get_by_test_id("wd-hdr-total")).to_have_text("0枚")
 
 
 

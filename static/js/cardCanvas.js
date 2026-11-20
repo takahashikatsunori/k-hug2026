@@ -235,6 +235,7 @@ const cardImageCache = new Map();
 const baseCardCanvasCache = new Map();
 const baseCardDataUrlCache = new Map();
 const loadedImageElementCache = new Map();
+let youCardDataUrlCache = null;
 
 const MAX_CANVAS_CACHE_ENTRIES = 36;
 const MAX_IMAGE_ELEMENT_CACHE_ENTRIES = 48;
@@ -271,6 +272,7 @@ export function clearCardImageCache() {
   baseCardCanvasCache.clear();
   baseCardDataUrlCache.clear();
   loadedImageElementCache.clear();
+  youCardDataUrlCache = null;
 }
 
 /**
@@ -1859,6 +1861,237 @@ export const generateCardImageCanvas = async (
   );
   return finalDataUrl;
 };
+
+/**
+ * 訓練参加者自身を表す手書き用「あなた」カード (600×993px) を Canvas に描画する.
+ * DB・デッキには登録せず、配布・手書き用途の単体PNG画像出力に使用する.
+ * @returns {HTMLCanvasElement}
+ */
+export function renderYouCardCanvas() {
+  const canvas = document.createElement("canvas");
+  const ctx = canvas.getContext("2d");
+  if (!ctx) throw new Error("Canvas not supported");
+
+  const width = CARD_CANVAS_WIDTH;
+  const height = CARD_CANVAS_HEIGHT;
+  canvas.width = width;
+  canvas.height = height;
+
+  // 1. Background
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(0, 0, width, height);
+
+  // 2. Outer Border
+  ctx.save();
+  ctx.strokeStyle = "#3b82f6";
+  ctx.lineWidth = 6;
+  ctx.strokeRect(15, 15, width - 30, height - 30);
+  ctx.restore();
+
+  // 3. Top-left (No. area) is intentionally left blank
+
+  // 4. Top-right badge ("避難者")
+  ctx.save();
+  ctx.fillStyle = "#dbeafe";
+  drawRoundRect(ctx, width - 150, 25, 120, 42, 21);
+  ctx.fill();
+  ctx.fillStyle = "#1d4ed8";
+  ctx.font = "bold 24px sans-serif";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("避難者", width - 90, 54);
+  ctx.restore();
+
+  // 5. Household group banner ("グループ：" at start, no headcount pill)
+  ctx.save();
+  ctx.fillStyle = "#eff6ff";
+  drawRoundRect(ctx, 35, 74, width - 70, 74, 8);
+  ctx.fill();
+  ctx.strokeStyle = "#60a5fa";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  drawRoundRect(ctx, 35, 74, width - 70, 74, 8);
+  ctx.clip();
+  ctx.fillStyle = "#1d4ed8";
+  ctx.fillRect(35, 74, 8, 74);
+  ctx.restore();
+
+  ctx.save();
+  ctx.fillStyle = "#1e3a8a";
+  ctx.font = "bold 28px sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "middle";
+  ctx.fillText("グループ：", 55, 112);
+  ctx.restore();
+
+  // 6. Name area (underline + "さん" at right end)
+  ctx.save();
+  ctx.strokeStyle = "#94a3b8";
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  ctx.moveTo(35, 212);
+  ctx.lineTo(width - 35, 212);
+  ctx.stroke();
+
+  ctx.fillStyle = "#334155";
+  ctx.font = "bold 36px sans-serif";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("さん", width - 38, 204);
+  ctx.restore();
+
+  // 7. Illustration frame (square-cornered rectangle only, blank) + Age & Gender pills
+  ctx.save();
+  ctx.fillStyle = "#ffffff";
+  ctx.fillRect(35, 224, 420, 300);
+  ctx.strokeStyle = "#94a3b8";
+  ctx.lineWidth = 2;
+  ctx.strokeRect(35, 224, 420, 300);
+  ctx.restore();
+
+  // Age pill ("歳" right-aligned, left side blank for handwriting)
+  ctx.save();
+  ctx.fillStyle = "#f1f5f9";
+  drawRoundRect(ctx, 465, 316, 100, 48, 6);
+  ctx.fill();
+  ctx.strokeStyle = "#cbd5e1";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.fillStyle = "#334155";
+  ctx.font = "bold 32px sans-serif";
+  ctx.textAlign = "right";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("歳", 557, 351);
+  ctx.restore();
+
+  // Gender pill (blank)
+  ctx.save();
+  ctx.fillStyle = "#f1f5f9";
+  drawRoundRect(ctx, 465, 384, 100, 48, 6);
+  ctx.fill();
+  ctx.strokeStyle = "#cbd5e1";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+  ctx.restore();
+
+  // 8. Address pill ("町" around center, "丁目" at right end)
+  ctx.save();
+  ctx.fillStyle = "#f1f5f9";
+  drawRoundRect(ctx, 35, 529, 420, 50, 6);
+  ctx.fill();
+  ctx.strokeStyle = "#cbd5e1";
+  ctx.lineWidth = 1.5;
+  ctx.stroke();
+
+  ctx.fillStyle = "#334155";
+  ctx.font = "bold 30px sans-serif";
+  ctx.textBaseline = "middle";
+  ctx.textAlign = "center";
+  ctx.fillText("町", 265, 555);
+  ctx.textAlign = "right";
+  ctx.fillText("丁目", 445, 555);
+  ctx.restore();
+
+  // 9. Attributes row ("属性: あなた")
+  ctx.save();
+  ctx.font = "bold 36px sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillStyle = "#94a3b8";
+  ctx.fillText("属性:", 35, 618);
+  const labelWidth = ctx.measureText("属性:").width;
+  ctx.fillStyle = "#334155";
+  ctx.fillText("あなた", 35 + labelWidth + 15, 618);
+  ctx.restore();
+
+  // 10. Skill write-in box (minimal "スキル" tag only)
+  ctx.save();
+  ctx.fillStyle = "#f0fdf4";
+  drawRoundRect(ctx, 35, 636, width - 70, 112, 8);
+  ctx.fill();
+  ctx.strokeStyle = "#86efac";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+
+  ctx.font = "bold 22px sans-serif";
+  const tw = ctx.measureText("スキル").width;
+  const tagX = 45;
+  const tagY = 646;
+  const tagW = Math.ceil(tw + 20);
+  const tagH = 32;
+  ctx.fillStyle = "#dcfce7";
+  drawRoundRect(ctx, tagX, tagY, tagW, tagH, 6);
+  ctx.fill();
+  ctx.fillStyle = "#166534";
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.fillText("スキル", tagX + tagW / 2, tagY + tagH / 2 + 1);
+  ctx.restore();
+
+  // 11. Lower description box (blank)
+  ctx.save();
+  ctx.fillStyle = "#f8fafc";
+  drawRoundRect(ctx, 35, 762, width - 70, height - 762 - 46, 8);
+  ctx.fill();
+  ctx.strokeStyle = "#cbd5e1";
+  ctx.lineWidth = 2;
+  ctx.stroke();
+  ctx.restore();
+
+  // 12. Footer (bottom-left credit only)
+  ctx.save();
+  ctx.fillStyle = "#64748b";
+  ctx.font = "bold 17px sans-serif";
+  ctx.textAlign = "left";
+  ctx.textBaseline = "alphabetic";
+  ctx.fillText("こだいらSVCs 2026", 26, height - 23);
+  ctx.restore();
+
+  return canvas;
+}
+
+/**
+ * 「あなた」カード完成画像 (600×993px PNG DataURL) を生成・キャッシュして返す.
+ * @returns {string}
+ */
+export function generateYouCardImageCanvas() {
+  if (youCardDataUrlCache) {
+    return youCardDataUrlCache;
+  }
+  const canvas = renderYouCardCanvas();
+  youCardDataUrlCache = canvas.toDataURL("image/png");
+  return youCardDataUrlCache;
+}
+
+/**
+ * 「あなた」カードの PNG 画像を生成してブラウザからダウンロードさせる.
+ * @param {string} [filename="hug-card-you.png"]
+ * @returns {Promise<{ blob: Blob, filename: string }>}
+ */
+export async function downloadYouCardPng(filename = "hug-card-you.png") {
+  const canvas = renderYouCardCanvas();
+  let blob = await new Promise((resolve) => {
+    if (typeof canvas.toBlob === "function") {
+      canvas.toBlob((b) => resolve(b), "image/png");
+    } else {
+      resolve(null);
+    }
+  });
+  if (!blob) {
+    const dataUrl = canvas.toDataURL("image/png");
+    youCardDataUrlCache = dataUrl;
+    const base64 = dataUrl.split(",")[1] || "";
+    const binStr = atob(base64);
+    const bytes = new Uint8Array(binStr.length);
+    for (let i = 0; i < binStr.length; i++) {
+      bytes[i] = binStr.charCodeAt(i);
+    }
+    blob = new Blob([bytes], { type: "image/png" });
+  }
+  triggerBlobDownload(blob, filename);
+  return { blob, filename };
+}
 
 /**
  * k-hug2026 のイベント・構成員レコードまたはデッキカードオブジェクトを HugCard 描画モデルへ変換する.

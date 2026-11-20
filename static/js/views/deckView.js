@@ -20,6 +20,7 @@ import {
   printMasterLedger,
   exportCardsAsPdf,
   exportCardsAsZip,
+  downloadYouCardPng,
 } from "../cardCanvas.js";
 import { importDeckFromJsonText } from "../webDeckEngine.js";
 
@@ -260,6 +261,15 @@ export async function renderDeckView(container) {
             </button>
             <button type="button" class="btn btn-sm" id="print-deck-ledger-btn" data-testid="print-deck-ledger-btn">
               台帳を印刷
+            </button>
+            <button
+              type="button"
+              class="btn btn-sm"
+              id="export-you-card-png-btn"
+              data-testid="export-you-card-png-btn"
+              title="訓練参加者自身を表す手書き用「あなた」カード画像 (600×993px PNG) をダウンロードします（デッキ・DBには含まれません）"
+            >
+              あなたカード画像(PNG)
             </button>
             <span id="deck-export-progress-wrap" data-testid="deck-export-progress-wrap" style="display:none;align-items:center;gap:0.4rem;">
               <strong id="deck-export-progress-text" data-testid="deck-export-progress-text">0 / 0</strong>
@@ -927,6 +937,23 @@ export async function renderDeckView(container) {
         return;
       }
       printMasterLedger(renderCards);
+    });
+
+  container
+    .querySelector("#export-you-card-png-btn")
+    .addEventListener("click", async () => {
+      try {
+        await downloadYouCardPng("hug-card-you.png");
+        showToast(
+          "「あなた」カード画像 (hug-card-you.png) をダウンロードしました",
+          "success"
+        );
+      } catch (err) {
+        showToast(
+          (err && err.message) || "あなたカード画像の出力に失敗しました",
+          "error"
+        );
+      }
     });
 
   // 閲覧モード起動 (UI-21)

@@ -17,6 +17,7 @@ import {
   printMasterLedger,
   exportCardsAsPdf,
   exportCardsAsZip,
+  downloadYouCardPng,
 } from "./cardCanvas.js";
 import {
   RELATIVE_TIMING_LIST,
@@ -2363,6 +2364,15 @@ function renderExportAndLedgerSection(container) {
           <button type="button" class="btn btn-secondary btn-sm" id="wd-dl-zip-btn" data-testid="wd-dl-zip-btn">
             🗂️ カード画像一覧 ZIP 保存
           </button>
+          <button
+            type="button"
+            class="btn btn-sm"
+            id="wd-dl-you-card-png-btn"
+            data-testid="wd-dl-you-card-png-btn"
+            title="訓練参加者自身を表す手書き用「あなた」カード画像 (600×993px PNG) をダウンロードします（デッキ・DBには含まれません）"
+          >
+            🪪 あなたカード画像 PNG 保存
+          </button>
           <span id="wd-export-progress-wrap" data-testid="wd-export-progress-wrap" style="display:none;align-items:center;gap:0.4rem;">
             <strong id="wd-export-progress-text">0 / 0</strong>
             <button type="button" class="btn btn-xs btn-danger" id="wd-cancel-export-btn">中断</button>
@@ -2546,6 +2556,15 @@ function renderExportAndLedgerSection(container) {
     } finally {
       state.activeExportSignal = null;
       progWrap.style.display = "none";
+    }
+  });
+
+  container.querySelector("#wd-dl-you-card-png-btn").addEventListener("click", async () => {
+    try {
+      await downloadYouCardPng("hug-card-you.png");
+      showToast("「あなた」カード画像 (hug-card-you.png) をダウンロードしました", "success");
+    } catch (err) {
+      showToast((err && err.message) || "あなたカード画像の出力に失敗しました", "error");
     }
   });
 

@@ -8,6 +8,7 @@ import {
   sliceGridImage,
   renderCardPreviewElement,
   clearCardImageCache,
+  downloadYouCardPng,
 } from "../cardCanvas.js";
 import { showToast } from "../components/toast.js";
 
@@ -96,6 +97,9 @@ export async function renderImageView(container) {
             </button>
             <button type="button" class="btn btn-sm" id="export-images-zip-btn" data-testid="export-images-zip-btn" title="全個別イラスト (EV-001.png, M-0001.png...) をZIP出力します">
               ⬇ イラストZIP出力
+            </button>
+            <button type="button" class="btn btn-sm" id="download-you-card-btn" data-testid="download-you-card-btn" title="訓練参加者自身を表す手書き用「あなた」カード画像 (600×993px PNG) をダウンロードします（DBには登録されません）">
+              ⬇ あなたカード画像(PNG)
             </button>
             <label class="btn btn-sm" style="cursor:pointer; margin:0;">
               ⬆ イラストZIP取込
@@ -825,6 +829,23 @@ export async function renderImageView(container) {
           triggerBlobDownload(blob, "hug_card_images.zip");
         } catch (err) {
           showToast(err.detail || "イラストZIP出力に失敗しました", "error");
+        }
+      });
+
+    container
+      .querySelector("#download-you-card-btn")
+      .addEventListener("click", async () => {
+        try {
+          await downloadYouCardPng("hug-card-you.png");
+          showToast(
+            "「あなた」カード画像 (hug-card-you.png) をダウンロードしました",
+            "success"
+          );
+        } catch (err) {
+          showToast(
+            (err && err.message) || "あなたカード画像の出力に失敗しました",
+            "error"
+          );
         }
       });
 
