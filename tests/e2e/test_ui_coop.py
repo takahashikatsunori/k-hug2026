@@ -21,6 +21,7 @@ def test_coop_admin_and_multi_member_realtime_sync_and_qr_pdf(context, e2e_serve
 
     admin_page.goto(f"{e2e_server['base_url']}/admin.html?localSync=1")
     expect(admin_page.get_by_test_id("admin-setup")).to_be_visible()
+    expect(admin_page.get_by_test_id("ad-board")).to_have_value("kodaira_dai5_es_1sheet")
 
     # 任意サイズ(10x)を設定して開始
     admin_page.get_by_test_id("ad-size-custom").click()

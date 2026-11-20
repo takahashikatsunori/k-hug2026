@@ -67,7 +67,7 @@ def _assert_no_horizontal_overflow(page) -> None:
 
 
 def test_board_setup_smartphone_and_url_params_with_relative_scale(page, e2e_server):
-    """スマホ(390x844)でURLパラメータ直リンクが開け、5小トリアージ図と縦横4倍/8倍/16倍の相対サイズ比が正しく適用される."""
+    """スマホ(390x844)でURLパラメータ直リンクが開け、小平第五小学校見取り図と縦横4倍/8倍/16倍の相対サイズ比が正しく適用される."""
     page.set_viewport_size({"width": 390, "height": 844})
     encoded_deck = urllib.parse.quote("基本セット")
     page.goto(f"{e2e_server['base_url']}/board.html?deck={encoded_deck}&size=4x")
@@ -75,13 +75,14 @@ def test_board_setup_smartphone_and_url_params_with_relative_scale(page, e2e_ser
     setup_view = page.get_by_test_id("bd-setup-view")
     expect(setup_view).to_be_visible()
     expect(page.get_by_test_id("bd-deck-summary")).to_contain_text("基本セット")
-    expect(page.get_by_test_id("bd-board-opt-goshou_triage_20260716")).to_have_class(
+    expect(page.get_by_test_id("bd-board-opt-goshou_triage_20260716")).to_have_count(0)
+    expect(page.get_by_test_id("bd-board-opt-kodaira_dai5_es_1sheet")).to_have_class(
         re.compile(r"\bactive\b")
     )
     expect(page.get_by_test_id("bd-size-4x")).to_have_class(re.compile(r"\bactive\b"))
 
     # サムネイルキャンバスが白紙でない（描画完了）ことを確認
-    thumb_canvas = page.locator('[data-testid="bd-board-opt-goshou_triage_20260716"] canvas')
+    thumb_canvas = page.locator('[data-testid="bd-board-opt-kodaira_dai5_es_1sheet"] canvas')
     expect(thumb_canvas).to_have_class(re.compile(r"\bis-ready\b"))
     has_ink = thumb_canvas.evaluate(
         """(c) => {
@@ -299,9 +300,9 @@ def test_board_custom_pdf_upload_and_github_pages_share_modal(page, e2e_server):
     page.goto(f"{e2e_server['base_url']}/board.html")
     expect(page.get_by_test_id("bd-setup-view")).to_be_visible()
 
-    sample_pdf = Path("static/boards/goshou_triage_20260716.pdf").resolve()
+    sample_pdf = Path("static/boards/kodaira_dai5_es_floorplan_hug_1sheet.pdf").resolve()
     page.get_by_test_id("bd-pdf-upload-input").set_input_files(str(sample_pdf))
-    expect(page.locator(".bd-board-opt.active")).to_contain_text("goshou_triage_20260716")
+    expect(page.locator(".bd-board-opt.active")).to_contain_text("kodaira_dai5_es_floorplan_hug_1sheet")
 
     # 2. DB管理ツールでデモ読込→保存→共有モーダルで台紙配置訓練URLへ切替
     page.goto(e2e_server["base_url"])

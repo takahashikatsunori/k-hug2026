@@ -25,6 +25,7 @@ import {
 import {
   loadCardDatabase,
   loadBoardManifest,
+  resolveDefaultBoard,
   fetchSavedDecks,
   buildDeckFromSaved,
   buildDeckFromLocalWebDeck,
@@ -2074,7 +2075,7 @@ function renderSetup() {
   document.body.classList.remove("is-playing");
   const saved = readSavedSession();
   const st = app.setup;
-  if (!st.boardId && app.boards[0]) st.boardId = app.boards[0].id;
+  if (!st.boardId) st.boardId = resolveDefaultBoard(app.boards)?.id || "";
 
   let resumeHtml = "";
   if (saved) {

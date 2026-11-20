@@ -5,6 +5,7 @@
 import {
   loadCardDatabase,
   loadBoardManifest,
+  resolveDefaultBoard,
   fetchSavedDecks,
   buildDeckFromSaved,
   buildDeckFromJsonText,
@@ -659,7 +660,7 @@ function renderConsole() {
   const room = app.room;
   if (!root || !room) return;
   const sizeObj = resolveSheetSize(room.meta.sizeId);
-  const board = app.boards.find((b) => b.id === room.meta.boardId) || app.boards[0];
+  const board = app.boards.find((b) => b.id === room.meta.boardId) || resolveDefaultBoard(app.boards);
 
   root.innerHTML = `
     <header class="co-header" id="ad-console">
@@ -913,7 +914,7 @@ async function boot() {
   app.db = await loadCardDatabase();
   app.boards = await loadBoardManifest();
   app.decks = await fetchSavedDecks(app.db);
-  app.setup.boardId = app.boards[0]?.id || "";
+  app.setup.boardId = resolveDefaultBoard(app.boards)?.id || "";
 
   const params = new URLSearchParams(window.location.search);
   const roomParam = params.get("room");

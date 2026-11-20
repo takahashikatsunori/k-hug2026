@@ -2,7 +2,7 @@
  * メンバー用入り口 ＆ 共有台紙画面 (coop.html).
  * こだいらSVCs マルチユーザーHUG台紙シミュレーション.
  */
-import { loadBoardManifest, loadCardDatabase } from "./boardDeckLoader.js";
+import { loadBoardManifest, loadCardDatabase, resolveDefaultBoard } from "./boardDeckLoader.js";
 import { renderQrToCanvas, downloadQrPng } from "./qrCode.js";
 import { createSyncAdapter, roundCoord } from "./syncAdapter.js";
 import { t, LANG_MODES } from "./coopI18n.js";
@@ -283,7 +283,7 @@ async function renderPdfTakeHomeView() {
   bindLangToggle(renderPdfTakeHomeView);
   document.getElementById("co-dl-pdf-btn").addEventListener("click", async () => {
     const prog = document.getElementById("co-pdf-progress");
-    const board = app.boards.find((b) => b.id === room.meta.boardId) || app.boards[0];
+    const board = app.boards.find((b) => b.id === room.meta.boardId) || resolveDefaultBoard(app.boards);
     const tmpStage = createBoardStage({
       stageEl: document.createElement("div"),
       baseCanvasEl: document.createElement("canvas"),
@@ -345,7 +345,7 @@ function renderPlayShell() {
   const g = room?.groups?.[app.groupId];
   if (!root || !room || !g) return;
 
-  const board = app.boards.find((b) => b.id === room.meta.boardId) || app.boards[0];
+  const board = app.boards.find((b) => b.id === room.meta.boardId) || resolveDefaultBoard(app.boards);
 
   root.innerHTML = `
     <div class="co-play" data-testid="coop-play-view">
@@ -735,7 +735,7 @@ function openMenuModal() {
     }
     if (e.target.closest('[data-act="pdf"]')) {
       back.remove();
-      const board = app.boards.find((b) => b.id === app.room.meta.boardId) || app.boards[0];
+      const board = app.boards.find((b) => b.id === app.room.meta.boardId) || resolveDefaultBoard(app.boards);
       await exportBoardToPdf({
         boardInfo: app.stage.state.boardInfo,
         geo: app.stage.state.geo,

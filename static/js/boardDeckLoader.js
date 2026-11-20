@@ -47,6 +47,14 @@ export async function loadCardDatabase() {
   return null;
 }
 
+export const DEFAULT_BOARD_ID = "kodaira_dai5_es_1sheet";
+
+/** デフォルト台紙（小平第五小学校 見取り図・凡例）を解決する. */
+export function resolveDefaultBoard(boards) {
+  if (!Array.isArray(boards) || boards.length === 0) return null;
+  return boards.find((b) => b.id === DEFAULT_BOARD_ID) || boards[0];
+}
+
 /** 台紙マニフェスト (static/boards/boards.json) を読み込む. */
 export async function loadBoardManifest() {
   try {
@@ -67,11 +75,10 @@ export async function loadBoardManifest() {
   }
   return [
     {
-      id: "goshou_triage_20260716",
-      name: "5小トリアージ図（2026/07/16修正）",
-      file: "goshou_triage_20260716.pdf",
-      url: "./static/boards/goshou_triage_20260716.pdf",
-      fallbackUrl: "./docs/20260716修正　5小トリアージ図.pdf",
+      id: DEFAULT_BOARD_ID,
+      name: "小平第五小学校 見取り図・凡例（1:200・1枚）",
+      file: "kodaira_dai5_es_floorplan_hug_1sheet.pdf",
+      url: "./static/boards/kodaira_dai5_es_floorplan_hug_1sheet.pdf",
       page: 1,
     },
   ];

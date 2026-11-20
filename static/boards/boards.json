@@ -2,10 +2,9 @@
   "_comment": "台紙(PDF)の一覧。新しい台紙を追加するときは、PDFをこのフォルダ(static/boards/)に置き、下の配列に1件追加してください。page は使用するページ番号(1始まり)です。",
   "boards": [
     {
-      "id": "goshou_triage_20260716",
-      "name": "5小トリアージ図（2026/07/16修正）",
-      "file": "goshou_triage_20260716.pdf",
-      "fallbackUrl": "./docs/20260716修正　5小トリアージ図.pdf",
+      "id": "kodaira_dai5_es_1sheet",
+      "name": "小平第五小学校 見取り図・凡例（1:200・1枚）",
+      "file": "kodaira_dai5_es_floorplan_hug_1sheet.pdf",
       "page": 1
     },
     {
@@ -30,12 +29,6 @@
       "id": "kodaira_dai4_es_1sheet",
       "name": "小平第四小学校 見取り図・凡例（1:200・1枚）",
       "file": "kodaira_dai4_es_floorplan_hug_1sheet.pdf",
-      "page": 1
-    },
-    {
-      "id": "kodaira_dai5_es_1sheet",
-      "name": "小平第五小学校 見取り図・凡例（1:200・1枚）",
-      "file": "kodaira_dai5_es_floorplan_hug_1sheet.pdf",
       "page": 1
     },
     {
